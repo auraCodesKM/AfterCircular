@@ -54,13 +54,6 @@
   z-index: -1;
   display: none;
 }
-.filter-defs {
-  position: absolute;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-}
-
 .masthead,
 .cards {
   width: min(100%, var(--content-max));

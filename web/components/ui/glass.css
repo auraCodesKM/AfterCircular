@@ -2,6 +2,12 @@
    Glass surfaces — same rim, sheen and grain as the hero cards, in five tones.
    Requires #cardNoise from <FilterDefs /> to be present on the page.
    ========================================================================== */
+.filter-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
 .glass {
   min-width: 0;
   position: relative;

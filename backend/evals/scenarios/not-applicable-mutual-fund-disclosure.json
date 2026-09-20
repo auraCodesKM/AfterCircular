@@ -1,0 +1,23 @@
+{
+  "id": "not-applicable-mutual-fund-disclosure",
+  "description": "Fictional circular addressed to asset management companies; Acme is a stock broker.",
+  "document_file": "../../data/snapshot/demo-016-mutual-fund-expense-disclosure.json",
+  "expected": {"applicability": "NO", "alignment": null, "affected_policies": [], "policy_evidence_sections": [], "min_obligations": 1},
+  "fixtures": {
+    "extraction": {
+      "regulator": "SEBI", "circular_number": "DEMO/SEBI/HO/IMD/CIR/2026/016", "published_date": "2026-09-17", "effective_date": "2026-11-01",
+      "applies_to": ["mutual funds", "asset management companies", "trustee companies"],
+      "summary": "Asset management companies must publish scheme total expense ratios daily and notify unit holders three working days before any change to the base TER.",
+      "obligations": [
+        {"requirement": "Disclose each scheme's total expense ratio daily on the AMC and AMFI websites.", "affected_area": "reporting", "deadline": "2026-11-01", "evidence": {"section": "1", "text": "Asset management companies shall disclose the total expense ratio of each scheme on a daily basis on their websites and on the website of the Association of Mutual Funds in India"}},
+        {"requirement": "Notify unit holders at least three working days before changing the base total expense ratio.", "affected_area": "reporting", "deadline": "three working days in advance", "evidence": {"section": "2", "text": "Any change in the base total expense ratio shall be communicated to unit holders at least three working days in advance by email or SMS."}}
+      ]
+    },
+    "impact": {
+      "applicability": "NO", "alignment": null, "affected_policies": [],
+      "reason": "The circular addresses mutual funds and asset management companies. Acme is a SEBI-registered stock broker with no mutual fund or AMC registration and does not manage schemes.",
+      "regulatory_evidence": [{"section": "3", "text": "This circular applies to all mutual funds and asset management companies"}],
+      "policy_evidence": [], "effective_date": "2026-11-01", "recommended_action": null, "confidence": 0.95
+    }
+  }
+}

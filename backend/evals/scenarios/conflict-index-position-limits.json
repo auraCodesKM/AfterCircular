@@ -1,0 +1,61 @@
+{
+  "id": "conflict-index-position-limits",
+  "description": "Fictional circular revises index-derivative client limits and demands a 30-day policy update; POL-001 §4.1 fixes the old caps and reviews annually.",
+  "document_file": "../../data/snapshot/demo-014-index-position-limits.json",
+  "expected": {
+    "applicability": "YES",
+    "alignment": "CONFLICT",
+    "affected_policies": ["POL-001"],
+    "policy_evidence_sections": ["POL-001 §4.1"],
+    "min_obligations": 3
+  },
+  "fixtures": {
+    "extraction": {
+      "regulator": "SEBI",
+      "circular_number": "DEMO/SEBI/HO/MRD/POD-1/CIR/2026/014",
+      "published_date": "2026-09-15",
+      "effective_date": "2026-10-15",
+      "applies_to": ["stock brokers", "clearing members", "recognised stock exchanges", "clearing corporations"],
+      "summary": "Raises client-level index derivative position limits to the higher of Rs. 1,500 crore or 15% of open interest, links limits to client net worth, and requires stock brokers to review internal limit policies at least every six months and within 30 days of any revising circular.",
+      "obligations": [
+        {"requirement": "Apply a client-level gross position limit for index futures and options of the higher of Rs. 1,500 crore notional or 15% of open interest.", "affected_area": "position_limits", "deadline": "2026-10-15", "evidence": {"section": "2.1", "text": "the client-level gross position limit for index futures and index options shall be the higher of Rs. 1,500 crore notional or 15 percent of the total open interest in the underlying index, in place of the existing Rs. 500 crore notional or 15 percent of open interest."}},
+        {"requirement": "Set the near-month index options net limit at Rs. 500 crore notional.", "affected_area": "position_limits", "deadline": "2026-10-15", "evidence": {"section": "2.2", "text": "The net position limit in near-month index options at the client level shall be Rs. 500 crore notional, in place of Rs. 250 crore."}},
+        {"requirement": "Link client-level limits to the client's net worth or collateral rather than applying fixed caps.", "affected_area": "position_limits", "deadline": "2026-10-15", "evidence": {"section": "2.3", "text": "Client-level limits shall be linked to the client's net worth or collateral posted, as certified to the stock broker, and shall not be applied as a fixed cap irrespective of the client's net worth."}},
+        {"requirement": "Review the internal position limit policy at least every six months and within 30 calendar days of any circular revising position limits.", "affected_area": "governance", "deadline": "30 calendar days of any revising circular", "evidence": {"section": "3.1", "text": "Every stock broker and clearing member shall review its internal position limit policy at least once every six months, and in any case within 30 calendar days of any circular issued by SEBI or a recognised stock exchange revising position limits."}},
+        {"requirement": "Amend internal policies and confirm compliance to the stock exchanges within 30 days.", "affected_area": "reporting", "deadline": "30 days of the date of this circular", "evidence": {"section": "5.3", "text": "Stock brokers shall amend their internal policies and confirm compliance to the stock exchanges within 30 days of the date of this circular."}}
+      ]
+    },
+    "impact": {
+      "applicability": "YES",
+      "alignment": "CONFLICT",
+      "affected_policies": ["POL-001"],
+      "reason": "Acme is a SEBI-registered stock broker active in equity derivatives, so the circular applies. POL-001 §4.1 fixes client-level index limits at Rs. 500 crore / 15% OI and Rs. 250 crore near-month as fixed caps that do not vary with net worth and can only change at the annual review, whereas the circular raises the limits, requires them to be linked to net worth, and requires a review within 30 days of any revising circular.",
+      "regulatory_evidence": [
+        {"section": "2.1", "text": "the client-level gross position limit for index futures and index options shall be the higher of Rs. 1,500 crore notional or 15 percent of the total open interest in the underlying index"},
+        {"section": "2.3", "text": "shall not be applied as a fixed cap irrespective of the client's net worth"},
+        {"section": "3.1", "text": "review its internal position limit policy at least once every six months, and in any case within 30 calendar days of any circular"}
+      ],
+      "policy_evidence": [
+        {"doc_id": "POL-001", "section": "4.1", "text": "Client-level position limits for index derivatives are set per the Prior Framework and reviewed annually. The limits are fixed caps and do not vary with the client's margin or net worth"},
+        {"doc_id": "POL-001", "section": "4.1", "text": "Any revision to this table requires Board Risk Committee approval at the annual review."}
+      ],
+      "effective_date": "2026-10-15",
+      "recommended_action": "Amend POL-001 §4.1 to adopt the revised limits, link limits to client net worth, and add a six-monthly / 30-day review trigger; issue an interim instruction under POL-004 §7.5 until the amendment is approved.",
+      "confidence": 0.92
+    },
+    "memo": {
+      "regulatory_change": "Fictional SEBI circular DEMO/SEBI/HO/MRD/POD-1/CIR/2026/014 raises client-level index derivative limits to the higher of Rs. 1,500 crore or 15% of OI (near-month options Rs. 500 crore), requires limits to be linked to client net worth, and requires internal limit policies to be reviewed every six months and within 30 days of any revising circular. Effective 15 October 2026.",
+      "current_policy": "POL-001 §4.1 sets index derivative client limits at Rs. 500 crore / 15% OI and Rs. 250 crore near-month as fixed caps that do not vary with net worth, reviewed annually, revisable only at the annual review with Board Risk Committee approval.",
+      "identified_gap": "Limit amounts are outdated; limits are fixed rather than net-worth linked; the review cadence (annual) and change mechanism (annual review only) cannot meet the six-month / 30-day requirement.",
+      "proposed_amendment": "Replace §4.1 with: 'Client-level position limits for index derivatives shall be the higher of Rs. 1,500 crore notional or 15% of total open interest (near-month index options: Rs. 500 crore net), linked to the client's certified net worth or collateral posted. This table shall be reviewed at least every six months and, in any case, within 30 calendar days of any SEBI or exchange circular revising position limits. Revised regulatory limits apply on their effective date; the CCO may adopt them by interim instruction pending Board Risk Committee approval.'",
+      "effective_date": "2026-10-15",
+      "recommended_action": "CCO to approve this memo, open a compliance review issue, and raise a pull request amending POL-001 §4.1 before 15 October 2026; issue an interim instruction under POL-004 §7.5 if the amendment cannot be merged in time.",
+      "evidence": [
+        "SEBI DEMO/SEBI/HO/MRD/POD-1/CIR/2026/014 §2.1: \"the client-level gross position limit for index futures and index options shall be the higher of Rs. 1,500 crore notional or 15 percent of the total open interest\"",
+        "SEBI DEMO/SEBI/HO/MRD/POD-1/CIR/2026/014 §3.1: \"review its internal position limit policy at least once every six months, and in any case within 30 calendar days\"",
+        "POL-001 §4.1: \"The limits are fixed caps and do not vary with the client's margin or net worth\"",
+        "POL-001 §4.1: \"Any revision to this table requires Board Risk Committee approval at the annual review.\""
+      ]
+    }
+  }
+}

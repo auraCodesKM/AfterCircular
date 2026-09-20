@@ -1,6 +1,6 @@
 # AfterCircular — web
 
-Landing page, brand system, and auth entry points for AfterCircular. Next.js 16 (App Router), TypeScript, Tailwind v4. One runtime dependency beyond Next/React: `lucide-react`.
+Landing page, brand system, auth and the operational dashboard for AfterCircular. Next.js 16 (App Router), TypeScript, Tailwind v4, shadcn/ui (badge, dialog, tabs, table) on top of the brand's Glass surfaces.
 
 ```bash
 npm install
@@ -28,6 +28,10 @@ components/
                                  responsible-ai, final-cta, footer, nav
   auth/                          auth shell, form, server-action stubs
   ui/                            button, input, section, reveal (the only client component besides the auth form)
+  dashboard/                     dashboard (Scan now, live steps, review queue, activity, model intelligence), review-dialog
+app/dashboard/page.tsx           server component: loads the snapshot from the backend, renders <Dashboard/>
+app/api/backend/[...path]        authenticated proxy → FastAPI (adds API key, tenant headers, user's GitHub token)
+lib/backend.ts                   server-only backend client · lib/pipeline-types.ts mirrors backend schemas
 lib/model-evals.ts               typed slot for Foundry evaluation results; empty until measured
 public/brand/                    mark, animated mark, logo, favicon (SVG)
 ```

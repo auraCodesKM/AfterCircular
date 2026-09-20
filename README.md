@@ -21,45 +21,71 @@ Built for AI-103 (Develop AI Apps and Agents on Azure), Chitkara University.
 ## How it works
 
 ```
-Regulatory source (SEBI circulars, fetched on a timer)
-  → new document detected (content-hash keyed, per tenant)
-  → obligation extraction (structured output, evidence required)
-  → Azure AI Search (hybrid vector + keyword retrieval, index per tenant)
-  → impact gate (cheap filter → full model only when needed)
-  → ALIGNED | CONFLICT | UNCERTAIN
-  → CONFLICT: draft memo + GitHub Issue (the review request)
-  → human approval → pull request → human merge
+Dashboard "Scan now"
+  → SEBI connector (live sebi.gov.in listing → circular page → PDF text; labelled demo snapshot if unreachable)
+  → new document detected (content-hash keyed, versioned, per tenant — SQLite)
+  → obligation extraction (Microsoft Foundry, structured output, evidence required)
+  → policy retrieval over the tenant's GitHub repo (Azure AI Search hybrid vector + keyword, index per tenant;
+    local BM25 + vector fallback when Search is not configured)
+  → Impact Gate: cheap prefilter → impact analysis (Foundry) → deterministic routing
+  → NOT APPLICABLE / ALIGNED → archived with evidence · UNCERTAIN → human, no action
+  → CONFLICT → AI-drafted memo → AWAITING_REVIEW
+  → human approves → GitHub issue (compliance-review template) → audit event → dashboard
 ```
 
-Every circular moves through one explicit state machine (`DISCOVERED → … → MERGED`). `UNCERTAIN` and `NEEDS_INVESTIGATION` stop the pipeline until a person acts. Every action is an audit-log row.
+Every circular moves through one explicit state machine (`DISCOVERED → … → COMPLETED`). `NEEDS_INVESTIGATION` stops the pipeline until a person acts. Every transition is an audit-log row. The agent never edits a policy file; the only side effect (a GitHub issue) fires after a human clicks Approve.
 
 ## Repository layout
 
 ```
-web/    Next.js 16 frontend — landing page, brand system, GitHub sign-in, repository connection
-docs/   landing-design.md — visual/UX specification for the landing page
-PRD.md  product requirements (source of truth)
+web/      Next.js 16 frontend — landing page, GitHub sign-in, repository connection, operational dashboard
+backend/  FastAPI pipeline — SEBI connector, state, Foundry agents, Azure AI Search, Impact Gate, approvals, GitHub, audit, evals
+docs/     landing-design.md — visual/UX specification for the landing page
+PRD.md    product requirements (source of truth)
 ```
 
-The FastAPI backend (fetcher, extraction, Azure AI Search, impact gate, GitHub tools, audit log) lives in `backend/` once it lands.
+Demo tenant: [`auraCodesKM/acme-securities-policies`](https://github.com/auraCodesKM/acme-securities-policies) (private) — a fictional SEBI-registered broker's policy corpus with an `aftercircular.yml` manifest, YAML front matter per document and numbered clauses, so citations like `POL-001 §4.1` are exact.
 
-## Frontend quick start
+## Quick start
+
+**1. Backend**
+
+```bash
+cd backend
+uv sync
+cp .env.example .env            # BACKEND_API_KEY, Foundry, AI Search, SEBI_MODE — see backend/README.md
+uv run uvicorn app.main:app --port 8010 --reload
+```
+
+**2. Frontend**
 
 ```bash
 cd web
-cp .env.example .env.local     # then fill in the values below
+cp .env.example .env.local      # then fill in the values below
 npm install
-npm run dev                    # http://localhost:3000
+npm run dev                     # http://localhost:3000
 ```
 
 | Variable | Purpose |
 |---|---|
 | `AUTH_SECRET` | Session encryption key. `npx auth secret` or `openssl rand -base64 32`. |
-| `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | GitHub OAuth App. Callback URL `http://localhost:3000/api/auth/callback/github`. |
+| `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | GitHub OAuth App. Callback URL `http://localhost:3000/api/auth/callback/github`. Scope `read:user user:email repo` (read policies, open issues). |
 | `AUTH_TRUST_HOST` | `true` (required behind Azure's reverse proxy). |
-| `BACKEND_URL` / `BACKEND_API_KEY` | FastAPI backend. Empty → a dev-only JSON tenant store is used. |
+| `BACKEND_URL` / `BACKEND_API_KEY` | FastAPI backend (`http://localhost:8010`, same key as `backend/.env`). Empty → landing + auth only, dashboard reports the backend as not configured. |
 
-Sign-in flow: `/signin` → GitHub OAuth → `/connect` (name the company, choose its policy repository) → `/dashboard`. Repository access is re-verified server-side; the OAuth token lives only in the encrypted session cookie.
+**3. Run the end-to-end scan**: `/signin` → GitHub → `/connect` (company name + the policy repository) → `/dashboard` → **Scan now**. Watch the pipeline steps; open **Review** on the CONFLICT row to read the evidence and the AI-drafted memo; **Approve & create GitHub issue**. The issue appears in the connected repository and the *Activity* tab shows every audit event. A second scan skips everything already processed.
+
+Reset the demo: stop the backend and delete `backend/data/aftercircular.db`.
+
+**4. Model evaluation**: `cd backend && uv run python -m evals.run --models gpt-4o-mini,gpt-4o` (needs Foundry). Results land in `evals/results/latest.json` and in the dashboard's *Model intelligence* tab.
+
+### Azure / Foundry configuration
+
+| Service | Setting | Notes |
+|---|---|---|
+| Microsoft Foundry / Azure OpenAI | `FOUNDRY_ENDPOINT`, `FOUNDRY_API_KEY` (or managed identity), `EXTRACTION_MODEL`, `IMPACT_MODEL`, `MEMO_MODEL`, `EMBEDDING_MODEL` | Deployment names per task; `AI_PROVIDER=foundry`. |
+| Azure AI Search | `AZURE_SEARCH_ENDPOINT`, `AZURE_SEARCH_API_KEY` | Index per tenant, HNSW vector + keyword, hybrid RRF. Empty → local hybrid fallback (clearly reported). |
+| Demo fallback | `SEBI_MODE=live\|snapshot`, `AI_PROVIDER=foundry\|stub` | Snapshot circulars are fictional and labelled `DEMO SNAPSHOT`; the stub provider returns fixtures and is labelled `stub — no model calls`. Never silently presented as live/real. |
 
 ## Tech stack
 
@@ -67,11 +93,12 @@ Sign-in flow: `/signin` → GitHub OAuth → `/connect` (name the company, choos
 |---|---|
 | Frontend | Next.js 16, TypeScript, Tailwind CSS v4, Auth.js v5 |
 | Backend | Python, FastAPI |
-| Models | Microsoft Foundry / Azure OpenAI, task-based model roles |
-| Retrieval / vector store | Azure AI Search (HNSW vector index + keyword, hybrid) |
-| Scheduling | Azure Functions (timer in production, HTTP trigger for demo) |
-| Actions | GitHub API (Issues, Pull Requests) |
-| Structured LLM payloads | TOON |
+| Models | Microsoft Foundry / Azure OpenAI via a provider abstraction; one deployment per task (extraction, impact, memo, embeddings) |
+| Retrieval / vector store | **Azure AI Search** — HNSW vector index + keyword, hybrid (RRF); index per tenant. Local BM25+vector fallback for development |
+| State | SQLite (`processed_documents`, `analyses`, `reviews`, `audit_events`, `llm_calls`), repository layer ready for Azure PostgreSQL |
+| Scheduling | HTTP trigger (dashboard button) today; Azure Functions timer is the production path |
+| Actions | GitHub API (read policy repo, create compliance issue; pull requests are Tier 1) |
+| Evaluation | `backend/evals` — golden scenarios, per-task scoring, latency/tokens/cost per model |
 
 ## Responsible AI
 
@@ -83,7 +110,9 @@ Sign-in flow: `/signin` → GitHub OAuth → `/connect` (name the company, choos
 
 ## Status
 
-Landing page, brand system, GitHub sign-in and repository connection are complete. Pipeline backend, dashboard, evaluation harness and notification channels are in progress — see `PRD.md` §0 for the build order.
+Tier 0 vertical slice works end to end: scan → detect → extract → retrieve → Impact Gate → memo → human approval → GitHub issue → audit → dashboard, verified locally against the Acme demo repository. Not built yet (PRD Tier 1/2): pull-request creation, Telegram/email channels, multi-tenant demo with several companies, TOON payloads and gate-vs-no-gate cost measurement, Azure Functions timer, Postgres.
+
+Deviation from PRD §8B, on purpose: the GitHub issue is created after human approval (not automatically on CONFLICT), so the demo has exactly one human gate before any side effect.
 
 ## License
 
