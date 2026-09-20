@@ -16,7 +16,7 @@ export function RepoPicker({ repos, defaultCompany = "" }: { repos: Repo[]; defa
   }, [q, repos]);
 
   return (
-    <form action={action} className="flex flex-col gap-6">
+    <form action={action} className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="company" className="text-sm font-medium">
           Company
@@ -34,7 +34,7 @@ export function RepoPicker({ repos, defaultCompany = "" }: { repos: Repo[]; defa
         <p className="text-xs text-muted">Each company is an isolated tenant: its own index, documents, and audit log.</p>
       </div>
 
-      <fieldset className="flex flex-col gap-2">
+      <fieldset className="flex min-w-0 flex-col gap-2">
         <legend className="text-sm font-medium">Policy repository</legend>
         <label className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden />

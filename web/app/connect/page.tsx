@@ -50,7 +50,7 @@ export default async function ConnectPage() {
             </Glass>
           ) : null}
         </div>
-        <div className="md:col-span-7">
+        <div className="min-w-0 md:col-span-7">
           <Glass tone="paper" bodyClassName="p-6 md:p-8">
             <RepoPicker repos={repos} defaultCompany={existing?.companyName} />
           </Glass>

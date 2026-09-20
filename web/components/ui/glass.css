@@ -3,6 +3,7 @@
    Requires #cardNoise from <FilterDefs /> to be present on the page.
    ========================================================================== */
 .glass {
+  min-width: 0;
   position: relative;
   isolation: isolate;
   overflow: hidden;
