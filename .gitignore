@@ -1,0 +1,24 @@
+# OS / editor
+.DS_Store
+.claude/
+.vscode/
+.idea/
+
+# course material, sketches, screenshots, raw art (not part of the product)
+*.pdf
+/Screenshot*
+/rough.jpeg
+/bg1.png
+/*.png
+/*.jpg
+/*.jpeg
+
+# secrets — never commit
+.env
+.env.*
+!.env.example
+
+# python (backend, later)
+__pycache__/
+*.pyc
+.venv/

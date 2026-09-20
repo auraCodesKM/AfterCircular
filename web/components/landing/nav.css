@@ -1,0 +1,198 @@
+/* Floating glass pill navigation */
+.nav-wrap {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  padding: 12px clamp(12px, 3vw, 24px) 0;
+  pointer-events: none;
+}
+.nav-pill {
+  --nav-alpha: 0.5;
+  pointer-events: auto;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: min(100%, 68rem);
+  height: 56px;
+  padding: 0 8px 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  background: rgba(244, 243, 241, var(--nav-alpha));
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 10px 30px -12px rgba(40, 20, 30, 0.25),
+    0 1px 2px rgba(40, 20, 30, 0.06);
+  animation: nav-drop 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition:
+    background-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+/* travelling sheen */
+.nav-pill::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.55) 48%, rgba(255, 255, 255, 0.1) 52%, transparent 70%);
+  transform: translateX(-120%);
+  animation: nav-sheen 9s ease-in-out 1.6s infinite;
+}
+/* frosted rim glow */
+.nav-pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 40% 120% at 0% 50%, rgba(173, 49, 77, 0.08), transparent 70%),
+    radial-gradient(ellipse 40% 120% at 100% 50%, rgba(232, 112, 61, 0.08), transparent 70%);
+}
+@keyframes nav-drop {
+  from {
+    opacity: 0;
+    translate: 0 -18px;
+    scale: 0.98;
+  }
+  to {
+    opacity: 1;
+    translate: none;
+    scale: none;
+  }
+}
+@keyframes nav-sheen {
+  0%,
+  8% {
+    transform: translateX(-120%);
+  }
+  22%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+/* firms up as the page scrolls (scroll-driven; no JS) */
+@supports (animation-timeline: scroll()) {
+  .nav-pill {
+    animation:
+      nav-drop 0.9s cubic-bezier(0.16, 1, 0.3, 1) both,
+      nav-firm linear both;
+    animation-timeline: auto, scroll(root);
+    animation-range: normal, 0 160px;
+  }
+  @keyframes nav-firm {
+    to {
+      --nav-alpha: 0.82;
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.8) inset,
+        0 14px 34px -10px rgba(40, 20, 30, 0.32),
+        0 1px 2px rgba(40, 20, 30, 0.08);
+    }
+  }
+}
+@property --nav-alpha {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.5;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  margin-inline: auto;
+}
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+.nav-link:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.6);
+}
+.nav-cta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.nav-menu {
+  position: relative;
+}
+.nav-menu summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  cursor: pointer;
+  list-style: none;
+}
+.nav-menu summary::-webkit-details-marker {
+  display: none;
+}
+.nav-menu[open] summary {
+  background: rgba(255, 255, 255, 0.6);
+}
+.nav-menu__panel {
+  position: absolute;
+  right: 0;
+  top: 52px;
+  width: 12rem;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 18px;
+  background: rgba(244, 243, 241, 0.85);
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  box-shadow: 0 14px 34px -10px rgba(40, 20, 30, 0.32);
+}
+.nav-menu__panel a {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+.nav-menu__panel a:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 767px) {
+  .nav-links {
+    display: none;
+  }
+  .nav-pill {
+    padding-left: 14px;
+  }
+}
+@media (min-width: 768px) {
+  .nav-menu {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-pill,
+  .nav-pill::after {
+    animation: none;
+  }
+  .nav-pill::after {
+    display: none;
+  }
+}

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none" role="img" aria-label="AfterCircular">
+  <!-- Open loop: continuous regulatory change. The loop flows into the A and stays open where change enters. -->
+  <path d="M44 52.78A24 24 0 1 1 55.64 36.17" stroke="#222222" stroke-width="5" stroke-linecap="round"/>
+  <!-- Entry node: a new document entering the system -->
+  <circle cx="51.66" cy="45.77" r="4.25" fill="#AD314D"/>
+  <!-- A: the system. The bar is the human approval gate. -->
+  <path d="M20 52.78L32 14L44 52.78M24.57 38H39.43" stroke="#222222" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
