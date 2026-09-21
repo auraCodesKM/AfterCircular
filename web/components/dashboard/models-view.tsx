@@ -1,4 +1,3 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { EvalReport, Health } from "@/lib/pipeline-types";
@@ -42,21 +41,18 @@ export function ModelsView({ health, evals }: { health: Health | null; evals: Ev
       </TabsList>
 
       <TabsContent value="routing" className="space-y-6">
-        <div className="grid gap-3 md:grid-cols-3">
+        <dl className="grid gap-3 rounded-md border border-border p-3 text-sm md:grid-cols-3">
           {models.map((m) => (
-            <Card key={m.name} size="sm">
-              <CardHeader>
-                <CardTitle>{m.name}</CardTitle>
-                <CardDescription>{m.vendor}</CardDescription>
-              </CardHeader>
-              <CardContent className="text-xs">
-                <p>{m.role}</p>
-                <p className={`mt-1 ${m.status === "not configured" ? "text-warning" : "text-muted-foreground"}`}>{m.status}</p>
-              </CardContent>
-            </Card>
+            <div key={m.name}>
+              <dt className="font-medium">
+                {m.name} <span className="font-normal text-muted-foreground">· {m.vendor}</span>
+              </dt>
+              <dd className="text-xs text-muted-foreground">{m.role}</dd>
+              <dd className={`text-xs ${m.status === "not configured" ? "text-warning" : "text-muted-foreground"}`}>{m.status}</dd>
+            </div>
           ))}
-        </div>
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        </dl>
+        <div className="overflow-x-auto rounded-md border border-border">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
@@ -85,7 +81,7 @@ export function ModelsView({ health, evals }: { health: Health | null; evals: Ev
             <p className="text-xs text-muted-foreground">
               {evals.judges.scenarios.length} golden scenarios · run {fmtTime(evals.judges.generated_at)} · thresholds {JSON.stringify(evals.judges.thresholds)}
             </p>
-            <div className="overflow-x-auto rounded-lg border border-border bg-card">
+            <div className="overflow-x-auto rounded-md border border-border">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
@@ -140,7 +136,7 @@ export function ModelsView({ health, evals }: { health: Health | null; evals: Ev
               {evals.scenarios.length} scenarios · {evals.retrieval} · run {fmtTime(evals.generated_at)}
             </p>
             {evals.warning ? <p className="text-xs text-warning">{evals.warning}</p> : null}
-            <div className="overflow-x-auto rounded-lg border border-border bg-card">
+            <div className="overflow-x-auto rounded-md border border-border">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">

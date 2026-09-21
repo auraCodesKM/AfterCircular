@@ -1,9 +1,18 @@
 "use client";
 
-import { Activity, BookOpen, ClipboardCheck, Cpu, FileText, GitBranch, LayoutDashboard } from "lucide-react";
+import { Activity, BookOpen, ChevronsUpDown, ClipboardCheck, Cpu, FileText, GitBranch, LayoutDashboard, LogOut, Plus, Search, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/aftercircular-logo";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -15,8 +24,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
+import { useWorkspace } from "./workspace-provider";
 
 export const NAV = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -27,12 +37,28 @@ export const NAV = [
   { href: "/dashboard/models", label: "Models", icon: Cpu },
 ] as const;
 
-export function AppSidebar({ companyName, repo, branch, pendingReviews }: { companyName: string; repo: string; branch: string; pendingReviews: number }) {
+type Props = { pendingReviews: number; user: { login: string; name?: string | null; image?: string | null }; signOut: () => Promise<void> };
+
+export function AppSidebar({ pendingReviews, user, signOut }: Props) {
   const pathname = usePathname();
+  const { ask, palette, recent, tenant } = useWorkspace();
+  const { isMobile, setOpenMobile } = useSidebar();
+  const go = () => isMobile && setOpenMobile(false);
+  const initials = (user.name || user.login).slice(0, 2).toUpperCase();
+
   return (
     <Sidebar collapsible="offcanvas">
-      <SidebarHeader className="px-3 py-3">
-        <Logo href="/dashboard" compact={false} />
+      <SidebarHeader className="gap-3 px-3 pt-3">
+        <Logo href="/dashboard" />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={() => { go(); ask.start(); }} className="border border-border bg-background hover:bg-muted">
+              <Plus />
+              <span>New investigation</span>
+              <kbd className="ml-auto hidden font-mono text-[10px] text-muted-foreground sm:inline">⌘K</kbd>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -42,7 +68,7 @@ export function AppSidebar({ companyName, repo, branch, pendingReviews }: { comp
                 const active = item.href === "/dashboard" ? pathname === item.href : pathname.startsWith(item.href);
                 return (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton isActive={active} render={<Link href={item.href} />}>
+                    <SidebarMenuButton isActive={active} render={<Link href={item.href} onClick={go} />}>
                       <item.icon />
                       <span>{item.label}</span>
                       {item.label === "Reviews" && pendingReviews > 0 ? (
@@ -55,22 +81,74 @@ export function AppSidebar({ companyName, repo, branch, pendingReviews }: { comp
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarSeparator />
         <SidebarGroup>
-          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
-          <SidebarGroupContent className="px-2 text-sm">
-            <p className="font-medium">{companyName}</p>
-            <p className="mt-1 flex items-start gap-1.5 text-xs text-muted-foreground">
-              <GitBranch aria-hidden className="mt-0.5 size-3 shrink-0" />
-              <span className="min-w-0 font-mono">
-                <span className="block break-words">{repo}</span>
-                <span className="text-muted-foreground/70">{branch}</span>
-              </span>
-            </p>
+          <SidebarGroupLabel>Recent investigations</SidebarGroupLabel>
+          <SidebarGroupContent>
+            {recent.length ? (
+              <SidebarMenu>
+                {recent.slice(0, 6).map((inv) => (
+                  <SidebarMenuItem key={inv.id}>
+                    <SidebarMenuButton size="sm" isActive={pathname.endsWith(inv.id)} render={<Link href={`/dashboard/investigations/${inv.id}`} onClick={go} />} title={inv.question}>
+                      <Search className="text-muted-foreground" />
+                      <span className="truncate">{inv.question}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            ) : (
+              <button type="button" onClick={() => { go(); palette.setOpen(true); }} className="px-2 py-1 text-left text-xs text-muted-foreground hover:text-foreground">
+                Nothing yet — ask a question or press ⌘K.
+              </button>
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="px-3 py-3 text-[11px] text-muted-foreground">AI detects · human decides</SidebarFooter>
+      <SidebarFooter className="border-t border-sidebar-border p-2">
+        <div className="px-2 pb-1.5">
+          <p className="truncate text-sm font-medium">{tenant.companyName}</p>
+          <p className="flex items-center gap-1 truncate text-[11px] text-muted-foreground" title={`${tenant.repo} · ${tenant.branch}`}>
+            <GitBranch aria-hidden className="size-3 shrink-0" />
+            <span className="truncate font-mono">{tenant.repo}</span>
+          </p>
+        </div>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<SidebarMenuButton size="lg" className="data-[popup-open]:bg-sidebar-accent" />}>
+                <Avatar size="sm">
+                  {user.image ? <AvatarImage src={user.image} alt="" /> : null}
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+                <div className="grid flex-1 text-left leading-tight">
+                  <span className="truncate text-sm">@{user.login}</span>
+                  <span className="truncate text-[11px] text-muted-foreground">GitHub connected</span>
+                </div>
+                <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side={isMobile ? "top" : "right"} align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <p className="text-sm font-medium">{user.name || `@${user.login}`}</p>
+                  <p className="text-xs font-normal text-muted-foreground">@{user.login} · GitHub</p>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem render={<Link href="/connect" />}>
+                  <GitBranch />
+                  Change repository
+                </DropdownMenuItem>
+                <DropdownMenuItem render={<a href={`https://github.com/${user.login}`} target="_blank" rel="noreferrer" />}>
+                  <User />
+                  Account
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={() => signOut()}>
+                  <LogOut />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

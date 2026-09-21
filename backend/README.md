@@ -85,6 +85,9 @@ POST /api/scan                     {force?: bool}   → 202 ScanRecord (poll it)
 GET  /api/scans/latest | /api/scans/{id}
 GET  /api/documents | /api/documents/{id} | /api/documents/{id}/content
 GET  /api/analyses/{id} | /api/analyses/{id}/decisions   (typed judgments: provider, model, state digest, answers, routing)
+POST /api/ask {question}                                    workspace agent: Jev routes intent/document/policy, code assembles a structured answer
+GET  /api/investigations | /api/investigations/{id}
+GET  /api/policies | /api/policies/{doc_id}                indexed corpus with front-matter metadata and sections
 GET  /api/reviews?status= | /api/reviews/{id}
 POST /api/reviews/{id}/approve | /reject          {note?}
 GET  /api/audit?limit=&document=

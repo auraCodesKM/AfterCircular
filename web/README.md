@@ -34,11 +34,14 @@ components/
                                  responsible-ai, final-cta, footer, nav
   auth/                          auth shell, form, server-action stubs
   ui/                            button, input, section, reveal (the only client component besides the auth form)
-  dashboard/                     app-sidebar, site-header (breadcrumb, theme toggle, user menu), system-status, metric-cards,
-                                 scan-panel (Scan now + live pipeline, polls and router.refresh()), documents-table, analysis-sheet
-                                 (evidence, memo, decision path, human approval with AlertDialog), activity-feed, models-view
-app/dashboard/layout.tsx         shell: auth + tenant guard, SidebarProvider, header, ThemeProvider, Toaster
-app/dashboard/{page,documents,reviews,policies,activity,models}/page.tsx   server components; data via lib/dashboard-data.ts
+  dashboard/                     workspace-provider (agent sheet / palette / analysis sheet state), app-sidebar (nav + recent
+                                 investigations + workspace + user menu), site-header (breadcrumb, ⌘K), command-palette,
+                                 ask-sheet + answer-view (structured agent answers), analysis-sheet + analysis-workspace
+                                 (change → decision → evidence → decision path → human-review), scan-control (Scan now, pipeline
+                                 readout, friendly failure Alert), status-strip, documents-view/table, review-queue, policies-view,
+                                 activity-feed, models-view
+app/dashboard/layout.tsx         shell: auth + tenant guard, providers, sidebar, header, agent sheet, palette, analysis sheet, toasts
+app/dashboard/{page,documents,documents/[pk],investigations/[id],reviews,policies,activity,models}/page.tsx
 app/api/backend/[...path]        authenticated proxy → FastAPI (adds API key, tenant headers, user's GitHub token)
 lib/backend.ts                   server-only backend client · lib/pipeline-types.ts mirrors backend schemas
 lib/model-evals.ts               typed slot for Foundry evaluation results; empty until measured

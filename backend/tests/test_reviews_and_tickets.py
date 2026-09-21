@@ -24,7 +24,7 @@ def _seed(db, tenant):
     sc = next(s for s in load_scenarios() if s["id"] == "conflict-index-position-limits")
     doc = ProcessedDocument(id="doc_1", tenant_id=tenant.tenant_id, source="SEBI", jurisdiction="IN", document_id="DEMO-2026-014",
                             circular_number=sc["document"]["circular_number"], title=sc["document"]["title"], published_date="2026-09-15",
-                            effective_date="2026-10-15", url="https://example.invalid", content_hash="h" * 64, processed_at=now(), status="AWAITING_REVIEW",
+                            effective_date="2026-10-15", url="https://example.invalid", content_hash="h" * 64, processed_at=now(), status="AWAITING_REVIEW", impact="CONFLICT", analysis_id="ana_1",
                             source_mode="DEMO_SNAPSHOT")
     db.insert_document(doc, sc["document"]["content"])
     ana = AnalysisRecord(id="ana_1", tenant_id=tenant.tenant_id, document_pk="doc_1", scan_id=None, extraction=sc["fixtures"]["extraction"], retrieved_chunks=[],
@@ -77,3 +77,16 @@ async def test_approve_creates_ticket_once(db, tenant, monkeypatch):
         await decide(db, tenant, "rev_1", "approve", "again")
     kinds = [e.event_type for e in db.list_audit(tenant.tenant_id)]
     assert kinds[:2] == ["TICKET_CREATED", "APPROVED"]
+
+
+async def test_ask_routes_with_stub_and_answers_from_state(db, tenant):
+    from app.services.investigate import investigate
+
+    _seed(db, tenant)
+    inv = await investigate(db, tenant, "What needs my review?")
+    assert inv.intent == "pending_reviews" and "1 conflict" in inv.summary and inv.answer["documents"][0]["alignment"] == "CONFLICT"
+    inv = await investigate(db, tenant, "Why does DEMO/SEBI/HO/MRD/POD-1/CIR/2026/014 conflict?")
+    assert inv.intent == "explain_document" and inv.document_pk == "doc_1" and inv.answer["document"]["affected_policies"] == ["POL-001"]
+    assert db.list_investigations(tenant.tenant_id)[0].id == inv.id
+    inv = await investigate(db, tenant, "run a scan")
+    assert inv.intent == "run_scan" and inv.answer["actions"][0]["kind"] == "scan"

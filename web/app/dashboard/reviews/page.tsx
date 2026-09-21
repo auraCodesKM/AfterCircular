@@ -1,34 +1,34 @@
-import { ClipboardCheck } from "lucide-react";
 import type { Metadata } from "next";
-import { DocumentsTable } from "@/components/dashboard/documents-table";
-import { EmptyState } from "@/components/dashboard/empty-state";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { ReviewQueue } from "@/components/dashboard/review-queue";
 import { load, shellContext } from "@/lib/dashboard-data";
-import type { ProcessedDocument, ReviewRecord } from "@/lib/pipeline-types";
+import type { AnalysisRecord, ProcessedDocument, ReviewRecord } from "@/lib/pipeline-types";
 
 export const metadata: Metadata = { title: "Reviews" };
 
 export default async function ReviewsPage() {
   const ctx = await shellContext();
   const [documents, reviews] = await Promise.all([load<ProcessedDocument[]>(ctx, "/api/documents", []), load<ReviewRecord[]>(ctx, "/api/reviews", [])]);
-  const byDoc = new Map(reviews.data.map((r) => [r.document_pk, r]));
-  const pending = documents.data.filter((d) => byDoc.get(d.id)?.status === "AWAITING_REVIEW");
-  const decided = documents.data.filter((d) => byDoc.has(d.id) && byDoc.get(d.id)?.status !== "AWAITING_REVIEW");
+  const byDoc = new Map(documents.data.map((d) => [d.id, d]));
+  const rows = await Promise.all(
+    reviews.data
+      .filter((r) => byDoc.has(r.document_pk))
+      .map(async (review) => {
+        const doc = byDoc.get(review.document_pk)!;
+        const a = doc.analysis_id ? await load<AnalysisRecord | null>(ctx, `/api/analyses/${doc.analysis_id}`, null) : { data: null };
+        return { doc, review, affected: a.data?.impact?.affected_policies ?? [] };
+      }),
+  );
+  const pending = rows.filter((r) => r.review.status === "AWAITING_REVIEW");
+  const decided = rows.filter((r) => r.review.status !== "AWAITING_REVIEW");
   return (
-    <div className="space-y-8">
-      <PageHeader title="Reviews" description="Conflicts that need a human decision. AI drafted; nothing happens until you approve." />
-      <section className="space-y-3">
-        <h2 className="text-base font-medium">Awaiting your decision {pending.length ? <span className="ml-1 rounded-sm bg-destructive/10 px-1.5 text-xs text-destructive">{pending.length}</span> : null}</h2>
-        {pending.length ? (
-          <DocumentsTable documents={pending} reviews={reviews.data} />
-        ) : (
-          <EmptyState icon={ClipboardCheck} title="You're all caught up" description="No conflicts are waiting for approval." />
-        )}
-      </section>
+    <div className="space-y-6">
+      <PageHeader title="Needs your review" description="AI detected and drafted. Nothing external happens until you decide." meta={<span>{pending.length} waiting</span>} />
+      <ReviewQueue rows={pending} />
       {decided.length ? (
-        <section className="space-y-3">
-          <h2 className="text-base font-medium">Decided</h2>
-          <DocumentsTable documents={decided} reviews={reviews.data} />
+        <section className="space-y-2">
+          <h2 className="text-sm font-medium">Decided</h2>
+          <ReviewQueue rows={decided} decided />
         </section>
       ) : null}
     </div>

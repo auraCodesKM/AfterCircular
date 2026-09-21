@@ -20,6 +20,7 @@ DocumentStatus = Literal[
 ]
 
 ScanStatus = Literal["RUNNING", "COMPLETED", "FAILED"]
+ErrorKind = Literal["repository", "source", "ai", "backend"]
 ReviewStatus = Literal["AWAITING_REVIEW", "APPROVED", "REJECTED"]
 ReviewDecision = Literal["approve", "reject"]
 
@@ -78,7 +79,9 @@ class ScanRecord(BaseModel):
     new_documents: int = 0
     skipped_documents: int = 0
     document_ids: list[str] = []
-    error: str | None = None
+    error: str | None = Field(default=None, description="Human-readable")
+    error_kind: ErrorKind | None = None
+    error_detail: str | None = Field(default=None, description="Technical detail for a collapsible; never secrets")
     ai_provider: str = ""
     retrieval_backend: str = ""
 
@@ -154,6 +157,23 @@ class AuditEvent(BaseModel):
     analysis_id: str | None = None
     scan_id: str | None = None
     metadata: dict[str, Any] = {}
+
+
+class Investigation(BaseModel):
+    """One question asked of the workspace agent and the structured answer code assembled for it."""
+
+    id: str
+    tenant_id: str
+    question: str
+    intent: str
+    summary: str
+    document_pk: str | None = None
+    analysis_id: str | None = None
+    policy_id: str | None = None
+    answer: dict[str, Any] = Field(default_factory=dict, description="structured sections the UI renders")
+    judge: dict[str, Any] = Field(default_factory=dict, description="provider/model/confidence behind the intent routing")
+    actor: str
+    created_at: datetime
 
 
 class TicketPayload(BaseModel):

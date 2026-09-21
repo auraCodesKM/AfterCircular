@@ -9,7 +9,8 @@ export type ScanStep = { key: string; label: string; status: "pending" | "runnin
 export type ScanRecord = {
   id: string; tenant_id: string; status: "RUNNING" | "COMPLETED" | "FAILED"; source_mode: "LIVE" | "DEMO_SNAPSHOT" | null;
   started_at: string; finished_at: string | null; steps: ScanStep[]; new_documents: number; skipped_documents: number;
-  document_ids: string[]; error: string | null; ai_provider: string; retrieval_backend: string;
+  document_ids: string[]; error: string | null; error_kind: "repository" | "source" | "ai" | "backend" | null; error_detail: string | null;
+  ai_provider: string; retrieval_backend: string;
 };
 
 export type ProcessedDocument = {
@@ -78,8 +79,33 @@ export type EvalReport = { judges: JudgeReport | null } & (
   | { available: true; generated_at: string; provider: string; models: string[]; scenarios: string[]; retrieval: string; warning?: string; summary: EvalSummaryRow[]; recommendation: Record<string, { model: string; quality_score: number }> }
 );
 
-export type PolicyDoc = { doc_id: string; title: string; path: string; version: string | null; sections: string[]; embedded: boolean };
+export type PolicyDoc = {
+  doc_id: string; title: string; path: string; version: string | null; sections: string[]; embedded: boolean;
+  category?: string | null; status?: string | null; effective_date?: string | null; owner?: string | null; approver?: string | null;
+  review_cycle?: string | null; topics?: string[]; applies_to?: string[]; regulator_references?: string[];
+  affected_by?: { document_pk: string; title: string; circular_number: string; impact: string }[];
+};
+export type PolicyDetail = Omit<PolicyDoc, "sections" | "embedded" | "affected_by"> & { sections: { chunk_id: string; section: string; text: string }[] };
 export type PolicyIndex = { index: { repo: string; commit_sha: string; indexed_at: string; chunk_count: number } | null; documents: PolicyDoc[] };
+
+/** A card the agent returns for one processed circular. */
+export type DocCard = {
+  document_pk: string; title: string; circular_number: string | null; source: string; published_date: string | null; effective_date: string | null;
+  impact: string | null; status: DocumentStatus; source_mode: "LIVE" | "DEMO_SNAPSHOT"; analysis_id: string | null;
+  applicability: "YES" | "NO" | "UNCERTAIN" | null; alignment: "ALIGNED" | "CONFLICT" | null; affected_policies: string[]; reason: string | null;
+  severity: string | null; regulatory_evidence: Evidence[]; policy_evidence: PolicyEvidence[]; recommended_action: string | null;
+  decision_path: string[]; escalation_reason: string | null; ticket_url: string | null; ticket_id: string | null;
+};
+
+export type Investigation = {
+  id: string; question: string; intent: string; summary: string; document_pk: string | null; analysis_id: string | null; policy_id: string | null;
+  answer: {
+    intent: string; documents?: DocCard[]; document?: DocCard; review?: ReviewRecord | null; policy?: PolicyDetail & { sections: { section: string; text: string }[] };
+    policies?: PolicyDoc[]; scan?: ScanRecord | null; actions?: { label: string; kind: string }[]; suggestions?: string[];
+  };
+  judge: { provider: string; model: string; calibrated: boolean; intent_confidence?: number; document_confidence?: number; policy_confidence?: number; note?: string; latency_ms?: number };
+  actor: string; created_at: string;
+};
 
 export type DashboardSnapshot = {
   health: Health | null;

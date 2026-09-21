@@ -6,24 +6,26 @@ reason and draft. Nothing here executes a side effect; approval (services/review
 
 import logging
 import traceback
+
+import httpx
 from typing import Any
 
 from app.agents.memo_generation import generate_memo
 from app.agents.obligation_extraction import extract_obligations
 from app.config import settings
 from app.connectors.sebi import SEBIConnector
-from app.models.provider import LLMProvider, LLMResult, provider
+from app.models.provider import LLMProvider, LLMResult, ProviderError, provider
 from app.retrieval.azure_search import retriever as make_retriever
 from app.retrieval.base import Retriever
-from app.schemas.actions import AnalysisRecord, ProcessedDocument, ReviewRecord, ScanRecord, ScanStep, TenantContext
+from app.schemas.actions import AnalysisRecord, ErrorKind, ProcessedDocument, ReviewRecord, ScanRecord, ScanStep, TenantContext
 from app.schemas.impact import ImpactAnalysis
 from app.schemas.regulatory import RegulatoryDocument
 from app.services import audit
 from app.decisions.impact import decide_impact
 from app.services.gate import route
-from app.services.policies import company_profile, ensure_indexed
+from app.services.policies import RepositoryError, company_profile, ensure_indexed
 from app.services.state import StateStore, new_id, now
-from app.tools.github import GitHubClient
+from app.tools.github import GitHubClient, GitHubError
 
 log = logging.getLogger(__name__)
 
@@ -42,6 +44,20 @@ STEPS = [
     ("memo", "Drafting memo"),
     ("review", "Requesting human review"),
 ]
+
+
+def friendly_error(e: BaseException) -> tuple[str, ErrorKind, str]:
+    """(message for a person, kind, technical detail). Secrets never appear in exception text by construction."""
+    detail = f"{type(e).__name__}: {str(e)[:300]}"
+    if isinstance(e, RepositoryError):
+        return str(e), "repository", detail
+    if isinstance(e, GitHubError):
+        return "AfterCircular could not access the configured policy repository.", "repository", detail
+    if isinstance(e, ProviderError):
+        return "The AI provider did not respond. Check the model configuration and try again.", "ai", detail
+    if isinstance(e, (httpx.HTTPError, ValueError)):
+        return "The regulatory source could not be read.", "source", detail
+    return "The scan stopped unexpectedly.", "backend", detail
 
 
 class Scan:
@@ -81,17 +97,19 @@ class Scan:
             self.rec.document_ids = [d.id for d in fresh]
             self.step("detect", "done", f"{len(fresh)} new, {self.rec.skipped_documents} already processed")
 
+            # the policy index tracks the repository head on every scan (PRD §8A), new circulars or not
+            self.step("index", "running")
+            gh = GitHubClient(t.github_token)
+            manifest, reindexed = await ensure_indexed(self.db, gh, t, self.ret, self.llm.embed)
+            meta = self.db.policy_index_meta(t.tenant_id) or {}
+            if reindexed:
+                audit.record(self.db, t.tenant_id, "POLICIES_INDEXED", scan_id=self.rec.id, repo=t.github_repo, commit=meta.get("commit_sha"), chunks=meta.get("chunk_count"), backend=self.ret.name)
+            self.step("index", "done", f"{meta.get('chunk_count', 0)} chunks from {t.github_repo}@{str(meta.get('commit_sha', ''))[:7]} ({self.ret.name}{', re-indexed' if reindexed else ', up to date'})")
+
             if not fresh:
-                for k in ("index", "extract", "retrieve", "analyze", "gate", "memo", "review"):
+                for k in ("extract", "retrieve", "analyze", "gate", "memo", "review"):
                     self.step(k, "skipped", "nothing new")
             else:
-                self.step("index", "running")
-                gh = GitHubClient(t.github_token)
-                manifest, reindexed = await ensure_indexed(self.db, gh, t, self.ret, self.llm.embed)
-                meta = self.db.policy_index_meta(t.tenant_id) or {}
-                if reindexed:
-                    audit.record(self.db, t.tenant_id, "POLICIES_INDEXED", scan_id=self.rec.id, repo=t.github_repo, commit=meta.get("commit_sha"), chunks=meta.get("chunk_count"), backend=self.ret.name)
-                self.step("index", "done", f"{meta.get('chunk_count', 0)} chunks from {t.github_repo}@{str(meta.get('commit_sha', ''))[:7]} ({self.ret.name}{', re-indexed' if reindexed else ', up to date'})")
                 profile = company_profile(manifest, t)
                 for doc in fresh:
                     await self.process(doc, profile, manifest)
@@ -104,7 +122,8 @@ class Scan:
             audit.record(self.db, t.tenant_id, "SCAN_COMPLETED", scan_id=self.rec.id, new=self.rec.new_documents, skipped=self.rec.skipped_documents, mode=fetched.mode)
         except Exception as e:  # noqa: BLE001 — the scan record must always reach a terminal state
             log.error("scan %s failed: %s\n%s", self.rec.id, e, traceback.format_exc())
-            self.rec.status, self.rec.finished_at, self.rec.error = "FAILED", now(), f"{type(e).__name__}: {str(e)[:300]}"
+            self.rec.status, self.rec.finished_at = "FAILED", now()
+            self.rec.error, self.rec.error_kind, self.rec.error_detail = friendly_error(e)
             for pk in self.rec.document_ids:
                 d = self.db.get_document(pk, t.tenant_id)
                 if d and d.status in RETRYABLE:

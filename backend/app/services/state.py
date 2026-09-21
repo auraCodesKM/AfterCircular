@@ -16,6 +16,7 @@ from app.config import settings
 from app.schemas.decisions import DecisionRecord
 from app.schemas.actions import (
     AnalysisRecord,
+    Investigation,
     AuditEvent,
     ProcessedDocument,
     ReviewRecord,
@@ -33,7 +34,11 @@ CREATE TABLE IF NOT EXISTS scans (
   id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, status TEXT NOT NULL, source_mode TEXT,
   started_at TEXT NOT NULL, finished_at TEXT, steps TEXT NOT NULL, new_documents INTEGER DEFAULT 0,
   skipped_documents INTEGER DEFAULT 0, document_ids TEXT NOT NULL DEFAULT '[]', error TEXT,
-  ai_provider TEXT DEFAULT '', retrieval_backend TEXT DEFAULT ''
+  ai_provider TEXT DEFAULT '', retrieval_backend TEXT DEFAULT '', error_kind TEXT, error_detail TEXT
+);
+CREATE TABLE IF NOT EXISTS investigations (
+  id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, question TEXT NOT NULL, intent TEXT NOT NULL, summary TEXT NOT NULL,
+  document_pk TEXT, analysis_id TEXT, policy_id TEXT, answer TEXT NOT NULL, judge TEXT NOT NULL, actor TEXT NOT NULL, created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS processed_documents (
   id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, source TEXT NOT NULL, jurisdiction TEXT NOT NULL,
@@ -74,7 +79,8 @@ CREATE TABLE IF NOT EXISTS policy_chunks (
   version TEXT, section TEXT NOT NULL, text TEXT NOT NULL, embedding TEXT, PRIMARY KEY (tenant_id, chunk_id)
 );
 CREATE TABLE IF NOT EXISTS policy_index_meta (
-  tenant_id TEXT PRIMARY KEY, repo TEXT NOT NULL, commit_sha TEXT NOT NULL, indexed_at TEXT NOT NULL, chunk_count INTEGER NOT NULL
+  tenant_id TEXT PRIMARY KEY, repo TEXT NOT NULL, commit_sha TEXT NOT NULL, indexed_at TEXT NOT NULL, chunk_count INTEGER NOT NULL,
+  documents TEXT NOT NULL DEFAULT '[]'
 );
 """
 
@@ -126,10 +132,16 @@ class StateStore:
 
     def _migrate(self) -> None:
         """Additive column migrations for existing dev databases (CREATE TABLE IF NOT EXISTS never alters)."""
-        cols = {r["name"] for r in self.conn.execute("PRAGMA table_info(analyses)").fetchall()}
-        for name, ddl in (("decision_path", "TEXT NOT NULL DEFAULT '[]'"), ("escalation_reason", "TEXT")):
-            if name not in cols:
-                self.conn.execute(f"ALTER TABLE analyses ADD COLUMN {name} {ddl}")
+        wanted = {
+            "analyses": (("decision_path", "TEXT NOT NULL DEFAULT '[]'"), ("escalation_reason", "TEXT")),
+            "scans": (("error_kind", "TEXT"), ("error_detail", "TEXT")),
+            "policy_index_meta": (("documents", "TEXT NOT NULL DEFAULT '[]'"),),
+        }
+        for table, cols in wanted.items():
+            have = {r["name"] for r in self.conn.execute(f"PRAGMA table_info({table})").fetchall()}
+            for name, ddl in cols:
+                if name not in have:
+                    self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}")
         self.conn.commit()
 
     # ---- tenants -----------------------------------------------------------------------
@@ -161,9 +173,9 @@ class StateStore:
 
     def save_scan(self, rec: ScanRecord) -> None:
         self.conn.execute(
-            """UPDATE scans SET status=?, source_mode=?, finished_at=?, steps=?, new_documents=?, skipped_documents=?, document_ids=?, error=? WHERE id=?""",
+            """UPDATE scans SET status=?, source_mode=?, finished_at=?, steps=?, new_documents=?, skipped_documents=?, document_ids=?, error=?, error_kind=?, error_detail=? WHERE id=?""",
             (rec.status, rec.source_mode, rec.finished_at.isoformat() if rec.finished_at else None,
-             _j([s.model_dump() for s in rec.steps]), rec.new_documents, rec.skipped_documents, _j(rec.document_ids), rec.error, rec.id),
+             _j([s.model_dump() for s in rec.steps]), rec.new_documents, rec.skipped_documents, _j(rec.document_ids), rec.error, rec.error_kind, rec.error_detail, rec.id),
         )
         self.conn.commit()
 
@@ -332,7 +344,7 @@ class StateStore:
         return [dict(r) for r in self.conn.execute("SELECT * FROM llm_calls WHERE scan_id=?", (scan_id,)).fetchall()]
 
     # ---- local policy index -------------------------------------------------------------
-    def replace_policy_chunks(self, tenant_id: str, repo: str, commit_sha: str, chunks: list[dict[str, Any]]) -> None:
+    def replace_policy_chunks(self, tenant_id: str, repo: str, commit_sha: str, chunks: list[dict[str, Any]], documents: list[dict[str, Any]] | None = None) -> None:
         with self.conn:
             self.conn.execute("DELETE FROM policy_chunks WHERE tenant_id=?", (tenant_id,))
             self.conn.executemany(
@@ -341,13 +353,40 @@ class StateStore:
                   _j(c["embedding"]) if c.get("embedding") is not None else None) for c in chunks],
             )
             self.conn.execute(
-                "INSERT INTO policy_index_meta(tenant_id, repo, commit_sha, indexed_at, chunk_count) VALUES(?,?,?,?,?) "
-                "ON CONFLICT(tenant_id) DO UPDATE SET repo=excluded.repo, commit_sha=excluded.commit_sha, indexed_at=excluded.indexed_at, chunk_count=excluded.chunk_count",
-                (tenant_id, repo, commit_sha, now().isoformat(), len(chunks)),
+                "INSERT INTO policy_index_meta(tenant_id, repo, commit_sha, indexed_at, chunk_count, documents) VALUES(?,?,?,?,?,?) "
+                "ON CONFLICT(tenant_id) DO UPDATE SET repo=excluded.repo, commit_sha=excluded.commit_sha, indexed_at=excluded.indexed_at, chunk_count=excluded.chunk_count, documents=excluded.documents",
+                (tenant_id, repo, commit_sha, now().isoformat(), len(chunks), _j(documents or [])),
             )
 
     def policy_index_meta(self, tenant_id: str) -> dict[str, Any] | None:
-        return _row(self.conn.execute("SELECT * FROM policy_index_meta WHERE tenant_id=?", (tenant_id,)).fetchone())
+        r = _row(self.conn.execute("SELECT * FROM policy_index_meta WHERE tenant_id=?", (tenant_id,)).fetchone())
+        if r:
+            r["documents"] = json.loads(r.get("documents") or "[]")
+        return r
+
+    # ---- investigations (agent surface) --------------------------------------------------
+    def save_investigation(self, inv: Investigation) -> Investigation:
+        self.conn.execute(
+            "INSERT INTO investigations(id, tenant_id, question, intent, summary, document_pk, analysis_id, policy_id, answer, judge, actor, created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+            (inv.id, inv.tenant_id, inv.question, inv.intent, inv.summary, inv.document_pk, inv.analysis_id, inv.policy_id, _j(inv.answer), _j(inv.judge), inv.actor, inv.created_at.isoformat()),
+        )
+        self.conn.commit()
+        return inv
+
+    def get_investigation(self, inv_id: str, tenant_id: str) -> Investigation | None:
+        r = _row(self.conn.execute("SELECT * FROM investigations WHERE id=? AND tenant_id=?", (inv_id, tenant_id)).fetchone())
+        if not r:
+            return None
+        r["answer"], r["judge"] = json.loads(r["answer"]), json.loads(r["judge"])
+        return Investigation.model_validate(r)
+
+    def list_investigations(self, tenant_id: str, limit: int = 20) -> list[Investigation]:
+        out = []
+        for r in self.conn.execute("SELECT * FROM investigations WHERE tenant_id=? ORDER BY created_at DESC LIMIT ?", (tenant_id, limit)).fetchall():
+            d = dict(r)
+            d["answer"], d["judge"] = json.loads(d["answer"]), json.loads(d["judge"])
+            out.append(Investigation.model_validate(d))
+        return out
 
     def policy_chunks(self, tenant_id: str) -> list[dict[str, Any]]:
         out = []
