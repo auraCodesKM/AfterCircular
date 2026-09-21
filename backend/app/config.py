@@ -60,6 +60,9 @@ class Settings(BaseSettings):
 
     azure_search_endpoint: str = ""
     azure_search_api_key: str = ""  # empty → DefaultAzureCredential (Search Index Data Contributor/Reader roles)
+    # ONE index per environment; tenants are isolated by the filterable `tenant_id` field (docs/azure/policies-dev.index.json)
+    azure_search_index: str = "policies-dev"
+    embedding_dimensions: int = 1536  # must match the deployed embedding model and the index's vector field
     azure_search_semantic_config: str = ""  # name of a semantic configuration to add L2 reranking; empty → RRF hybrid only
 
     sebi_mode: Literal["live", "snapshot"] = "live"

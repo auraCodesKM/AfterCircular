@@ -1,13 +1,19 @@
 """Policy corpus: GitHub repo (aftercircular.yml manifest + markdown docs) → front-matter metadata → section chunks."""
 
+import hashlib
 import re
+from datetime import date, datetime, timezone
 from typing import Any
+
+import logging
 
 import yaml
 
 from app.schemas.actions import TenantContext
 from app.services.state import StateStore
 from app.tools.github import GitHubClient, GitHubError
+
+log = logging.getLogger(__name__)
 
 _FM = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.S)
 _HEADING = re.compile(r"^(#{2,3})\s+(.*)$", re.M)
@@ -36,11 +42,46 @@ def chunk_markdown(doc_id: str, title: str, path: str, version: str | None, body
         num = re.match(r"^(\d+(?:\.\d+)*)\.?\s+(.*)", heading)
         section = num.group(1) if num else heading
         label = f"{section} {num.group(2)}" if num else heading
+        full = f"{doc_id} — {title} §{label}\n{text}"
         chunks.append({
             "chunk_id": f"{doc_id}#{section}", "doc_id": doc_id, "title": title, "path": path, "version": version,
-            "section": label, "text": f"{doc_id} — {title} §{label}\n{text}",
+            "section": label, "text": full, "chunk_hash": chunk_hash(full),
         })
     return chunks
+
+
+def chunk_hash(text: str) -> str:
+    """Stable identity of a chunk's content: unchanged text is never re-embedded or re-uploaded."""
+    return hashlib.sha256(" ".join(text.split()).encode("utf-8")).hexdigest()[:24]
+
+
+def edm_datetime(value: Any) -> str | None:
+    """Front-matter date (YYYY-MM-DD, date, datetime) → Edm.DateTimeOffset text ('2025-04-01T00:00:00Z'); None stays None."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, datetime):
+        return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if isinstance(value, date):
+        return f"{value.isoformat()}T00:00:00Z"
+    s = str(value).strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", s):
+        return f"{s}T00:00:00Z"
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})", s):
+        return s
+    raise ValueError(f"effective_date {s!r} is not an ISO date")
+
+
+def enrich_chunks(chunks: list[dict[str, Any]], docs: list[dict[str, Any]], manifest: dict[str, Any], commit_sha: str) -> None:
+    """Attach the index metadata (docs/azure/policies-dev.index.json) to every chunk, in place."""
+    company = manifest.get("company", {})
+    by_doc = {d["doc_id"]: d for d in docs}
+    for c in chunks:
+        d = by_doc.get(c["doc_id"], {})
+        c.update({
+            "category": d.get("category"), "effective_date": edm_datetime(d.get("effective_date")), "status": "active",
+            "regulator": company.get("regulator"), "jurisdiction": company.get("country"), "topics": list(d.get("topics") or []),
+            "commit_sha": commit_sha,
+        })
 
 
 class RepositoryError(RuntimeError):
@@ -93,9 +134,18 @@ async def ensure_indexed(db: StateStore, gh: GitHubClient, tenant: TenantContext
     meta = db.policy_index_meta(tenant.tenant_id)
     if meta and meta["commit_sha"] == sha and meta["chunk_count"] == len(chunks) and meta.get("documents") and await retriever.is_ready(tenant.tenant_id):
         return manifest, False
-    vectors = await embed([c["text"] for c in chunks]) if chunks else None
-    for i, c in enumerate(chunks):
-        c["embedding"] = vectors[i] if vectors else None
+    enrich_chunks(chunks, docs, manifest, sha)
+    # embed only chunks whose text changed; unchanged chunks reuse the vector cached in policy_chunks (SQLite is the cache)
+    cached = {chunk_hash(r["text"]): r.get("embedding") for r in db.policy_chunks(tenant.tenant_id)}
+    todo = [c for c in chunks if not cached.get(c["chunk_hash"])]
+    vectors = await embed([c["text"] for c in todo]) if todo else []
+    if todo and not vectors:
+        vectors = [None] * len(todo)  # provider has no embedding model → keyword-only, say nothing more
+    for c, v in zip(todo, vectors or []):
+        c["embedding"] = v
+    for c in chunks:
+        c.setdefault("embedding", cached.get(c["chunk_hash"]))
+    log.info("policy index %s: %d chunks, %d embedded, %d reused", tenant.tenant_id, len(chunks), sum(1 for c in todo if c.get("embedding")), len(chunks) - len(todo))
     await retriever.index(tenant.tenant_id, chunks)
     db.replace_policy_chunks(tenant.tenant_id, tenant.github_repo, sha, chunks, docs)
     return manifest, True

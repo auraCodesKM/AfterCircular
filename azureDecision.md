@@ -100,8 +100,13 @@ Deliberately **not** used: AKS, Service Bus, Event Grid, Redis, Cosmos DB, Postg
 
 ## 5. Azure AI Search
 
-- One index per tenant: `policies-<tenant_id>` — tenant isolation at the index level.
-- Fields: `id`, `doc_id`(filterable), `title`, `path`, `version`, `section`, `text` (`en.microsoft` analyzer), `vector` (1536, HNSW).
+- **One index per environment** (`AZURE_SEARCH_INDEX=policies-dev`); tenants isolated by the filterable `tenant_id` field —
+  every query and readiness check carries `tenant_id eq '<tenant>' and status eq 'active'`. Schema: `docs/azure/policies-dev.index.json`
+  (= `index_definition()` in code, asserted equal by a test). The app validates an existing index and never rewrites it.
+- Fields: `id` (key), `tenant_id`, `doc_id`, `title`(searchable), `category`, `path`, `version`, `effective_date`(DateTimeOffset),
+  `status` (`active`/`retired`), `section`, `regulator`, `jurisdiction`, `topics`, `commit_sha`, `chunk_hash`, `text` (`en.microsoft`),
+  `vector` (`EMBEDDING_DIMENSIONS`=1536, HNSW cosine). Removed repository chunks are retired, not deleted; unchanged chunks
+  (same `chunk_hash`) reuse the vector cached in SQLite — no re-embedding.
 - **Hybrid** = `search_text` (BM25) + `vector_queries` (HNSW) in one request → the service fuses with **RRF**. `top=10`, then the
   decision layer reranks with Jev and `budget_chunks` dedupes and enforces `MAX_POLICY_CHUNKS=8` / `MAX_EVIDENCE_TOKENS=3000`.
 - **Semantic ranker** (L2): opt-in via `AZURE_SEARCH_SEMANTIC_CONFIG` (adds a semantic configuration on `title`/`text`). Off by default:
@@ -283,7 +288,17 @@ consumption price in the chosen region; the model list prices for the deployment
 is **UNKNOWN**, not "none". No resource was created, changed, or deleted. Zero model calls were made. Not installed: `azure-cli`
 (a large Homebrew package) — needs your approval, then `az login` needs you.
 
-### Inventory (to be filled by read-only discovery after `az login`)
+### Inventory — reported by the owner (portal, 2026-09-21); not yet inspected from this machine
+
+| Resource | Name | Region | Notes |
+|---|---|---|---|
+| Resource group | `rg-aftercircular-dev` | Korea Central | |
+| Foundry resource / project | `aif-aftercircular-dev` / `proj-aftercircular-dev` | Korea Central | chat deployment: **not yet reported** |
+| Embedding deployment | `text-embedding-3-small` (Global Standard, v1, 500K TPM) | Korea Central | 1536 dims |
+| Azure AI Search | `srch-aftercircular-dev`, **Free**, 1 replica / 1 partition, `https://srch-aftercircular-dev.search.windows.net` | Korea Central | RBAC: owner has Search Index Data Contributor |
+| Search index | `policies-dev` — created from `docs/azure/policies-dev.index.json` | | shared, `tenant_id` filter |
+
+### Inventory template (read-only discovery after `az login`)
 
 | Resource | Status | Name | Region | SKU | Endpoint | Reusable | Ongoing cost | Needed |
 |---|---|---|---|---|---|---|---|---|

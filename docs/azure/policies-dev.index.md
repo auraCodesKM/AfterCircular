@@ -72,7 +72,7 @@ Metadata available in the code to fill the new fields (from `load_corpus`): `cat
     `title`/`text` itself; the JSON does not need it now.
 11. **Free tier:** compatible — one index (limit 3), vector fields allowed, ~40 chunks × 1536 floats ≈ 0.25 MB (limit 50 MB),
     no indexer/skillset/vectorizer, no semantic configuration.
-12. **Mismatches to resolve in code before the first Search-backed scan** (no code changed here):
+12. **Mismatches — resolved in code on 2026-09-21** (`app/retrieval/azure_search.py`, `services/policies.py`; kept for history):
     - `index_name(tenant_id)` → constant `policies-dev` from a new `AZURE_SEARCH_INDEX` setting.
     - upload: add `tenant_id`, `category`, `effective_date` (ISO 8601 with `Z`), `status`, `regulator`, `jurisdiction`,
       `topics`, `commit_sha`, `chunk_hash`.

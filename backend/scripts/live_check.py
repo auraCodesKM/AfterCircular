@@ -3,7 +3,7 @@
     uv run python scripts/live_check.py smoke      # TEST 1: one minimal Foundry Responses call (~50 tokens)
     uv run python scripts/live_check.py extract    # TEST 2: one real obligation extraction (DEMO-2026-014 snapshot text)
     uv run python scripts/live_check.py embed      # one embedding call (needed by search)
-    uv run python scripts/live_check.py search     # TEST 3: index the Acme corpus into Azure AI Search + one hybrid query
+    uv run python scripts/live_check.py search     # TEST 3: upsert the Acme corpus into the shared index (tenant_id=live-check) + one hybrid query
     uv run python scripts/live_check.py jev        # TEST 4: one Jev applicability judgment
     uv run python scripts/live_check.py impact     # TEST 5: one Foundry impact-reasoning call (TOON context)
     uv run python scripts/live_check.py memo       # TEST 6: one memo call
@@ -108,31 +108,41 @@ async def embed() -> None:
 
 
 async def search() -> None:
+    """Shared index `AZURE_SEARCH_INDEX`, tenant_id='live-check'. Upserts the local Acme corpus once (one embedding batch if
+    Foundry is configured), then runs ONE hybrid query with the tenant filter."""
+    import yaml
+
     from app.models.provider import FoundryProvider
     from app.retrieval.azure_search import AzureSearchRetriever
-    from app.services.policies import chunk_markdown, parse_front_matter
+    from app.services.policies import chunk_markdown, enrich_chunks, parse_front_matter
 
     s = settings()
     _need(s.search_configured, "AZURE_SEARCH_ENDPOINT not set")
     _need(CORPUS.exists(), f"local corpus not found at {CORPUS}")
     ret = AzureSearchRetriever()
     tenant = "live-check"
+    print(f"index={ret.index_name} dims={ret.dims} auth={'api-key' if s.azure_search_api_key else 'entra-id'}")
     if not await ret.is_ready(tenant):
-        chunks = []
-        for p in sorted(CORPUS.glob("**/*.md")):
-            if p.name in {"README.md", "CHANGELOG.md"}:
-                continue
-            meta, body = parse_front_matter(p.read_text(encoding="utf-8"))
-            chunks += chunk_markdown(str(meta.get("doc_id") or p.stem), str(meta.get("title") or p.stem), p.relative_to(CORPUS).as_posix(), str(meta.get("version") or ""), body)
+        manifest = yaml.safe_load((CORPUS / "aftercircular.yml").read_text(encoding="utf-8"))
+        chunks: list[dict] = []
+        docs: list[dict] = []
+        for d in manifest.get("documents", []):
+            meta, body = parse_front_matter((CORPUS / d["path"]).read_text(encoding="utf-8"))
+            doc_id, title = str(meta.get("doc_id", d["id"])), str(meta.get("title", d.get("title", d["id"])))
+            version = str(meta["version"]) if meta.get("version") is not None else None
+            chunks += chunk_markdown(doc_id, title, d["path"], version, body)
+            docs.append({"doc_id": doc_id, "category": d.get("category"), "effective_date": meta.get("effective_date"), "topics": d.get("topics", [])})
+        enrich_chunks(chunks, docs, manifest, "live-check")
         llm = FoundryProvider() if s.foundry_configured else None
         vectors = await llm.embed([c["text"] for c in chunks]) if llm else None
         for i, c in enumerate(chunks):
             c["embedding"] = vectors[i] if vectors else None
         await ret.index(tenant, chunks)
-        print(f"indexed {len(chunks)} chunks into {tenant} (vectors={'yes' if vectors else 'no'})")
+        print(f"upserted {len(chunks)} chunks for tenant_id={tenant} (vectors={'yes' if vectors else 'no'})")
         await asyncio.sleep(2)
     q = "client-level position limits for index derivatives reviewed every six months"
     vec = (await FoundryProvider().embed([q])) if s.foundry_configured else None
+    _need(not s.foundry_configured or vec is not None, "query embedding failed (check FOUNDRY_ENDPOINT / EMBEDDING_MODEL / RBAC)")
     t0 = time.perf_counter()
     hits = await ret.search(tenant, q, vec[0] if vec else None, k=5)
     print(f"{len(hits)} hits in {int((time.perf_counter() - t0) * 1000)} ms (hybrid={'yes' if vec else 'keyword-only'})")
