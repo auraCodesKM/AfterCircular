@@ -87,7 +87,7 @@ function PolicyBody({ docId, repo, branch, onAsk }: { docId: string; repo: strin
           {p ? `v${p.version ?? "—"} · ${p.status ?? "—"} · effective ${fmtDate(p.effective_date)} · ${p.owner ?? "owner —"} · approver ${p.approver ?? "—"} · review ${p.review_cycle ?? "—"}` : "Loading…"}
         </SheetDescription>
         <div className="flex flex-wrap gap-1 pt-1">
-          <Button size="xs" variant="outline" render={<a href={`https://github.com/${repo}/blob/${branch}/${p?.path ?? ""}`} target="_blank" rel="noreferrer" />}>
+          <Button size="xs" variant="outline" nativeButton={false} render={<a href={`https://github.com/${repo}/blob/${branch}/${p?.path ?? ""}`} target="_blank" rel="noreferrer" />}>
             Open on GitHub <ExternalLink />
           </Button>
           <Button size="xs" variant="outline" onClick={() => onAsk(`Which circulars affect ${docId}?`)}>

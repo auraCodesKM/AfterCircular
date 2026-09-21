@@ -96,7 +96,7 @@ export function CommandPalette() {
                 value={`ask ${query}`}
                 onSelect={() => ask.start(query)}
               >
-                <Orb state="breathing" size={20} />
+                <Orb state="solving" px={28} />
                 Ask: “{query}”
               </CommandItem>
             </CommandGroup>

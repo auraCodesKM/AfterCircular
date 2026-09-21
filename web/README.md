@@ -8,7 +8,7 @@ alert-dialog, dropdown-menu, tooltip, table, tabs, card, alert, badge, skeleton,
 (`background/foreground/card/muted/accent/border/destructive/success/warning`) with light and dark sets in `app/globals.css`.
 Theme: `next-themes` (`class` attribute, `ac-theme` storage key, system default) — scoped to the dashboard layout.
 AI presence: `thinking-orbs` (`components/dashboard/orb.tsx` — breathing / searching / working / solving / connecting states, client-only)
-and `metal-fx` (`components/dashboard/metal.tsx` — liquid-metal send button and "Jev · System One" tag; falls back without WebGL2).
+(the dense 64px preset scaled to the inline size).
 beui.dev registry (`components/agents/*`, `components/motion/*`, vendored verbatim and excluded from lint): ApprovalCard = the
 human-review surface, StreamingResponse + Citations on agent answers and evidence, ChatApp/MessageScroller/PromptInput power
 `/dashboard/ask`, NotFoundGlitch is `app/not-found.tsx`. `/dashboard/profile` shows the account, workspace and the user's decisions.

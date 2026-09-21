@@ -10,7 +10,7 @@ export function AskBar() {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2">
       <button type="button" onClick={() => ask.start()} className="flex min-w-0 flex-1 items-center gap-2 text-left text-sm text-muted-foreground hover:text-foreground">
-        <Orb state="breathing" size={20} />
+        <Orb state="solving" px={28} />
         Ask about this workspace…
       </button>
       <div className="flex flex-wrap gap-1">

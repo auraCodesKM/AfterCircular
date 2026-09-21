@@ -16,7 +16,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/client-api";
 import type { Investigation } from "@/lib/pipeline-types";
 import { AnswerView } from "./answer-view";
-import { MetalRing } from "./metal";
 import { Orb } from "./orb";
 import { useWorkspace } from "./workspace-provider";
 
@@ -86,7 +85,7 @@ function AskBody({ initial }: { initial: string }) {
     <>
       <SheetHeader className="border-b border-border px-5 py-4">
         <SheetTitle className="flex items-center gap-2 text-base">
-          <Orb state={busy ? "searching" : inv ? "connecting" : "breathing"} size={20} />
+          <Orb state={busy ? "weaving" : inv ? "composing" : "solving"} px={28} />
           Ask AfterCircular
         </SheetTitle>
         <SheetDescription>
@@ -112,17 +111,15 @@ function AskBody({ initial }: { initial: string }) {
             className="pr-12"
           />
           <div className="absolute right-1.5 bottom-1.5">
-            <MetalRing>
-              <button
-                type="button"
-                onClick={() => submit()}
-                disabled={busy || q.trim().length < 2}
-                aria-label="Ask"
-                className="flex size-8 items-center justify-center rounded-full bg-foreground text-background transition-opacity disabled:opacity-40"
-              >
-                {busy ? <Orb state="working" size={20} /> : <ArrowUp className="size-4" />}
-              </button>
-            </MetalRing>
+            <button
+              type="button"
+              onClick={() => submit()}
+              disabled={busy || q.trim().length < 2}
+              aria-label="Ask"
+              className="flex size-8 items-center justify-center rounded-full bg-foreground text-background transition-opacity disabled:opacity-40"
+            >
+              {busy ? <Orb state="solving" px={22} /> : <ArrowUp className="size-4" />}
+            </button>
           </div>
         </div>
         {!inv && !busy ? (
@@ -147,7 +144,7 @@ function AskBody({ initial }: { initial: string }) {
         {busy ? (
           <div className="space-y-4" aria-busy aria-live="polite">
             <div className="flex items-center gap-3">
-              <Orb state="searching" size={64} />
+              <Orb state="weaving" px={64} />
               <div className="space-y-1">
                 <p className="text-sm">Routing your question…</p>
                 <p className="text-xs text-muted-foreground">Jev picks the intent, document and policy; code assembles the answer.</p>

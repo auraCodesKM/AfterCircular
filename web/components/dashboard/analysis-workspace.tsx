@@ -52,7 +52,7 @@ export function AnalysisWorkspace({ doc, analysis, review }: { doc: ProcessedDoc
             {impact?.affected_policies.length ? (
               <div className="flex flex-wrap gap-1">
                 {impact.affected_policies.map((p) => (
-                  <Button key={p} variant="outline" size="xs" render={<Link href={`/dashboard/policies?open=${p}`} />}>
+                  <Button key={p} variant="outline" size="xs" nativeButton={false} render={<Link href={`/dashboard/policies?open=${p}`} />}>
                     Open {p}
                   </Button>
                 ))}

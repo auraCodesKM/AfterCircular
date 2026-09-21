@@ -66,7 +66,7 @@ export function DocumentsTable({ documents, compact }: { documents: ProcessedDoc
                         Review
                       </Button>
                     ) : (
-                      <Button size="xs" variant="ghost" render={<Link href={`/dashboard/documents/${d.id}`} />}>
+                      <Button size="xs" variant="ghost" nativeButton={false} render={<Link href={`/dashboard/documents/${d.id}`} />}>
                         Inspect
                       </Button>
                     )

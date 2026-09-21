@@ -4,13 +4,12 @@ import { ThinkingOrb, type OrbState } from "thinking-orbs";
 
 export type { OrbState };
 
-/** AI presence. The library ships two tuned sizes (20, 64); `scale` enlarges the inline one a touch. Hidden under reduced motion. */
-export function Orb({ state = "breathing", size = 20, scale, speed, paused, className, label }: { state?: OrbState; size?: 20 | 64; scale?: number; speed?: number; paused?: boolean; className?: string; label?: string }) {
-  const s = scale ?? (size === 20 ? 1.4 : 1);
-  const box = Math.round(size * s);
+/** AI presence. Renders the dense 64px preset and scales it to `px` (the 20px preset is too sparse to read inline). Hidden under reduced motion. */
+export function Orb({ state = "solving", px = 28, speed, paused, className, label }: { state?: OrbState; px?: number; speed?: number; paused?: boolean; className?: string; label?: string }) {
+  const s = px / 64;
   return (
-    <span className={`inline-flex shrink-0 items-center justify-center motion-reduce:hidden ${className ?? ""}`} style={{ width: box, height: box }}>
-      <ThinkingOrb state={state} size={size} speed={speed} paused={paused} aria-label={label ?? state} style={{ transform: `scale(${s})`, transformOrigin: "center" }} />
+    <span className={`inline-flex shrink-0 items-center justify-center overflow-visible motion-reduce:hidden ${className ?? ""}`} style={{ width: px, height: px }}>
+      <ThinkingOrb state={state} size={64} speed={speed} paused={paused} aria-label={label ?? state} style={{ transform: `scale(${s})`, transformOrigin: "center", flexShrink: 0 }} />
     </span>
   );
 }

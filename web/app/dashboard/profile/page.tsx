@@ -46,7 +46,7 @@ export default async function ProfilePage() {
             <Badge variant="outline">id {u.githubId}</Badge>
           </div>
         </div>
-        <Button variant="outline" size="sm" className="ml-auto" render={<a href={`https://github.com/${u.login}`} target="_blank" rel="noreferrer" />}>
+        <Button variant="outline" size="sm" className="ml-auto" nativeButton={false} render={<a href={`https://github.com/${u.login}`} target="_blank" rel="noreferrer" />}>
           GitHub <ExternalLink />
         </Button>
       </section>
@@ -68,7 +68,7 @@ export default async function ProfilePage() {
           <dt className="text-muted-foreground">Tenant</dt>
           <dd className="font-mono text-xs">{ctx.tenant.tenantId}</dd>
         </dl>
-        <Button variant="outline" size="sm" render={<Link href="/connect" />}>
+        <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/connect" />}>
           Change repository
         </Button>
       </section>

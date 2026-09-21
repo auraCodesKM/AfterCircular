@@ -61,16 +61,16 @@ export function DocCardView({ card, expanded, onOpenAnalysis }: { card: DocCard;
             Show evidence
           </Button>
         ) : null}
-        <Button variant="ghost" size="xs" render={<Link href={`/dashboard/documents/${card.document_pk}`} />}>
+        <Button variant="ghost" size="xs" nativeButton={false} render={<Link href={`/dashboard/documents/${card.document_pk}`} />}>
           Open full analysis <ArrowUpRight />
         </Button>
         {card.affected_policies[0] ? (
-          <Button variant="ghost" size="xs" render={<Link href={`/dashboard/policies?open=${card.affected_policies[0]}`} />}>
+          <Button variant="ghost" size="xs" nativeButton={false} render={<Link href={`/dashboard/policies?open=${card.affected_policies[0]}`} />}>
             Open {card.affected_policies[0]}
           </Button>
         ) : null}
         {card.ticket_url ? (
-          <Button variant="ghost" size="xs" render={<a href={card.ticket_url} target="_blank" rel="noreferrer" />}>
+          <Button variant="ghost" size="xs" nativeButton={false} render={<a href={card.ticket_url} target="_blank" rel="noreferrer" />}>
             Issue #{card.ticket_id} <ArrowUpRight />
           </Button>
         ) : null}
@@ -150,7 +150,7 @@ export function AnswerView({ inv, compact, onAsk, stream = true }: { inv: Invest
       ) : null}
 
       {!streaming && a.actions?.some((x) => x.kind === "scan") ? (
-        <Button variant="outline" size="sm" render={<Link href="/dashboard?scan=1" />}>
+        <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/dashboard?scan=1" />}>
           <RefreshCw /> Go to Scan now
         </Button>
       ) : null}

@@ -21,7 +21,7 @@ export function ReviewQueue({ rows, decided }: { rows: Row[]; decided?: boolean 
         title="No reviews need your attention"
         description="New regulatory conflicts will appear here when AfterCircular detects them."
         action={
-          <Button size="sm" variant="outline" render={<Link href="/dashboard?scan=1" />}>
+          <Button size="sm" variant="outline" nativeButton={false} render={<Link href="/dashboard?scan=1" />}>
             Scan now
           </Button>
         }
@@ -50,7 +50,7 @@ export function ReviewQueue({ rows, decided }: { rows: Row[]; decided?: boolean 
             </p>
           </div>
           <div className="flex gap-1">
-            <Button variant="ghost" size="xs" render={<Link href={`/dashboard/documents/${doc.id}`} />}>
+            <Button variant="ghost" size="xs" nativeButton={false} render={<Link href={`/dashboard/documents/${doc.id}`} />}>
               Inspect
             </Button>
             <Button size="xs" variant={decided ? "outline" : "default"} onClick={() => analysis.open(doc)}>

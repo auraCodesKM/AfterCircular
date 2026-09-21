@@ -61,7 +61,7 @@ export default async function OverviewPage() {
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium">Recent regulatory changes</h2>
-          <Button variant="ghost" size="xs" render={<Link href="/dashboard/documents" />}>
+          <Button variant="ghost" size="xs" nativeButton={false} render={<Link href="/dashboard/documents" />}>
             All documents
           </Button>
         </div>
@@ -74,7 +74,7 @@ export default async function OverviewPage() {
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium">Recent activity</h2>
-          <Button variant="ghost" size="xs" render={<Link href="/dashboard/activity" />}>
+          <Button variant="ghost" size="xs" nativeButton={false} render={<Link href="/dashboard/activity" />}>
             All activity
           </Button>
         </div>

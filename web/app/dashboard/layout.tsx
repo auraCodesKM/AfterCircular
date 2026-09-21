@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { ThemeProvider } from "next-themes";
 import { signOut } from "@/auth";
 import { AnalysisSheet } from "@/components/dashboard/analysis-sheet";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
@@ -29,8 +28,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   }
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="ac-theme" disableTransitionOnChange>
-      <TooltipProvider>
+    <TooltipProvider>
         <WorkspaceProvider health={ctx.health} tenant={{ companyName: ctx.tenant.companyName, repo: ctx.tenant.githubRepo, branch: ctx.tenant.defaultBranch }} recent={recent.data}>
           <div className="bg-background text-foreground">
             <SidebarProvider>
@@ -47,6 +45,5 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           </div>
         </WorkspaceProvider>
       </TooltipProvider>
-    </ThemeProvider>
   );
 }

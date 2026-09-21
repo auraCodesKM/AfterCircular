@@ -22,7 +22,7 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-5">
-      <Button variant="ghost" size="xs" render={<Link href="/dashboard" />}>
+      <Button variant="ghost" size="xs" nativeButton={false} render={<Link href="/dashboard" />}>
         <ArrowLeft /> Overview
       </Button>
       <div>

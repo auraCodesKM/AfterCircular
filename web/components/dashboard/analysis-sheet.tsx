@@ -68,7 +68,7 @@ function Body({ doc }: { doc: ProcessedDocument }) {
           ) : null}
         </SheetDescription>
         <div>
-          <Button variant="outline" size="xs" render={<Link href={`/dashboard/documents/${doc.id}`} />}>
+          <Button variant="outline" size="xs" nativeButton={false} render={<Link href={`/dashboard/documents/${doc.id}`} />}>
             Open full analysis <ArrowUpRight />
           </Button>
         </div>
@@ -84,7 +84,7 @@ function Body({ doc }: { doc: ProcessedDocument }) {
         {loading ? (
           <div className="space-y-4" aria-busy>
             <div className="flex items-center gap-3">
-              <Orb state="solving" size={64} />
+              <Orb state="solving" px={64} />
               <p className="text-sm text-muted-foreground">Loading the analysis…</p>
             </div>
             <Skeleton className="h-4 w-1/3" />

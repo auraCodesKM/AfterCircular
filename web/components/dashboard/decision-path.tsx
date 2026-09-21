@@ -9,7 +9,6 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/client-api";
 import type { AnalysisRecord, DecisionAnswer, DecisionRecord } from "@/lib/pipeline-types";
-import { MetalTag } from "./metal";
 import { Orb } from "./orb";
 
 const stageLabel: Record<DecisionRecord["stage"], string> = {
@@ -99,8 +98,7 @@ export function DecisionDetails({ analysis }: { analysis: AnalysisRecord }) {
         <ChevronRight aria-hidden className="size-4 text-muted-foreground transition-transform group-data-[panel-open]:rotate-90" />
         <span className="font-medium">Decision details</span>
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          {providers.includes("typesafe") ? <MetalTag>Jev · System One</MetalTag> : <span>{powered || "—"}</span>}
-          <span>· {analysis.decision_path.length} stages</span>
+          <span>Powered by {powered || "—"} · {analysis.decision_path.length} stages</span>
         </span>
       </CollapsibleTrigger>
       <CollapsibleContent>
@@ -109,7 +107,7 @@ export function DecisionDetails({ analysis }: { analysis: AnalysisRecord }) {
           {error ? <p className="text-xs text-destructive">Decision records unavailable: {error}</p> : null}
           {!records && !error ? (
             <div className="flex items-center gap-3">
-              <Orb state="connecting" size={20} />
+              <Orb state="composing" px={28} />
               <Skeleton className="h-4 w-1/2" />
             </div>
           ) : null}

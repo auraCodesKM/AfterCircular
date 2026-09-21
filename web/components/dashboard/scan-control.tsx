@@ -123,7 +123,7 @@ export function ScanControl({ initial, disabled, title, description, children }:
                 Retry
               </Button>
               {scan.error_kind === "repository" ? (
-                <Button size="xs" variant="outline" render={<Link href="/connect" />}>
+                <Button size="xs" variant="outline" nativeButton={false} render={<Link href="/connect" />}>
                   Repository settings
                 </Button>
               ) : null}
@@ -135,7 +135,7 @@ export function ScanControl({ initial, disabled, title, description, children }:
         <Collapsible open={open || running} onOpenChange={setOpen}>
           <CollapsibleTrigger className="group flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
             <ChevronDown aria-hidden className="size-3.5 transition-transform group-data-[panel-open]:rotate-180" />
-            {running ? <Orb state="working" size={20} /> : null}
+            {running ? <Orb state="solving" px={28} /> : null}
             <span className="font-medium text-foreground">Pipeline</span>
             {running
               ? ` · ${scan.steps.filter((s) => s.status === "done").length} of ${scan.steps.length} steps · processing…`

@@ -31,11 +31,11 @@ export function UserMenu({ login, name, image, signOut }: { login: string; name?
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem render={<Link href="/connect" />}>
+          <DropdownMenuItem nativeButton={false} render={<Link href="/connect" />}>
             <GitBranch />
             Change repository
           </DropdownMenuItem>
-          <DropdownMenuItem render={<a href={`https://github.com/${login}`} target="_blank" rel="noreferrer" />}>
+          <DropdownMenuItem nativeButton={false} render={<a href={`https://github.com/${login}`} target="_blank" rel="noreferrer" />}>
             <User />
             Account
           </DropdownMenuItem>

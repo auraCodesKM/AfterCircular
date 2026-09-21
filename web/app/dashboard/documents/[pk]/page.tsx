@@ -20,7 +20,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ pk: s
   ]);
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="xs" render={<Link href="/dashboard/documents" />}>
+      <Button variant="ghost" size="xs" nativeButton={false} render={<Link href="/dashboard/documents" />}>
         <ArrowLeft /> Documents
       </Button>
       <h1 className="text-xl font-semibold tracking-tight">Analysis</h1>
