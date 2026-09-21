@@ -36,10 +36,11 @@ async def test_snapshot_is_labelled_and_hashed():
     assert all(d.source_mode == "DEMO_SNAPSHOT" and len(d.content_hash) == 64 for d in res.documents)
 
 
-async def test_live_failure_falls_back_to_snapshot(monkeypatch):
+async def test_live_failure_never_falls_back_in_live_mode(monkeypatch):
     async def boom(self, limit):
         raise ConnectionError("sebi down")
 
     monkeypatch.setattr(SEBIConnector, "_fetch_live", boom)
     res = await SEBIConnector(mode="live").fetch_documents(10)
-    assert res.mode == "DEMO_SNAPSHOT" and "Live source unavailable" in res.warnings[0]
+    assert res.status == "LIVE_FAILED" and res.mode == "LIVE" and res.documents == [] and "sebi down" in (res.error or "")
+    assert all(d.synthetic for d in (await SEBIConnector(mode="snapshot").fetch_documents(10)).documents)

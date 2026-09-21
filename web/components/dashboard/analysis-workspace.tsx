@@ -31,7 +31,7 @@ export function AnalysisWorkspace({ doc, analysis, review }: { doc: ProcessedDoc
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <ImpactBadge kind={kind} />
-          {doc.source_mode === "DEMO_SNAPSHOT" ? <Badge variant="secondary">Demo snapshot</Badge> : null}
+          {doc.source_mode === "DEMO_SNAPSHOT" ? <Badge variant="secondary">Demo snapshot · synthetic</Badge> : <Badge variant="outline" title={doc.document_url ?? undefined}>Live · sebi.gov.in</Badge>}
           {review ? (
             <Badge variant="outline" className={review.status === "AWAITING_REVIEW" ? "border-destructive/30 text-destructive" : ""}>
               {review.status === "AWAITING_REVIEW" ? "Awaiting your decision" : review.status === "APPROVED" ? "Approved" : "Rejected"}

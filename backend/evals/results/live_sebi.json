@@ -1,0 +1,33 @@
+{
+  "source": "SEBI",
+  "listing_url": "https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=1&ssid=7&smid=0",
+  "mode": "live",
+  "last_checked_at": "2026-09-21T17:13:50.613595+00:00",
+  "error": null,
+  "status": "LIVE",
+  "circulars_discovered": 25,
+  "latest": {
+    "date": "Sep 09, 2026",
+    "title": "Review of Position Limits for Clients and Penalty Provisions for Violation / Breach of Position Limits for Commodity Derivatives Segment",
+    "url": "https://www.sebi.gov.in/legal/circulars/sep-2026/review-of-position-limits-for-clients-and-penalty-provisions-for-violation-breach-of-position-limits-for-commodity-derivatives-segment_104387.html"
+  },
+  "latency_ms": 606,
+  "document": {
+    "source": "SEBI",
+    "jurisdiction": "IN",
+    "document_id": "104387",
+    "circular_number": "HO/47/16/13(5)2026-MRD-POD1/ I/20735/2026",
+    "title": "Review of Position Limits for Clients and Penalty Provisions for Violation / Breach of Position Limits for Commodity Derivatives Segment",
+    "published_date": "2026-09-09",
+    "effective_date": null,
+    "url": "https://www.sebi.gov.in/legal/circulars/sep-2026/review-of-position-limits-for-clients-and-penalty-provisions-for-violation-breach-of-position-limits-for-commodity-derivatives-segment_104387.html",
+    "document_type": "circular",
+    "content_hash": "4e2b179e5b45fe13d91bc3cbcb30cbaed2cf76ed8d8384b91e9732cabd43cba6",
+    "source_mode": "LIVE",
+    "synthetic": false,
+    "document_url": "https://www.sebi.gov.in/sebi_data/attachdocs/sep-2026/1788952299552.PDF",
+    "document_bytes": 328567,
+    "fetched_at": "2026-09-21T17:13:52.646656Z"
+  },
+  "text_preview": "CIRCULAR \n \nHO/47/16/13(5)2026-MRD-POD1/ I/20735/2026                               September 09, 2026 \n \nTo, \nThe Managing Directors / Chief Executive Officers, \nAll Recognized Stock Exchanges having Commodity Derivatives Segment \n \nSir / Madam, \nSub: Review of Position Limits for Clients and Penalty Provision s for Violation / \nBreach of Position Limits for Commodity Derivatives Segment \n1. The norms relating to position limits in the commodity derivatives segment are \nprescribed under Chapter 3 of SEBI Master Circular  for Commodity Derivatives \nsegment dated Aug 04, 2023. The current posit"
+}

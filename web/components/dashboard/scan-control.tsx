@@ -11,7 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { cn } from "cn";
 import { api } from "@/lib/client-api";
 import { Orb } from "./orb";
-import { fmtTime } from "./labels";
+import { fmtTime, sourceStatus } from "./labels";
 import { PageHeader } from "./page-header";
 import { useSound } from "./sound-effects";
 import type { ScanRecord, ScanStep } from "@/lib/pipeline-types";
@@ -54,11 +54,10 @@ export function ScanControl({ initial, disabled, eyebrow, title, description, ac
             router.refresh();
             if (rec.status === "COMPLETED") {
               sound(rec.new_documents ? "notification" : "success");
-              const snapshot = rec.source_mode === "DEMO_SNAPSHOT" && rec.steps.find((s) => s.key === "connect")?.detail?.includes("unavailable");
-              toast.success("Scan completed", {
-                id: `scan-${id}`,
-                description: `${rec.new_documents} new · ${rec.skipped_documents} already processed${snapshot ? " · SEBI unreachable, used the demo snapshot" : ""}`,
-              });
+              const src = sourceStatus(rec);
+              const summary = `${rec.new_documents} new · ${rec.skipped_documents} already processed`;
+              if (src.warn) toast.warning(src.title, { id: `scan-${id}`, description: `${src.detail} · ${summary}` });
+              else toast.success("Scan completed", { id: `scan-${id}`, description: `${src.title} · ${summary}` });
             } else {
               sound("error");
               toast.error(ERROR_TITLE[rec.error_kind ?? "backend"], { id: `scan-${id}`, description: rec.error ?? undefined });

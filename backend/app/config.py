@@ -68,7 +68,9 @@ class Settings(BaseSettings):
     embedding_dimensions: int = 1536  # must match the deployed embedding model and the index's vector field
     azure_search_semantic_config: str = ""  # name of a semantic configuration to add L2 reranking; empty → RRF hybrid only
 
-    sebi_mode: Literal["live", "snapshot"] = "live"
+    # live = official sebi.gov.in, no fallback (LIVE_FAILED on error) · demo_snapshot = fictional fixtures ·
+    # live_with_snapshot_fallback = dev only, falls back and says so. "snapshot" is accepted as an alias of demo_snapshot.
+    sebi_mode: Literal["live", "demo_snapshot", "snapshot", "live_with_snapshot_fallback"] = "live"
     sebi_max_documents: int = 5
     sebi_timeout_seconds: float = 20
 

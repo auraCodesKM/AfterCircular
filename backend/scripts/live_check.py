@@ -8,6 +8,7 @@
     uv run python scripts/live_check.py impact     # TEST 5: one Foundry impact-reasoning call (TOON context)
     uv run python scripts/live_check.py memo       # TEST 6: one memo call
     uv run python scripts/live_check.py toon-live  # TEST 11b: same impact payload as TOON and compact JSON, 2 calls
+    uv run python scripts/live_check.py sebi       # SEBI CONNECTOR CHECK: real listing → one real circular page → real PDF → text (no model calls)
 
 Every step prints tokens / cached tokens / latency / estimated cost from the real response and exits non-zero on failure.
 The end-to-end tests (TEST 7–10) go through the running API: see azureDecision.md §14. Nothing here retries beyond the
@@ -259,7 +260,30 @@ async def toon_live() -> None:
     (ROOT / "evals" / "results" / "toon_live.json").write_text(json.dumps(out, indent=2), encoding="utf-8")
 
 
-STEPS = {"smoke": smoke, "extract": extract, "embed": embed, "search": search, "jev": jev, "impact": impact, "memo": memo, "toon-live": toon_live}
+async def sebi() -> None:
+    """Real request to the official SEBI site: listing, then ONE circular page and its PDF. Zero model calls."""
+    from app.connectors.sebi import LISTING_URL, SEBIConnector
+
+    c = SEBIConnector(mode="live")
+    health = await c.check()
+    print("SEBI CONNECTOR CHECK\n--------------------")
+    print(f"mode: {c.mode.upper()}\nlisting: {'OK' if health['status'] == 'LIVE' else 'FAILED'} ({LISTING_URL}, {health.get('latency_ms')} ms)")
+    _need(health["status"] == "LIVE", f"listing failed: {health.get('error')}")
+    print(f"circulars discovered: {health['circulars_discovered']}\n")
+    res = await c.fetch_documents(1)
+    _need(res.status in ("LIVE_SUCCESS", "LIVE_PARTIAL"), f"fetch failed: {res.error}")
+    d = res.documents[0]
+    print("selected circular:")
+    print(f"date: {d.published_date}\ntitle: {d.title}\nreference: {d.circular_number or 'n/a'}\ndetail: OK ({d.url})\npdf: OK ({d.document_url})")
+    print(f"pdf_bytes: {d.document_bytes}\ntext_extraction: OK\ntext_chars: {len(d.content)}\ncontent_hash: {d.content_hash[:16]}…")
+    print(f"source_mode: {d.source_mode}\nsynthetic: {str(d.synthetic).lower()}\nfetched_at: {d.fetched_at.isoformat()}")
+    if res.warnings:
+        print("warnings:", *res.warnings, sep="\n  ")
+    (ROOT / "evals" / "results").mkdir(exist_ok=True)
+    (ROOT / "evals" / "results" / "live_sebi.json").write_text(json.dumps({**health, "document": {k: v for k, v in d.model_dump(mode="json").items() if k != "content"}, "text_preview": d.content[:600]}, indent=2), encoding="utf-8")
+
+
+STEPS = {"sebi": sebi, "smoke": smoke, "extract": extract, "embed": embed, "search": search, "jev": jev, "impact": impact, "memo": memo, "toon-live": toon_live}
 
 if __name__ == "__main__":
     step = sys.argv[1] if len(sys.argv) > 1 else ""

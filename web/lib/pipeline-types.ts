@@ -8,6 +8,7 @@ export type ScanStep = { key: string; label: string; status: "pending" | "runnin
 
 export type ScanRecord = {
   id: string; tenant_id: string; status: "RUNNING" | "COMPLETED" | "FAILED"; source_mode: "LIVE" | "DEMO_SNAPSHOT" | null;
+  source_status?: "LIVE_SUCCESS" | "LIVE_NO_NEW_DOCUMENTS" | "LIVE_PARTIAL" | "LIVE_FAILED" | "DEMO_SNAPSHOT" | "DEMO_SNAPSHOT_FALLBACK" | null; source_error?: string | null;
   started_at: string; finished_at: string | null; steps: ScanStep[]; new_documents: number; skipped_documents: number;
   document_ids: string[]; error: string | null; error_kind: "repository" | "source" | "ai" | "backend" | null; error_detail: string | null;
   ai_provider: string; retrieval_backend: string;
@@ -17,7 +18,7 @@ export type ProcessedDocument = {
   id: string; source: string; jurisdiction: string; document_id: string; circular_number: string | null; title: string;
   published_date: string | null; effective_date: string | null; url: string; content_hash: string; document_version: number;
   processed_at: string; status: DocumentStatus; impact: string | null; analysis_id: string | null; ticket_id: string | null;
-  ticket_url: string | null; source_mode: "LIVE" | "DEMO_SNAPSHOT"; error: string | null;
+  ticket_url: string | null; source_mode: "LIVE" | "DEMO_SNAPSHOT"; synthetic?: boolean; document_url?: string | null; fetched_at?: string | null; error: string | null;
 };
 
 export type Evidence = { section: string; text: string };
@@ -104,7 +105,7 @@ export type PolicyIndex = { index: { repo: string; commit_sha: string; indexed_a
 /** A card the agent returns for one processed circular. */
 export type DocCard = {
   document_pk: string; title: string; circular_number: string | null; source: string; published_date: string | null; effective_date: string | null;
-  impact: string | null; status: DocumentStatus; source_mode: "LIVE" | "DEMO_SNAPSHOT"; analysis_id: string | null;
+  impact: string | null; status: DocumentStatus; source_mode: "LIVE" | "DEMO_SNAPSHOT"; synthetic?: boolean; document_url?: string | null; fetched_at?: string | null; analysis_id: string | null;
   applicability: "YES" | "NO" | "UNCERTAIN" | null; alignment: "ALIGNED" | "CONFLICT" | null; affected_policies: string[]; reason: string | null;
   severity: string | null; regulatory_evidence: Evidence[]; policy_evidence: PolicyEvidence[]; recommended_action: string | null;
   decision_path: string[]; escalation_reason: string | null; ticket_url: string | null; ticket_id: string | null;

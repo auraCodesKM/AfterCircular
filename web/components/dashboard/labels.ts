@@ -46,6 +46,19 @@ export function fmtDate(iso: string | null | undefined) {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+/** Truthful source readout. Demo is never described as SEBI; a live failure names its reason and says no fallback happened. */
+export function sourceStatus(scan: { source_mode?: string | null; source_status?: string | null; source_error?: string | null; new_documents?: number } | null | undefined, healthMode?: string) {
+  const st = scan?.source_status ?? null;
+  if (st === "LIVE_SUCCESS" || st === "LIVE_PARTIAL") return { title: "Connected to SEBI", detail: `Fetched ${scan?.new_documents ?? 0} new live publication${scan?.new_documents === 1 ? "" : "s"}${st === "LIVE_PARTIAL" ? " (some could not be retrieved)" : ""}`, live: true, warn: st === "LIVE_PARTIAL" };
+  if (st === "LIVE_NO_NEW_DOCUMENTS") return { title: "Connected to SEBI", detail: "No new publications since last scan", live: true, warn: false };
+  if (st === "LIVE_FAILED") return { title: "SEBI connection failed", detail: `${scan?.source_error ?? "unknown reason"} · No snapshot fallback in live mode`, live: false, warn: true };
+  if (st === "DEMO_SNAPSHOT_FALLBACK") return { title: "Demo snapshot (fallback)", detail: `Live SEBI fetch failed: ${scan?.source_error ?? "unknown"} — using synthetic publications`, live: false, warn: true };
+  if (st === "DEMO_SNAPSHOT" || scan?.source_mode === "DEMO_SNAPSHOT" || (!scan && (healthMode === "demo_snapshot" || healthMode === "snapshot")))
+    return { title: "Demo snapshot", detail: "Using synthetic regulatory publications — not SEBI data", live: false, warn: true };
+  if (scan?.source_mode === "LIVE") return { title: "Connected to SEBI", detail: "Live publications from sebi.gov.in", live: true, warn: false };
+  return { title: healthMode === "live" ? "SEBI live" : "Source not scanned yet", detail: healthMode === "live" ? "Official listing at sebi.gov.in, fetched on each scan" : "Run a scan to fetch publications", live: healthMode === "live", warn: false };
+}
+
 /** "12s", "5m", "3h", "2d" — relative to now; falls back to the date past a week. */
 export function relTime(iso: string, now = Date.now()) {
   const s = Math.max(0, Math.round((now - new Date(iso).getTime()) / 1000));

@@ -41,7 +41,7 @@ Point the frontend at it: in `web/.env.local` set `BACKEND_URL=http://localhost:
 | `DECISION_ROUTES` / `DEFAULT_JUDGE` | Per-task judge (`typesafe` \| `foundry` \| `stub`) for `extraction_check, applicability, rerank, alignment, verification`. |
 | `DECISION_THRESHOLDS` | JSON override of `app/decisions/policy.py` (uncertain band, confidence floors, rerank keep, …). |
 | `AZURE_SEARCH_ENDPOINT` / `AZURE_SEARCH_API_KEY` | Azure AI Search. Empty → in-process hybrid retriever (BM25 + cosine, RRF-fused) over SQLite. |
-| `SEBI_MODE` | `live` (fetch sebi.gov.in; snapshot on failure) or `snapshot` (always the fictional demo circulars). |
+| `SEBI_MODE` | `live` (official sebi.gov.in; a failure is `LIVE_FAILED`, never a silent fallback), `demo_snapshot` (fictional fixtures), or `live_with_snapshot_fallback` (dev only, fallback recorded as such). See `docs/sebi-connector.md`. |
 | `SEBI_MAX_DOCUMENTS` | Circulars per scan (default 5). |
 | `GITHUB_TOKEN` | Fallback token; normally the signed-in user's OAuth token arrives per request from the frontend. |
 
@@ -53,7 +53,7 @@ Point the frontend at it: in `web/.env.local` set `BACKEND_URL=http://localhost:
 
 ## Demo fallback
 
-If `sebi.gov.in` is unreachable (or `SEBI_MODE=snapshot`), the connector serves `data/snapshot/*.json` — three **fictional** circulars, marked `source_mode = DEMO_SNAPSHOT` on the document, the scan, the dashboard badge and the GitHub issue. The pipeline still runs extraction, retrieval, impact analysis, memo, approval and issue creation on them.
+With `SEBI_MODE=demo_snapshot` (tests, offline demos) the connector serves `data/snapshot/*.json` — three **fictional** circulars, marked `source_mode = DEMO_SNAPSHOT`, `synthetic = true` on the document, the scan, the dashboard badge and the GitHub issue. In `live` mode an unreachable sebi.gov.in fails the scan with the reason ("SEBI connection failed … No snapshot fallback in live mode"); it never substitutes fixtures.
 
 With `AI_PROVIDER=stub` the three agents return fixtures from `evals/scenarios` (matched by circular id) so the plumbing can be exercised without a model; every record says `provider = stub` and the dashboard shows an amber "stub — no model calls" badge. Live circulars have no fixtures and fail with a clear message until Foundry is configured.
 

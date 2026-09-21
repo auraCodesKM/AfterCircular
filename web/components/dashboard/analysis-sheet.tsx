@@ -61,7 +61,7 @@ function Body({ doc }: { doc: ProcessedDocument }) {
         <SheetTitle className="line-clamp-3 text-[17px] leading-snug font-semibold tracking-tight text-balance sm:line-clamp-2">{doc.title}</SheetTitle>
         <div className="flex flex-wrap items-center gap-2">
           <ImpactBadge kind={analysisKind(doc, impact)} />
-          {doc.source_mode === "DEMO_SNAPSHOT" ? <Badge variant="secondary">Demo snapshot</Badge> : null}
+          {doc.source_mode === "DEMO_SNAPSHOT" ? <Badge variant="secondary">Demo snapshot · synthetic</Badge> : <Badge variant="outline" title={doc.document_url ?? undefined}>Live · sebi.gov.in</Badge>}
           <SheetDescription className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
             <span>Published {fmtDate(doc.published_date)}</span>
             <span>Effective {fmtDate(impact?.effective_date ?? doc.effective_date)}</span>

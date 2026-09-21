@@ -64,9 +64,15 @@ def friendly_error(e: BaseException) -> tuple[str, ErrorKind, str]:
         return f"The scan stopped at {what}. Check the calls it made before raising the limit.", "ai", detail
     if isinstance(e, ProviderError):
         return "The AI provider did not respond. Check the model configuration and try again.", "ai", detail
+    if isinstance(e, SourceUnavailable):
+        return f"SEBI connection failed: {e}. No snapshot fallback in live mode.", "source", detail
     if isinstance(e, (httpx.HTTPError, ValueError)):
         return "The regulatory source could not be read.", "source", detail
     return "The scan stopped unexpectedly.", "backend", detail
+
+
+class SourceUnavailable(RuntimeError):
+    """Live regulatory source failed and the mode forbids a fallback."""
 
 
 class Scan:
@@ -114,8 +120,17 @@ class Scan:
                 raise BudgetExceeded("BUDGET_EXCEEDED:daily_cost", f"estimated spend today ${spent_today:.4f} reached the ${cfg.max_estimated_cost_per_day_usd:.2f} daily limit; no generative calls made")
             self.step("connect", "running")
             fetched = await SEBIConnector().fetch_documents(settings().sebi_max_documents)
-            self.rec.source_mode = fetched.mode
-            self.step("connect", "done", "LIVE sebi.gov.in" if fetched.mode == "LIVE" else "DEMO SNAPSHOT (fictional, live source unavailable or disabled)")
+            self.rec.source_mode, self.rec.source_status, self.rec.source_error = fetched.mode, fetched.status, fetched.error
+            if fetched.status == "LIVE_FAILED":
+                # live mode never substitutes fixtures: the scan fails visibly with the real reason
+                raise SourceUnavailable(fetched.error or "SEBI connection failed")
+            connect_detail = {
+                "LIVE_SUCCESS": f"Connected to SEBI — {fetched.discovered} circulars listed at sebi.gov.in",
+                "LIVE_PARTIAL": f"Connected to SEBI — {fetched.discovered} listed, {len(fetched.warnings)} could not be retrieved",
+                "DEMO_SNAPSHOT": "Demo snapshot — fictional publications, not SEBI data",
+                "DEMO_SNAPSHOT_FALLBACK": f"Live SEBI fetch FAILED ({fetched.error}); fell back to the fictional demo snapshot",
+            }.get(fetched.status, fetched.status)
+            self.step("connect", "done", connect_detail)
             self.step("fetch", "done", f"{len(fetched.documents)} publication(s)" + (f"; {len(fetched.warnings)} warning(s)" if fetched.warnings else ""))
 
             self.step("detect", "running")
@@ -132,6 +147,8 @@ class Scan:
                 if detected is not None:
                     fresh.append(detected)
             self.rec.new_documents, self.rec.skipped_documents, self.rec.deferred_documents = len(fresh), len(fetched.documents) - len(fresh) - deferred, deferred
+            if fetched.status == "LIVE_SUCCESS" and not fresh and not deferred:
+                self.rec.source_status = "LIVE_NO_NEW_DOCUMENTS"
             self.rec.document_ids = [d.id for d in fresh]
             self.step("detect", "done", f"{len(fresh)} new, {self.rec.skipped_documents} already processed" + (f", {deferred} deferred to the next scan (limit {cfg.max_documents_per_scan})" if deferred else ""))
 
@@ -158,7 +175,7 @@ class Scan:
             self.rec.status, self.rec.finished_at = "COMPLETED", now()
             self.db.save_scan(self.rec)
             audit.record(self.db, t.tenant_id, "SCAN_COMPLETED", scan_id=self.rec.id, new=self.rec.new_documents, skipped=self.rec.skipped_documents,
-                         deferred=self.rec.deferred_documents, mode=fetched.mode, llm_calls=self.rec.llm_calls)
+                         deferred=self.rec.deferred_documents, mode=fetched.mode, source_status=self.rec.source_status, llm_calls=self.rec.llm_calls)
         except Exception as e:  # noqa: BLE001 — the scan record must always reach a terminal state
             log.error("scan %s failed: %s\n%s", self.rec.id, e, traceback.format_exc())
             self.rec.status, self.rec.finished_at = "FAILED", now()
@@ -192,7 +209,7 @@ class Scan:
             circular_number=d.circular_number, title=d.title, published_date=str(d.published_date) if d.published_date else None,
             effective_date=str(d.effective_date) if d.effective_date else None, url=d.url, content_hash=d.content_hash,
             document_version=(prev.document_version + 1) if prev else 1, previous_hash=prev.content_hash if prev else None,
-            processed_at=now(), status="DISCOVERED", source_mode=d.source_mode,
+            processed_at=now(), status="DISCOVERED", source_mode=d.source_mode, synthetic=d.synthetic, document_url=d.document_url, fetched_at=d.fetched_at,
         )
         self.db.insert_document(rec, d.content)
         audit.record(self.db, t.tenant_id, "DOCUMENT_VERSION_DETECTED" if prev else "DOCUMENT_DETECTED", scan_id=self.rec.id, document_pk=rec.id,

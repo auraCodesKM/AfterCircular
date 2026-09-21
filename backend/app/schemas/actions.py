@@ -73,7 +73,9 @@ class ScanRecord(BaseModel):
     id: str
     tenant_id: str
     status: ScanStatus
-    source_mode: str | None = None
+    source_mode: str | None = None  # LIVE | DEMO_SNAPSHOT — where documents came from
+    source_status: str | None = None  # LIVE_SUCCESS | LIVE_NO_NEW_DOCUMENTS | LIVE_PARTIAL | LIVE_FAILED | DEMO_SNAPSHOT | DEMO_SNAPSHOT_FALLBACK
+    source_error: str | None = None
     started_at: datetime
     finished_at: datetime | None = None
     steps: list[ScanStep]
@@ -111,6 +113,9 @@ class ProcessedDocument(BaseModel):
     ticket_id: str | None = None
     ticket_url: str | None = None
     source_mode: str = "LIVE"
+    synthetic: bool = False  # provenance: True only for the fictional demo snapshot
+    document_url: str | None = None  # the PDF that was downloaded (LIVE) — proof of source
+    fetched_at: datetime | None = None
     error: str | None = None
 
 

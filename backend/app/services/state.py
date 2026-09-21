@@ -138,7 +138,8 @@ class StateStore:
             "llm_calls": (("cached_tokens", "INTEGER"), ("attempts", "INTEGER NOT NULL DEFAULT 1"), ("estimated_cost_usd", "REAL"),
                           ("context_format", "TEXT"), ("structured_mode", "TEXT"), ("pricing_status", "TEXT")),
             "scans": (("error_kind", "TEXT"), ("error_detail", "TEXT"), ("llm_calls", "INTEGER NOT NULL DEFAULT 0"), ("deferred_documents", "INTEGER NOT NULL DEFAULT 0"),
-                      ("estimated_cost_usd", "REAL NOT NULL DEFAULT 0")),
+                      ("estimated_cost_usd", "REAL NOT NULL DEFAULT 0"), ("source_status", "TEXT"), ("source_error", "TEXT")),
+            "processed_documents": (("synthetic", "INTEGER NOT NULL DEFAULT 0"), ("document_url", "TEXT"), ("fetched_at", "TEXT")),
         }
         for table, cols in wanted.items():
             have = {r["name"] for r in self.conn.execute(f"PRAGMA table_info({table})").fetchall()}
@@ -185,10 +186,10 @@ class StateStore:
     def save_scan(self, rec: ScanRecord) -> None:
         self.conn.execute(
             """UPDATE scans SET status=?, source_mode=?, finished_at=?, steps=?, new_documents=?, skipped_documents=?, document_ids=?, error=?, error_kind=?, error_detail=?,
-               llm_calls=?, deferred_documents=?, estimated_cost_usd=? WHERE id=?""",
+               llm_calls=?, deferred_documents=?, estimated_cost_usd=?, source_status=?, source_error=? WHERE id=?""",
             (rec.status, rec.source_mode, rec.finished_at.isoformat() if rec.finished_at else None,
              _j([s.model_dump() for s in rec.steps]), rec.new_documents, rec.skipped_documents, _j(rec.document_ids), rec.error, rec.error_kind, rec.error_detail,
-             rec.llm_calls, rec.deferred_documents, rec.estimated_cost_usd, rec.id),
+             rec.llm_calls, rec.deferred_documents, rec.estimated_cost_usd, rec.source_status, rec.source_error, rec.id),
         )
         self.conn.commit()
 
@@ -226,6 +227,8 @@ class StateStore:
     def insert_document(self, doc: ProcessedDocument, content: str) -> ProcessedDocument:
         d = doc.model_dump()
         d["processed_at"] = doc.processed_at.isoformat()
+        d["fetched_at"] = doc.fetched_at.isoformat() if doc.fetched_at else None
+        d["synthetic"] = int(doc.synthetic)
         d["content"] = content
         cols = ", ".join(d)
         self.conn.execute(f"INSERT INTO processed_documents({cols}) VALUES({', '.join(':' + c for c in d)})", d)

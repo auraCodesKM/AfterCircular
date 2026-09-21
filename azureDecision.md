@@ -450,6 +450,7 @@ Web: set `BACKEND_URL` to the Container App FQDN and deploy `web/` (Vercel or St
 | Prompt caching effect | measured 0 cached tokens on all four calls — the stable prefixes are below the 1024-token minimum; no saving to claim | ✅ measured |
 | End-to-end (live Foundry + Search + Jev) | ✅ 2026-09-21 `evals/results/live_e2e.{json,md}`: 3 snapshot documents, 1 forced scan (Acme tenant) — 4 Foundry calls, 4,432 in / 11,571 out tokens, 0 cached, est. $0.0243, 42 Jev decision records, 82 chunks in `policies-dev`, avg Foundry latency 22.8 s, 0 retries/errors. DEMO-014 → YES/CONFLICT POL-001 (memo, review already approved → idempotent); DEMO-016 → archived at **triage** with 0 Foundry calls; DEMO-015 → YES/CONFLICT POL-001 §8 (golden label said ALIGNED — a defensible two-sided finding, now AWAITING_REVIEW; reported as a mismatch, label unchanged). Repeat scan: 0 new, 3 skipped, 0 calls. Approval/GitHub not exercised live (mocked in tests; manual step). | ✅ 3/4 live cases |
 | Idempotency | live repeat scan 2026-09-21: `new=0, skipped=3, llm_calls=0`; existing approved review not re-opened | ✅ |
+| Live SEBI source | ✅ 2026-09-21 `scripts/live_check.py sebi`: listing 25 circulars (606 ms); circular 104387 "Review of Position Limits … Commodity Derivatives Segment" (Sep 09, 2026, ref HO/47/16/13(5)2026-MRD-POD1/I/20735/2026), PDF 328,567 bytes, 6,748 chars, `source_mode=LIVE`, `synthetic=false`. Full pipeline on it (Acme tenant): connect LIVE_SUCCESS → detect 1 new → **Jev triage archived it as NOT_APPLICABLE** (addressed to commodity-derivatives exchanges; P(concerns)=0.01) with **0 Foundry calls**; repeat scan `LIVE_NO_NEW_DOCUMENTS`, 0 new / 1 skipped / 0 calls. | ✅ |
 | App Insights | exporter configured in code only | 🧪 |
 | Scheduled scan | `/api/scheduled-scan` returns 409 when disabled (default) | ✅ code |
 
@@ -498,7 +499,9 @@ Web: set `BACKEND_URL` to the Container App FQDN and deploy `web/` (Vercel or St
 - Approval → GitHub issue has been exercised live only with the stub provider earlier (issues #2–#4); with Foundry it is
   verified through mocked tests and remains a manual click on the AWAITING_REVIEW row.
 - Pricing figures are an unverified list-price snapshot; the Azure Cost analysis blade is the source of truth.
-- The live SEBI connector depends on sebi.gov.in being reachable and its HTML stable; the fictional snapshot is the fallback and is labelled.
+- The live SEBI connector (official site, scan-triggered, `docs/sebi-connector.md`) depends on sebi.gov.in being reachable and its
+  HTML stable; in `live` mode a failure is reported as LIVE_FAILED — there is no silent fallback. The fictional snapshot exists for
+  tests and explicit demo mode only. Monitoring is not continuous: each scan fetches the newest `SEBI_MAX_DOCUMENTS` rows.
 - Semantic ranker not evaluated. `MAX_CONTEXT_TOKENS` is a documented budget; only the evidence budget is enforced in code today.
 - Scheduled scans need a server-side `GITHUB_TOKEN` (user OAuth tokens live only in browser sessions).
 - SQLite on Azure Files means one replica; fine for a demo, not for scale.
