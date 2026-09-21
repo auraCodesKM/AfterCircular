@@ -12,8 +12,9 @@ export default async function ActivityPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Activity"
-        description="The audit log: every scan, detection, judgment, human decision and action, in order. Routine events (skips, retrievals) are hidden by default."
+        eyebrow={`${ctx.tenant.companyName} · Activity`}
+        title="Audit log"
+        description="Every scan, detection, judgment, human decision and action, in order. Routine events (skips, retrievals) are hidden by default."
         meta={<span>{audit.data.length} events</span>}
       />
       <ActivityLog events={audit.data} />

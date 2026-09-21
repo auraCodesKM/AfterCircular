@@ -102,15 +102,15 @@ export function DecisionDetails({ analysis }: { analysis: AnalysisRecord }) {
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="group flex w-full items-center gap-2 py-1 text-left text-sm hover:text-foreground">
-        <ChevronRight aria-hidden className="size-4 text-muted-foreground transition-transform group-data-[panel-open]:rotate-90" />
-        <span className="font-medium">Decision details</span>
-        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span>Powered by {powered || "—"} · {analysis.decision_path.length} stages</span>
+      <CollapsibleTrigger className="group flex w-full items-center gap-2 px-4 py-3 text-left text-sm transition-colors hover:bg-muted/40">
+        <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]:rotate-90" />
+        <span className="shrink-0 font-medium">Decision details</span>
+        <span className="min-w-0 truncate text-xs text-muted-foreground">
+          Powered by {powered || "—"} · {analysis.decision_path.length} stages
         </span>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="mt-2 space-y-3 pl-6">
+        <div className="space-y-4 px-4 pt-1 pb-4 sm:pl-10">
           <p className="text-xs text-muted-foreground">Typed judgments with calibrated probabilities route each case; a person decides. Probabilities are the model&rsquo;s own and never authorize an action.</p>
           {error ? <p className="text-xs text-destructive">Decision records unavailable: {error}</p> : null}
           {!records && !error ? (
@@ -120,9 +120,11 @@ export function DecisionDetails({ analysis }: { analysis: AnalysisRecord }) {
             </div>
           ) : null}
           {records ? (
-            <ol className="space-y-3">
+            <ol className="relative space-y-4 before:absolute before:top-2 before:bottom-2 before:left-[9px] before:w-px before:bg-border">
               {groups.map((g, gi) => (
-                <li key={gi} className="text-sm">
+                <li key={gi} className="relative flex gap-3 text-sm">
+                  <span className="relative z-[1] mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-border bg-card font-mono text-[10px] text-muted-foreground tabular-nums">{gi + 1}</span>
+                  <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-baseline gap-x-2">
                     <span className="font-medium">{stageLabel[g.stage]}</span>
                     <span className="text-xs text-muted-foreground">{providerName[g.provider] ?? g.provider}</span>
@@ -169,6 +171,7 @@ export function DecisionDetails({ analysis }: { analysis: AnalysisRecord }) {
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
+                  </div>
                 </li>
               ))}
             </ol>

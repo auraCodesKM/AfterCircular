@@ -11,6 +11,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { cn } from "cn";
 import { api } from "@/lib/client-api";
 import { Orb } from "./orb";
+import { fmtTime } from "./labels";
+import { PageHeader } from "./page-header";
 import { useSound } from "./sound-effects";
 import type { ScanRecord, ScanStep } from "@/lib/pipeline-types";
 
@@ -26,7 +28,7 @@ const StepIcon = ({ status }: { status: ScanStep["status"] }) => {
 const ERROR_TITLE: Record<string, string> = { repository: "Policy repository unavailable", source: "Regulatory source unavailable", ai: "AI provider unavailable", backend: "Scan failed" };
 
 /** Scan now + a compact pipeline readout. Polls while running and refreshes server-rendered data. */
-export function ScanControl({ initial, disabled, title, description, children }: { initial: ScanRecord | null; disabled?: boolean; title: string; description: string; children?: React.ReactNode }) {
+export function ScanControl({ initial, disabled, eyebrow, title, description, actions, children }: { initial: ScanRecord | null; disabled?: boolean; eyebrow?: React.ReactNode; title: React.ReactNode; description: React.ReactNode; actions?: React.ReactNode; children?: React.ReactNode }) {
   const router = useRouter();
   const params = useSearchParams();
   const sound = useSound();
@@ -111,25 +113,30 @@ export function ScanControl({ initial, disabled, title, description, children }:
   }, [initialId, poll, params, scanNow, disabled, router]);
 
   const button = (
-    <Button onClick={scanNow} disabled={running || starting || disabled} size="sm">
+    <Button onClick={scanNow} disabled={running || starting || disabled} size="sm" variant={actions ? "outline" : "default"}>
       {running || starting ? <Loader2 className="animate-spin motion-reduce:animate-none" /> : <RefreshCw />}
       {running ? "Scanning…" : "Scan now"}
     </Button>
   );
 
+  const done = scan?.steps.filter((s) => s.status === "done").length ?? 0;
+  const total = scan?.steps.length ?? 0;
+  const failed = scan?.status === "FAILED";
+
   return (
     <>
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
-            <p className="text-sm text-muted-foreground">{description}</p>
-          </div>
-          {button}
-        </div>
-        {children}
-      </div>
-      {scan?.status === "FAILED" && scan.error ? (
+      <PageHeader
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
+        actions={
+          <>
+            {actions}
+            {button}
+          </>
+        }
+      />
+      {failed && scan.error ? (
         <Alert variant={scan.error_kind === "repository" || scan.error_kind === "source" ? "warning" : "error"}>
           {scan.error_kind === "repository" || scan.error_kind === "source" ? <TriangleAlert /> : <X />}
           <AlertTitle>{ERROR_TITLE[scan.error_kind ?? "backend"]}</AlertTitle>
@@ -158,28 +165,45 @@ export function ScanControl({ initial, disabled, title, description, children }:
           </AlertAction>
         </Alert>
       ) : null}
-      {scan ? (
-        <Collapsible open={open || running} onOpenChange={setOpen}>
-          <CollapsibleTrigger className="group flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
-            <ChevronDown aria-hidden className="size-3.5 transition-transform group-data-[panel-open]:rotate-180" />
-            {running ? <Orb state="solving" px={28} /> : null}
-            <span className="font-medium text-foreground">Pipeline</span>
+      {/* One quiet system line: pipeline state on the left, environment on the right, steps behind a toggle. */}
+      <Collapsible open={open || running} onOpenChange={setOpen} className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
+          <span className="inline-flex items-center gap-2 text-sm font-medium">
+            {running ? <Orb state="solving" px={20} /> : <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", failed ? "bg-destructive" : scan ? "bg-success" : "bg-muted-foreground/35")} />}
+            {running ? "Pipeline running" : failed ? "Last scan failed" : scan ? "Pipeline idle" : "No scan yet"}
+          </span>
+          <span className="text-xs text-muted-foreground">
             {running
-              ? ` · ${scan.steps.filter((s) => s.status === "done").length} of ${scan.steps.length} steps · processing…`
-              : scan.status === "FAILED"
-                ? " · last scan failed"
-                : ` · last scan completed · ${scan.new_documents} new`}
-            <span className="ml-1 underline-offset-4 group-hover:underline">{open || running ? "Hide details" : "Show details"}</span>
-          </CollapsibleTrigger>
+              ? `${done} of ${total} steps`
+              : failed
+                ? "Details above"
+                : scan
+                  ? `Last scan ${fmtTime(scan.finished_at ?? scan.started_at)} · ${scan.new_documents} new · ${scan.skipped_documents} already processed`
+                  : "Scan to fetch the latest circulars"}
+          </span>
+          {running ? (
+            <span className="h-1 w-24 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done} aria-label="Pipeline progress">
+              <span className="block h-full rounded-full bg-foreground transition-[width] duration-500" style={{ width: `${total ? (done / total) * 100 : 0}%` }} />
+            </span>
+          ) : null}
+          {scan ? (
+            <CollapsibleTrigger className="group ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
+              Steps
+              <ChevronDown aria-hidden className="size-3.5 transition-transform group-data-[panel-open]:rotate-180" />
+            </CollapsibleTrigger>
+          ) : null}
+        </div>
+        {children ? <div className="border-t border-border bg-muted/30 px-4 py-2">{children}</div> : null}
+        {scan ? (
           <CollapsibleContent>
-            <ol className="mt-2 grid gap-x-6 gap-y-1 rounded-md border border-border p-3 sm:grid-cols-2" aria-live="polite" aria-label="Pipeline steps">
+            <ol className="grid gap-x-8 gap-y-2 border-t border-border px-4 py-3 sm:grid-cols-2" aria-live="polite" aria-label="Pipeline steps">
               {scan.steps.map((s) => (
-                <li key={s.key} className="flex min-w-0 items-start gap-2 text-xs">
+                <li key={s.key} className="flex min-w-0 items-start gap-2.5 text-xs">
                   <span className="mt-[2px]">
                     <StepIcon status={s.status} />
                   </span>
                   <div className="min-w-0">
-                    <p className={s.status === "pending" || s.status === "skipped" ? "text-muted-foreground" : ""}>{s.label}</p>
+                    <p className={cn("font-medium", (s.status === "pending" || s.status === "skipped") && "font-normal text-muted-foreground")}>{s.label}</p>
                     {s.detail ? (
                       <p className="truncate text-[11px] text-muted-foreground" title={s.detail}>
                         {s.detail}
@@ -190,8 +214,8 @@ export function ScanControl({ initial, disabled, title, description, children }:
               ))}
             </ol>
           </CollapsibleContent>
-        </Collapsible>
-      ) : null}
+        ) : null}
+      </Collapsible>
     </>
   );
 }

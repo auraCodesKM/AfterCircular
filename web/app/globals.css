@@ -167,6 +167,15 @@ body {
 }
 
 /* ---------- utilities ---------- */
+/* Scroll without a visible bar — chip rails, code panes, previews. Used by the agents kit and the ask dock. */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .container-x {
   width: 100%;
   max-width: 84rem;

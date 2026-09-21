@@ -11,7 +11,7 @@ export default async function ModelsPage() {
   const evals = await load<EvalReport | null>(ctx, "/api/evals/latest", null);
   return (
     <div className="space-y-6">
-      <PageHeader title="Models" description="Which model handles which task, and how each has measured on AfterCircular's golden scenarios. No number here is estimated." />
+      <PageHeader eyebrow="System" title="Models" description="Which model handles which task, and how each has measured on AfterCircular's golden scenarios. No number here is estimated." />
       <ModelsView health={ctx.health} evals={evals.data} />
     </div>
   );

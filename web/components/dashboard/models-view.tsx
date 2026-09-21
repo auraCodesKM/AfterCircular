@@ -40,20 +40,21 @@ export function ModelsView({ health, evals }: { health: Health | null; evals: Ev
         <TabsTrigger value="generative">Generative benchmark</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="routing" className="space-y-6">
-        <dl className="grid gap-3 rounded-md border border-border p-3 text-sm md:grid-cols-3">
+      <TabsContent value="routing" className="space-y-4 pt-2">
+        <dl className="grid gap-3 text-sm md:grid-cols-3">
           {models.map((m) => (
-            <div key={m.name}>
-              <dt className="flex items-center gap-2 font-medium">
-                {m.name}
-                <span className="font-normal text-muted-foreground">· {m.vendor}</span>
+            <div key={m.name} className="rounded-xl border border-border bg-card p-4">
+              <dt className="flex items-center gap-2">
+                <span aria-hidden className={`size-1.5 shrink-0 rounded-full ${m.status === "not configured" ? "bg-warning" : "bg-success"}`} />
+                <span className="text-base font-semibold tracking-tight">{m.name}</span>
+                <span className={`ml-auto text-[11px] ${m.status === "not configured" ? "text-warning" : "text-muted-foreground"}`}>{m.status}</span>
               </dt>
-              <dd className="text-xs text-muted-foreground">{m.role}</dd>
-              <dd className={`text-xs ${m.status === "not configured" ? "text-warning" : "text-muted-foreground"}`}>{m.status}</dd>
+              <dd className="mt-1 text-xs text-muted-foreground">{m.vendor}</dd>
+              <dd className="mt-2 text-sm leading-5">{m.role}</dd>
             </div>
           ))}
         </dl>
-        <div className="overflow-x-auto rounded-md border border-border">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
@@ -76,13 +77,13 @@ export function ModelsView({ health, evals }: { health: Health | null; evals: Ev
         <p className="text-xs text-muted-foreground">Routing comes from DECISION_ROUTES / DEFAULT_JUDGE and the per-task Foundry deployments in backend/.env.</p>
       </TabsContent>
 
-      <TabsContent value="judges">
+      <TabsContent value="judges" className="pt-2">
         {evals?.judges ? (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
               {evals.judges.scenarios.length} golden scenarios · run {fmtTime(evals.judges.generated_at)} · thresholds {JSON.stringify(evals.judges.thresholds)}
             </p>
-            <div className="overflow-x-auto rounded-md border border-border">
+            <div className="overflow-x-auto rounded-xl border border-border bg-card">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
@@ -130,14 +131,14 @@ export function ModelsView({ health, evals }: { health: Health | null; evals: Ev
         )}
       </TabsContent>
 
-      <TabsContent value="generative">
+      <TabsContent value="generative" className="pt-2">
         {evals?.available ? (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
               {evals.scenarios.length} scenarios · {evals.retrieval} · run {fmtTime(evals.generated_at)}
             </p>
             {evals.warning ? <p className="text-xs text-warning">{evals.warning}</p> : null}
-            <div className="overflow-x-auto rounded-md border border-border">
+            <div className="overflow-x-auto rounded-xl border border-border bg-card">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">

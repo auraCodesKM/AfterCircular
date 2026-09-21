@@ -76,7 +76,7 @@ export function InvestigationChat({ initialLogin, avatar }: { initialLogin: stri
   }, [params]);
 
   return (
-    <div className="-mx-4 -my-6 flex h-[calc(100dvh-3rem)] flex-col md:-mx-6">
+    <div className="-mx-4 -my-6 flex h-[calc(100dvh-3rem)] flex-col md:-mx-8 md:-my-8">
       <div className="flex items-center gap-2 border-b border-border px-4 py-2 md:px-6">
         <Orb state={busy ? "weaving" : turns.length ? "composing" : "solving"} px={26} />
         <p className="text-sm font-medium">Ask AfterCircular</p>

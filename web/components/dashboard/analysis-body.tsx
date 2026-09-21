@@ -1,18 +1,34 @@
 "use client";
 
 import { ChevronRight, FileDiff, ListChecks, Scale } from "lucide-react";
+import type { ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Separator } from "@/components/ui/separator";
-import { Marker, MarkerContent, MarkerIcon } from "@/components/xiod/marker";
 import type { AnalysisRecord, ProcessedDocument } from "@/lib/pipeline-types";
 import { DecisionDetails } from "./decision-path";
 import { EvidencePair } from "./evidence";
 import { MemoView } from "./memo-view";
 import { Markdown } from "./markdown";
+import { SectionHeader } from "./section-header";
 import { WhyBlock } from "./why-block";
 
-/** Shared investigation body: what changed → impact → why → evidence → action → memo → decision details. */
+/** A row in the details group: one collapsible with a uniform trigger. */
+export function DetailRow({ title, hint, children, defaultOpen }: { title: string; hint?: ReactNode; children: ReactNode; defaultOpen?: boolean }) {
+  return (
+    <Collapsible defaultOpen={defaultOpen}>
+      <CollapsibleTrigger className="group flex w-full items-center gap-2 px-4 py-3 text-left text-sm transition-colors hover:bg-muted/40">
+        <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]:rotate-90" />
+        <span className="shrink-0 font-medium">{title}</span>
+        {hint ? <span className="min-w-0 truncate text-xs text-muted-foreground">{hint}</span> : null}
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="px-4 pt-1 pb-4 sm:pl-10">{children}</div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+/** Shared investigation body: what changed → impact → why → evidence → action → details (memo, obligations, decisions). */
 export function AnalysisBody({ doc, analysis }: { doc: ProcessedDocument; analysis: AnalysisRecord | null }) {
   const impact = analysis?.impact ?? null;
   const ex = analysis?.extraction;
@@ -27,62 +43,61 @@ export function AnalysisBody({ doc, analysis }: { doc: ProcessedDocument; analys
     );
   }
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {ex?.summary ? (
-        <section className="space-y-1.5">
-          <Marker variant="border" render={<h3 />}>
-            <MarkerIcon><FileDiff /></MarkerIcon>
-            <MarkerContent className="font-medium text-foreground">What changed</MarkerContent>
-          </Marker>
-          <Markdown>{ex.summary}</Markdown>
-          {ex.applies_to?.length ? <p className="text-xs text-muted-foreground">Applies to {ex.applies_to.join(", ")}</p> : null}
+        <section className="space-y-3">
+          <SectionHeader as="h3" icon={<FileDiff />} title="What changed" />
+          <Markdown className="text-[15px] leading-7">{ex.summary}</Markdown>
+          {ex.applies_to?.length ? (
+            <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+              Applies to
+              {ex.applies_to.map((a) => (
+                <span key={a} className="rounded-md bg-muted px-1.5 py-0.5 text-foreground/80">
+                  {a}
+                </span>
+              ))}
+            </p>
+          ) : null}
         </section>
       ) : null}
 
       {impact ? (
         <>
-          <section className="space-y-2">
-            <Marker variant="border" render={<h3 />}>
-              <MarkerIcon><Scale /></MarkerIcon>
-              <MarkerContent className="font-medium text-foreground">Impact</MarkerContent>
-            </Marker>
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
-              <div>
-                <dt className="text-xs text-muted-foreground">Applicability</dt>
-                <dd className="font-medium">{impact.applicability}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Alignment</dt>
-                <dd className="font-medium">{impact.alignment ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Affected policy</dt>
-                <dd className="font-mono text-xs leading-5">{impact.affected_policies.join(", ") || "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Severity</dt>
-                <dd className="font-medium capitalize">{impact.severity ?? "—"}</dd>
-              </div>
+          <section className="space-y-3">
+            <SectionHeader as="h3" icon={<Scale />} title="Impact" />
+            <dl className="grid grid-cols-2 divide-border overflow-hidden rounded-xl border border-border bg-card sm:grid-cols-4 sm:divide-x">
+              {(
+                [
+                  ["Applicability", impact.applicability === "YES" ? "Applies" : impact.applicability === "NO" ? "Does not apply" : "Uncertain", ""],
+                  ["Alignment", impact.alignment === "CONFLICT" ? "Conflict" : impact.alignment === "ALIGNED" ? "Aligned" : "—", impact.alignment === "CONFLICT" ? "text-destructive" : impact.alignment === "ALIGNED" ? "text-success" : ""],
+                  ["Affected policy", impact.affected_policies.join(", ") || "—", "font-mono text-xs leading-5"],
+                  ["Severity", impact.severity ?? "—", "capitalize"],
+                ] as const
+              ).map(([k, v, cls]) => (
+                <div key={k} className="px-4 py-3">
+                  <dt className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{k}</dt>
+                  <dd className={`mt-1 text-sm font-medium ${cls}`}>{v}</dd>
+                </div>
+              ))}
             </dl>
           </section>
-          <Separator />
+
           <WhyBlock impact={impact} />
+
           {impact.regulatory_evidence.length || impact.policy_evidence.length ? (
-            <>
-              <Separator />
-              <EvidencePair regulatory={impact.regulatory_evidence} policy={impact.policy_evidence} source={{ label: `${doc.source} circular`, url: doc.url, published: doc.published_date }} />
-            </>
+            <EvidencePair regulatory={impact.regulatory_evidence} policy={impact.policy_evidence} source={{ label: `${doc.source} circular`, url: doc.url, published: doc.published_date }} />
           ) : null}
+
           {impact.recommended_action ? (
-            <>
-              <section className="space-y-1.5">
-                <Marker variant="border" render={<h3 />}>
-                  <MarkerIcon><ListChecks /></MarkerIcon>
-                  <MarkerContent className="font-medium text-foreground">Recommended action</MarkerContent>
-                </Marker>
-                <p className="text-sm leading-6">{impact.recommended_action}</p>
-              </section>
-            </>
+            <section className="flex gap-3 rounded-xl border border-border bg-muted/40 p-4">
+              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
+                <ListChecks aria-hidden className="size-3.5" />
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold">Recommended action</h3>
+                <p className="mt-1 text-sm leading-6">{impact.recommended_action}</p>
+              </div>
+            </section>
           ) : null}
         </>
       ) : null}
@@ -97,49 +112,35 @@ export function AnalysisBody({ doc, analysis }: { doc: ProcessedDocument; analys
         </Alert>
       ) : null}
 
-      {analysis.memo ? (
-        <>
-          <Separator />
-          <Collapsible>
-            <CollapsibleTrigger className="group flex w-full items-center gap-2 py-1 text-left text-sm hover:text-foreground">
-              <ChevronRight aria-hidden className="size-4 text-muted-foreground transition-transform group-data-[panel-open]:rotate-90" />
-              <span className="font-medium">Draft memo</span>
-              <span className="text-xs text-muted-foreground">AI-generated · human review required</span>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="mt-2 pl-6">
-                <MemoView memo={analysis.memo} />
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </>
-      ) : null}
-
-      {ex?.obligations?.length ? (
-        <Collapsible>
-          <CollapsibleTrigger className="group flex w-full items-center gap-2 py-1 text-left text-sm hover:text-foreground">
-            <ChevronRight aria-hidden className="size-4 text-muted-foreground transition-transform group-data-[panel-open]:rotate-90" />
-            <span className="font-medium">Extracted obligations</span>
-            <span className="text-xs text-muted-foreground">{ex.obligations.length}</span>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <ol className="mt-2 divide-y divide-border pl-6">
-              {ex.obligations.map((o, i) => (
-                <li key={i} className="py-2 text-sm leading-6">
-                  {o.requirement}
-                  <span className="block text-xs text-muted-foreground">
-                    §{o.evidence.section} · {o.affected_area.replace(/_/g, " ")}
-                    {o.deadline ? ` · by ${o.deadline}` : ""}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </CollapsibleContent>
-        </Collapsible>
-      ) : null}
-
-      <Separator />
-      <DecisionDetails analysis={analysis} />
+      <section className="space-y-3">
+        <SectionHeader as="h3" title="Details" description="The draft, the extracted obligations and every judgment that led here." />
+        <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+          {analysis.memo ? (
+            <DetailRow title="Draft memo" hint="AI-generated · human review required">
+              <MemoView memo={analysis.memo} />
+            </DetailRow>
+          ) : null}
+          {ex?.obligations?.length ? (
+            <DetailRow title="Extracted obligations" hint={`${ex.obligations.length} found in the circular`}>
+              <ol className="divide-y divide-border">
+                {ex.obligations.map((o, i) => (
+                  <li key={i} className="flex gap-3 py-2.5 text-sm leading-6">
+                    <span className="mt-0.5 shrink-0 font-mono text-[11px] text-muted-foreground tabular-nums">{String(i + 1).padStart(2, "0")}</span>
+                    <div className="min-w-0">
+                      {o.requirement}
+                      <span className="block text-xs text-muted-foreground">
+                        §{o.evidence.section} · {o.affected_area.replace(/_/g, " ")}
+                        {o.deadline ? ` · by ${o.deadline}` : ""}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </DetailRow>
+          ) : null}
+          <DecisionDetails analysis={analysis} />
+        </div>
+      </section>
     </div>
   );
 }

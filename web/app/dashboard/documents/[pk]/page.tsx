@@ -19,11 +19,14 @@ export default async function DocumentPage({ params }: { params: Promise<{ pk: s
     load<ReviewRecord[]>(ctx, "/api/reviews", []),
   ]);
   return (
-    <div className="space-y-4">
-      <Button variant="ghost" size="xs" nativeButton={false} render={<Link href="/dashboard/documents" />}>
-        <ArrowLeft /> Documents
-      </Button>
-      <h1 className="text-xl font-semibold tracking-tight">Analysis</h1>
+    <div className="space-y-6">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Button variant="ghost" size="xs" className="-ml-2 text-muted-foreground" nativeButton={false} render={<Link href="/dashboard/documents" />}>
+          <ArrowLeft /> Documents
+        </Button>
+        <span aria-hidden>/</span>
+        <h1 className="font-medium text-foreground">Analysis</h1>
+      </div>
       <AnalysisWorkspace doc={doc.data} analysis={analysis.data} review={reviews.data.find((r) => r.document_pk === pk) ?? null} />
     </div>
   );

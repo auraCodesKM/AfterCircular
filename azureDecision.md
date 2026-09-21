@@ -419,9 +419,9 @@ Web: set `BACKEND_URL` to the Container App FQDN and deploy `web/` (Vercel or St
 | Strict schema conversion | `to_strict_json_schema` OK for ExtractionResult (2159 chars), ImpactAnalysis (2193), Memo (853) | ✅ offline |
 | TOON round-trip + tokens | table in §7, `backend/evals/results/toon_benchmark.json` | ✅ |
 | Jev live | §6 (jev-1.13.0, p=0.99, 1106 ms) | ✅ |
-| Foundry smoke / extraction / impact / memo | — | ⛔ needs §13 |
-| Azure AI Search hybrid | — | ⛔ needs §13 |
-| Prompt caching effect | — | ⛔ needs live calls |
+| Foundry smoke / extraction / impact / memo | ✅ 2026-09-21, deployment `gpt-5-mini` (Global Standard, Korea Central), Entra auth, `structured_mode=json_schema` on all four. smoke 63 in / 102 out, 7.5 s; extraction 1236 in / 3969 out, 29.9 s, 8 obligations, est. $0.008; impact (TOON context) 1436 in / 1616 out, 17.7 s, YES/CONFLICT, est. $0.0036; memo (TOON) 869 in / 3647 out, 30.1 s, est. $0.0075. cached_tokens 0 (prefixes < 1024 tokens, as predicted). | ✅ |
+| Azure AI Search hybrid | ✅ 2026-09-21: `policies-dev`, Entra auth, 82 chunks upserted (tenant_id=live-check, 1536-d vectors), hybrid query 271 ms → POL-001 §4.1 first; second run reused readiness | ✅ |
+| Prompt caching effect | measured 0 cached tokens on all four calls — the stable prefixes are below the 1024-token minimum; no saving to claim | ✅ measured |
 | End-to-end + approval + issue (live Foundry) | earlier in the project the same flow ran with the *stub* provider and created issues #2–#4 on `auraCodesKM/acme-securities-policies` behind human approval; not yet with Foundry | 🧪 |
 | Idempotency | unit test `test_scan_defers_documents_beyond_the_limit` + e2e stub tests: second scan skips; needs one live repeat | ✅ stub / ⛔ live |
 | App Insights | exporter configured in code only | 🧪 |

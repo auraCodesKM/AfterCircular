@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ReviewQueue } from "@/components/dashboard/review-queue";
+import { SectionHeader } from "@/components/dashboard/section-header";
+import { Stat, StatGrid } from "@/components/dashboard/stat";
 import { load, shellContext } from "@/lib/dashboard-data";
 import type { AnalysisRecord, ProcessedDocument, ReviewRecord } from "@/lib/pipeline-types";
 
@@ -21,13 +23,33 @@ export default async function ReviewsPage() {
   );
   const pending = rows.filter((r) => r.review.status === "AWAITING_REVIEW");
   const decided = rows.filter((r) => r.review.status !== "AWAITING_REVIEW");
+  const approved = decided.filter((r) => r.review.status === "APPROVED").length;
+  const rejected = decided.length - approved;
+  const issues = decided.filter((r) => r.review.ticket_url).length;
+
   return (
-    <div className="space-y-6">
-      <PageHeader title="Needs your review" description="AI detected and drafted. Nothing external happens until you decide." meta={<span>{pending.length} waiting</span>} />
-      <ReviewQueue rows={pending} />
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow={`${ctx.tenant.companyName} · Reviews`}
+        title={pending.length ? `${pending.length} ${pending.length === 1 ? "decision is" : "decisions are"} waiting on you` : "Nothing is waiting on you"}
+        description="AI detected the conflict and drafted the memo. Approving opens a compliance-review issue in the connected repository; rejecting records the decision. Nothing external happens until you decide."
+      />
+
+      <StatGrid>
+        <Stat label="Waiting" value={pending.length} tone={pending.length ? "destructive" : "default"} hint="awaiting your decision" />
+        <Stat label="Approved" value={approved} tone={approved ? "success" : "default"} hint={issues ? `${issues} ${issues === 1 ? "issue" : "issues"} opened` : "no issues opened yet"} />
+        <Stat label="Rejected" value={rejected} hint="no action taken" />
+        <Stat label="Total reviewed" value={decided.length} hint="recorded in the audit log" />
+      </StatGrid>
+
+      <section className="space-y-3">
+        <SectionHeader title="Needs your decision" count={pending.length} description="Review opens the analysis with the evidence and the draft memo." />
+        <ReviewQueue rows={pending} />
+      </section>
+
       {decided.length ? (
-        <section className="space-y-2">
-          <h2 className="text-sm font-medium">Decided</h2>
+        <section className="space-y-3">
+          <SectionHeader title="Decided" count={decided.length} description="Every decision is recorded under the reviewer's GitHub login." />
           <ReviewQueue rows={decided} decided />
         </section>
       ) : null}

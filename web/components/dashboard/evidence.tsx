@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Quote } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Citations } from "@/components/agents/citations";
 import { evidenceCitations } from "@/lib/citations";
 import type { Evidence, PolicyEvidence } from "@/lib/pipeline-types";
 import { fmtDate } from "./labels";
+import { SectionHeader } from "./section-header";
 
 type Source = { label: string; circular?: string | null; url?: string | null; published?: string | null };
 
@@ -15,10 +16,10 @@ function Excerpt({ meta, text, href, hrefLabel }: { meta: React.ReactNode; text:
   const [more, setMore] = useState(false);
   const long = text.length > 220;
   return (
-    <li className="space-y-1 py-2.5">
+    <li className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-3">
       <p className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">{meta}</p>
       <p className={`text-sm leading-6 ${more || !long ? "" : "line-clamp-3"}`}>“{text}”</p>
-      <div className="flex gap-1">
+      <div className="-ml-2 flex gap-1">
         {long ? (
           <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={() => setMore((m) => !m)}>
             {more ? "Show less" : "Show more"}
@@ -39,16 +40,11 @@ export function EvidencePair({ regulatory, policy, source }: { regulatory: Evide
   if (!regulatory.length && !policy.length) return null;
   return (
     <section className="space-y-3">
-      <div className="flex items-baseline gap-2">
-        <h3 className="text-sm font-medium">Evidence</h3>
-        <span className="text-xs text-muted-foreground">
-          {regulatory.length} regulatory · {policy.length} policy
-        </span>
-      </div>
+      <SectionHeader as="h3" icon={<Quote />} title="Evidence" description={`${regulatory.length} regulatory · ${policy.length} policy — what the regulator says, what your policy says.`} />
       <div className="grid gap-6 md:grid-cols-2">
-        <div>
+        <div className="space-y-2">
           <h4 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Regulation</h4>
-          <ul className="divide-y divide-border">
+          <ul className="space-y-2">
             {regulatory.length ? (
               regulatory.map((e, i) => (
                 <Excerpt
@@ -66,13 +62,13 @@ export function EvidencePair({ regulatory, policy, source }: { regulatory: Evide
                 />
               ))
             ) : (
-              <li className="py-2 text-xs text-muted-foreground">No regulatory clause cited.</li>
+              <li className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">No regulatory clause cited.</li>
             )}
           </ul>
         </div>
-        <div>
+        <div className="space-y-2">
           <h4 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Internal policy</h4>
-          <ul className="divide-y divide-border">
+          <ul className="space-y-2">
             {policy.length ? (
               policy.map((e, i) => (
                 <Excerpt
@@ -89,7 +85,7 @@ export function EvidencePair({ regulatory, policy, source }: { regulatory: Evide
                 />
               ))
             ) : (
-              <li className="py-2 text-xs text-muted-foreground">No policy clause cited.</li>
+              <li className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">No policy clause cited.</li>
             )}
           </ul>
         </div>

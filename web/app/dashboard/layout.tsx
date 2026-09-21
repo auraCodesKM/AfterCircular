@@ -3,6 +3,7 @@ import { signOut } from "@/auth";
 import { switchTenant } from "@/app/connect/actions";
 import { AnalysisSheet } from "@/components/dashboard/analysis-sheet";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
+import { AskDock } from "@/components/dashboard/ask-dock";
 import { AskSheet } from "@/components/dashboard/ask-sheet";
 import { CommandPalette } from "@/components/dashboard/command-palette";
 import { SiteHeader } from "@/components/dashboard/site-header";
@@ -33,7 +34,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     <TooltipProvider>
       <SoundEffects>
         <WorkspaceProvider health={ctx.health} tenant={{ companyName: ctx.tenant.companyName, repo: ctx.tenant.githubRepo, branch: ctx.tenant.defaultBranch }} recent={recent.data}>
-          <div className="bg-background text-foreground">
+          <div className="bg-background font-(family-name:--font-geist) text-foreground">
             <SidebarProvider>
               <AppSidebar
                 pendingReviews={pending.data.length}
@@ -45,7 +46,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
               />
               <SidebarInset className="min-w-0">
                 <SiteHeader companyName={ctx.tenant.companyName} />
-                <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 md:px-6">{children}</main>
+                <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+                <AskDock />
               </SidebarInset>
             </SidebarProvider>
             <AskSheet />

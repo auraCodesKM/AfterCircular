@@ -51,30 +51,33 @@ function Body({ doc }: { doc: ProcessedDocument }) {
 
   return (
     <>
-      <SheetHeader className="sticky top-0 z-10 gap-2 border-b border-border bg-background px-6 py-4">
+      <SheetHeader className="sticky top-0 z-10 gap-2.5 border-b border-border/80 bg-background/90 px-6 py-4 pr-14 backdrop-blur">
+        <p className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground/80">Analysis</span>
+          <span aria-hidden>·</span>
+          <span>{doc.source}</span>
+          <span className="truncate font-mono">{doc.circular_number ?? doc.document_id}</span>
+        </p>
+        <SheetTitle className="line-clamp-3 text-[17px] leading-snug font-semibold tracking-tight text-balance sm:line-clamp-2">{doc.title}</SheetTitle>
         <div className="flex flex-wrap items-center gap-2">
           <ImpactBadge kind={analysisKind(doc, impact)} />
           {doc.source_mode === "DEMO_SNAPSHOT" ? <Badge variant="secondary">Demo snapshot</Badge> : null}
-        </div>
-        <SheetTitle className="line-clamp-3 text-base leading-snug sm:line-clamp-2">{doc.title}</SheetTitle>
-        <SheetDescription className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
-          <span>{doc.source}</span>
-          <span>Published {fmtDate(doc.published_date)}</span>
-          <span>Effective {fmtDate(impact?.effective_date ?? doc.effective_date)}</span>
-          {doc.url && doc.url !== "#" ? (
-            <a href={doc.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 underline-offset-4 hover:underline">
-              Source <ExternalLink aria-hidden className="size-3" />
-            </a>
-          ) : null}
-        </SheetDescription>
-        <div>
-          <Button variant="outline" size="xs" nativeButton={false} render={<Link href={`/dashboard/documents/${doc.id}`} />}>
+          <SheetDescription className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
+            <span>Published {fmtDate(doc.published_date)}</span>
+            <span>Effective {fmtDate(impact?.effective_date ?? doc.effective_date)}</span>
+            {doc.url && doc.url !== "#" ? (
+              <a href={doc.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 underline-offset-4 hover:underline">
+                Source <ExternalLink aria-hidden className="size-3" />
+              </a>
+            ) : null}
+          </SheetDescription>
+          <Button variant="outline" size="xs" className="ml-auto" nativeButton={false} render={<Link href={`/dashboard/documents/${doc.id}`} />}>
             Open full analysis <ArrowUpRight />
           </Button>
         </div>
       </SheetHeader>
 
-      <div className="flex-1 px-6 py-5">
+      <div className="flex-1 px-6 py-6">
         {error ? (
           <Alert variant="error">
             <AlertTitle>Analysis unavailable</AlertTitle>
@@ -99,7 +102,7 @@ function Body({ doc }: { doc: ProcessedDocument }) {
       </div>
 
       {review ? (
-        <div className="sticky bottom-0 z-10 border-t border-border bg-background px-6 py-4">
+        <div className="sticky bottom-0 z-10 border-t border-border/80 bg-background/95 px-6 py-4 backdrop-blur">
           <HumanReview review={review} onDecided={setReview} compact />
         </div>
       ) : null}

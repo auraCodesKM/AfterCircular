@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { evidenceCitations } from "@/lib/citations";
 import type { DocCard, Investigation } from "@/lib/pipeline-types";
-import { useTypewriter } from "./use-typewriter";
+import { useState } from "react";
+import { StreamingText } from "./streaming-text";
 import { EvidencePair } from "./evidence";
 import { Markdown } from "./markdown";
 import { ImpactBadge } from "./impact-badge";
@@ -21,6 +22,24 @@ function kindOf(c: DocCard) {
   return impactKind(c.impact, c.status);
 }
 
+/** Circular numbers and policy ids read as records, not prose: render them as code, keep trailing punctuation as text. */
+const ID = /^((?:[A-Z]{2,}\/)[A-Z0-9/\-]+|[A-Z]{2,5}-\d{3})([.,;:!?)]*)$/;
+export function richToken(tok: string) {
+  const m = ID.exec(tok);
+  if (!m) return tok;
+  return (
+    <>
+      <code className="rounded bg-muted px-1 py-px font-mono text-[0.85em] text-foreground">{m[1]}</code>
+      {m[2]}
+    </>
+  );
+}
+function rich(text: string) {
+  return text.split(/(\s+)/).map((tok, i) => (/^\s+$/.test(tok) ? tok : <span key={i}>{richToken(tok)}</span>));
+}
+
+const human = { YES: "Applies", NO: "Does not apply", UNCERTAIN: "Uncertain", CONFLICT: "Conflict", ALIGNED: "Aligned" } as const;
+
 /** One regulatory change as a compact structured block (not prose). */
 export function DocCardView({ card, expanded, onOpenAnalysis }: { card: DocCard; expanded?: boolean; onOpenAnalysis?: (c: DocCard) => void }) {
   return (
@@ -29,8 +48,8 @@ export function DocCardView({ card, expanded, onOpenAnalysis }: { card: DocCard;
         <FileText aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 text-sm leading-5 font-medium">{card.title}</p>
-          <p className="font-mono text-[11px] text-muted-foreground">
-            {card.source} · {card.circular_number} · {fmtDate(card.published_date)}
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {card.source} · <span className="font-mono">{card.circular_number}</span> · {fmtDate(card.published_date)}
             {card.effective_date ? ` · effective ${fmtDate(card.effective_date)}` : ""}
             {card.source_mode === "DEMO_SNAPSHOT" ? " · demo" : ""}
           </p>
@@ -41,8 +60,8 @@ export function DocCardView({ card, expanded, onOpenAnalysis }: { card: DocCard;
         <>
           <Separator />
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 px-3 py-2.5 text-xs sm:grid-cols-4">
-            <div><dt className="text-muted-foreground">Applicability</dt><dd className="font-medium">{card.applicability ?? "—"}</dd></div>
-            <div><dt className="text-muted-foreground">Alignment</dt><dd className="font-medium">{card.alignment ?? "—"}</dd></div>
+            <div><dt className="text-muted-foreground">Applicability</dt><dd className="font-medium">{card.applicability ? human[card.applicability] : "—"}</dd></div>
+            <div><dt className="text-muted-foreground">Alignment</dt><dd className={`font-medium ${card.alignment === "CONFLICT" ? "text-destructive" : card.alignment === "ALIGNED" ? "text-success" : ""}`}>{card.alignment ? human[card.alignment] : "—"}</dd></div>
             <div><dt className="text-muted-foreground">Affected policy</dt><dd className="font-mono">{card.affected_policies.join(", ") || "—"}</dd></div>
             <div><dt className="text-muted-foreground">Evidence</dt><dd>{card.regulatory_evidence.length} regulatory · {card.policy_evidence.length} policy</dd></div>
           </dl>
@@ -80,12 +99,11 @@ export function DocCardView({ card, expanded, onOpenAnalysis }: { card: DocCard;
 }
 
 /** Renders an Investigation answer as structured sections. Prose is limited to the one-line summary. */
-export function AnswerView({ inv, compact, onAsk, stream = true }: { inv: Investigation; compact?: boolean; onAsk?: (q: string) => void; stream?: boolean }) {
+export function AnswerView({ inv, compact, onAsk, stream = true, onDone }: { inv: Investigation; compact?: boolean; onAsk?: (q: string) => void; stream?: boolean; /** Fires once the summary has finished streaming (immediately when `stream` is false). */ onDone?: () => void }) {
   const { analysis } = useWorkspace();
   const a = inv.answer;
-  const typed = useTypewriter(stream ? inv.summary : "", 110);
-  const summaryShown = stream ? typed.shown : inv.summary;
-  const streaming = stream && !typed.done;
+  const [done, setDone] = useState(!stream);
+  const streaming = stream && !done;
   const primary = a.document ?? (a.documents?.length === 1 ? a.documents[0] : null);
   const sources = primary ? evidenceCitations(primary.regulatory_evidence, primary.policy_evidence, { label: `${primary.source} circular` }) : [];
   const openAnalysis = (c: DocCard) =>
@@ -98,7 +116,20 @@ export function AnswerView({ inv, compact, onAsk, stream = true }: { inv: Invest
   return (
     <div className="space-y-4">
       <StreamingResponse status={streaming ? "streaming" : "complete"} copyText={inv.summary} sources={compact && sources.length ? sources : undefined} showActions={!streaming && inv.intent !== "other"}>
-        <p className="text-sm leading-6">{summaryShown}</p>
+        <p className="text-[15px] leading-7 text-foreground">
+          {stream ? (
+            <StreamingText
+              text={inv.summary}
+              renderToken={richToken}
+              onDone={() => {
+                setDone(true);
+                onDone?.();
+              }}
+            />
+          ) : (
+            rich(inv.summary)
+          )}
+        </p>
       </StreamingResponse>
 
       {streaming ? null : a.document ? (
@@ -165,11 +196,13 @@ export function AnswerView({ inv, compact, onAsk, stream = true }: { inv: Invest
         </div>
       ) : null}
 
-      <p className="text-[11px] text-muted-foreground">
-        {inv.judge.provider === "typesafe" ? "Routed by Jev · System One" : inv.judge.provider === "stub" ? "Routed by keywords (no model)" : `Routed by ${inv.judge.provider}`} · assembled from workspace records, not generated
-        {inv.judge.note ? ` · ${inv.judge.note}` : ""}
-        {inv.judge.provider !== "typesafe" ? <Badge variant="outline" className="ml-1 border-warning/40 text-[10px] text-warning">no model</Badge> : null}
-      </p>
+      {!streaming ? (
+        <p className="text-[11px] text-muted-foreground">
+          {inv.judge.provider === "typesafe" ? "Routed by Jev · System One" : inv.judge.provider === "stub" ? "Routed by keywords (no model)" : `Routed by ${inv.judge.provider}`} · assembled from workspace records, not generated
+          {inv.judge.note ? ` · ${inv.judge.note}` : ""}
+          {inv.judge.provider !== "typesafe" ? <Badge variant="outline" className="ml-1 border-warning/40 text-[10px] text-warning">no model</Badge> : null}
+        </p>
+      ) : null}
     </div>
   );
 }

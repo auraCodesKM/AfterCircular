@@ -202,7 +202,11 @@ async def impact() -> None:
     ext = ExtractionResult.model_validate(_fixture("extraction"))
     chunks = [PolicyChunk(chunk_id=f"c{i}", doc_id=e["doc_id"], title="", path="policies/POL-001-position-limits-policy.md", section=e["section"], text=e["text"], score=0.9 - i * 0.1)
               for i, e in enumerate(_fixture("impact")["policy_evidence"])]
-    imp, res = await analyze_impact(FoundryProvider(), ext, chunks, "Acme Securities Private Limited — SEBI-registered stock broker (NSE, BSE); cash equity, equity and currency derivatives.")
+    p = FoundryProvider()
+    try:
+        imp, res = await analyze_impact(p, ext, chunks, "Acme Securities Private Limited — SEBI-registered stock broker (NSE, BSE); cash equity, equity and currency derivatives.")
+    finally:
+        await p.aclose()
     print(json.dumps(imp.model_dump(), indent=1)[:1500])
     _print(res)
     _need(imp.applicability == "YES" and imp.alignment == "CONFLICT", f"expected YES/CONFLICT, got {imp.applicability}/{imp.alignment}")
@@ -219,7 +223,11 @@ async def memo() -> None:
     imp = ImpactAnalysis.model_validate(_fixture("impact"))
     chunks = [PolicyChunk(chunk_id=f"c{i}", doc_id=e.doc_id, title="", path="policies/POL-001-position-limits-policy.md", section=e.section, text=e.text, score=0.9)
               for i, e in enumerate(imp.policy_evidence)]
-    m, res = await generate_memo(FoundryProvider(), ext, imp, chunks, document_id="DEMO-2026-014")
+    p = FoundryProvider()
+    try:
+        m, res = await generate_memo(p, ext, imp, chunks, document_id="DEMO-2026-014")
+    finally:
+        await p.aclose()
     print(json.dumps(m.model_dump(), indent=1)[:2000])
     _print(res)
     _need(bool(m.proposed_amendment) and m.disclaimer.startswith("AI-generated"), "memo incomplete")
@@ -245,6 +253,7 @@ async def toon_live() -> None:
         out[fmt] = {"input_tokens": res.input_tokens, "output_tokens": res.output_tokens, "cached_tokens": res.cached_tokens, "latency_ms": res.latency_ms,
                     "estimated_cost_usd": res.estimated_cost_usd, "applicability": imp.applicability, "alignment": imp.alignment,
                     "affected_policies": imp.affected_policies, "structured_mode": res.structured_mode, "model": res.model}
+    await p.aclose()
     print(json.dumps(out, indent=1))
     (ROOT / "evals" / "results").mkdir(exist_ok=True)
     (ROOT / "evals" / "results" / "toon_live.json").write_text(json.dumps(out, indent=2), encoding="utf-8")

@@ -21,13 +21,19 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
   const reviews = doc.data ? await load<ReviewRecord[]>(ctx, "/api/reviews", []) : { data: [] as ReviewRecord[] };
 
   return (
-    <div className="space-y-5">
-      <Button variant="ghost" size="xs" nativeButton={false} render={<Link href="/dashboard" />}>
-        <ArrowLeft /> Overview
-      </Button>
+    <div className="space-y-6">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Button variant="ghost" size="xs" className="-ml-2 text-muted-foreground" nativeButton={false} render={<Link href="/dashboard" />}>
+          <ArrowLeft /> Overview
+        </Button>
+        <span aria-hidden>/</span>
+        <span className="font-medium text-foreground">Investigation</span>
+      </div>
       <div>
-        <p className="text-xs text-muted-foreground">Investigation · {fmtTime(inv.data.created_at)} · @{inv.data.actor}</p>
-        <h1 className="mt-1 text-xl font-semibold tracking-tight">{inv.data.question}</h1>
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          {fmtTime(inv.data.created_at)} · @{inv.data.actor}
+        </p>
+        <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-balance">{inv.data.question}</h1>
       </div>
       {doc.data ? (
         <AnalysisWorkspace doc={doc.data} analysis={analysis.data} review={reviews.data.find((r) => r.document_pk === doc.data!.id) ?? null} />

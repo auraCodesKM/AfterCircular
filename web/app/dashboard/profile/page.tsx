@@ -7,8 +7,8 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Marker, MarkerContent, MarkerIcon } from "@/components/xiod/marker";
+import { SectionHeader } from "@/components/dashboard/section-header";
+import { Stat, StatGrid } from "@/components/dashboard/stat";
 import { load, shellContext } from "@/lib/dashboard-data";
 import type { AuditEvent, Investigation } from "@/lib/pipeline-types";
 
@@ -29,9 +29,9 @@ export default async function ProfilePage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <PageHeader title="Profile" description="Your account, your workspace, and what you have decided." />
-      <section className="flex items-center gap-4">
+    <div className="max-w-2xl space-y-8">
+      <PageHeader eyebrow="Account" title="Profile" description="Your account, your workspace, and what you have decided." />
+      <section className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
         <Avatar size="lg">
           {u.image ? <AvatarImage src={u.image} alt="" /> : null}
           <AvatarFallback>{(u.name || u.login).slice(0, 2).toUpperCase()}</AvatarFallback>
@@ -51,13 +51,17 @@ export default async function ProfilePage() {
           GitHub <ExternalLink />
         </Button>
       </section>
-      <Separator />
-      <section className="space-y-2">
-        <Marker variant="border" render={<h2 />}>
-          <MarkerIcon><Building2 /></MarkerIcon>
-          <MarkerContent className="font-medium text-foreground">Workspace</MarkerContent>
-        </Marker>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
+      <section className="space-y-3">
+        <SectionHeader
+          icon={<Building2 />}
+          title="Workspace"
+          action={
+            <Button variant="outline" size="xs" nativeButton={false} render={<Link href="/connect" />}>
+              Add company
+            </Button>
+          }
+        />
+        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-xl border border-border bg-card p-4 text-sm">
           <dt className="text-muted-foreground">Company</dt>
           <dd>{ctx.tenant.companyName}</dd>
           <dt className="text-muted-foreground">Repository</dt>
@@ -72,48 +76,26 @@ export default async function ProfilePage() {
           <dt className="text-muted-foreground">Tenant</dt>
           <dd className="font-mono text-xs">{ctx.tenant.tenantId}</dd>
         </dl>
-        <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/connect" />}>
-          Add company
-        </Button>
       </section>
-      <Separator />
-      <section className="space-y-2">
-        <Marker variant="border" render={<h2 />}>
-          <MarkerIcon><History /></MarkerIcon>
-          <MarkerContent className="font-medium text-foreground">Your activity</MarkerContent>
-        </Marker>
-        <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-          <div className="flex items-baseline gap-2">
-            <dt className="text-muted-foreground">Approvals</dt>
-            <dd className="font-medium tabular-nums">{approvals}</dd>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <dt className="text-muted-foreground">Rejections</dt>
-            <dd className="font-medium tabular-nums">{rejections}</dd>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <dt className="text-muted-foreground">Scans started</dt>
-            <dd className="font-medium tabular-nums">{scans}</dd>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <dt className="text-muted-foreground">Investigations</dt>
-            <dd className="font-medium tabular-nums">{investigations.data.filter((i) => i.actor === u.login).length}</dd>
-          </div>
-        </dl>
-        <p className="text-xs text-muted-foreground">Every approval and rejection is recorded in the audit log under your GitHub login.</p>
+      <section className="space-y-3">
+        <SectionHeader icon={<History />} title="Your activity" description="Every approval and rejection is recorded in the audit log under your GitHub login." />
+        <StatGrid>
+          <Stat label="Approvals" value={approvals} tone={approvals ? "success" : "default"} />
+          <Stat label="Rejections" value={rejections} />
+          <Stat label="Scans started" value={scans} />
+          <Stat label="Investigations" value={investigations.data.filter((i) => i.actor === u.login).length} />
+        </StatGrid>
       </section>
-      <Separator />
-      <section className="space-y-2">
-        <Marker variant="border" render={<h2 />}>
-          <MarkerIcon><KeyRound /></MarkerIcon>
-          <MarkerContent className="font-medium text-foreground">Session</MarkerContent>
-        </Marker>
-        <p className="text-xs text-muted-foreground">Your GitHub token lives only in the encrypted session cookie and is used server-side to read the policy repository and open issues you approve.</p>
-        <form action={doSignOut}>
-          <Button variant="outline" size="sm" type="submit">
-            Sign out
-          </Button>
-        </form>
+      <section className="space-y-3">
+        <SectionHeader icon={<KeyRound />} title="Session" />
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-md text-xs leading-5 text-muted-foreground">Your GitHub token lives only in the encrypted session cookie and is used server-side to read the policy repository and open issues you approve.</p>
+          <form action={doSignOut}>
+            <Button variant="outline" size="sm" type="submit">
+              Sign out
+            </Button>
+          </form>
+        </div>
       </section>
     </div>
   );

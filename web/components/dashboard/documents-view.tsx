@@ -1,6 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,10 +11,12 @@ import { impactKind, impactLabel, statusLabel } from "./labels";
 
 const IMPACTS = ["all", "conflict", "aligned", "na", "uncertain", "pending", "failed"] as const;
 
-/** Search + filters over the processed circulars, entirely client-side (the list is small and already loaded). */
+/** Search + filters over the processed circulars, entirely client-side (the list is small and already loaded). `?impact=` preselects a filter so the overview tiles can link here. */
 export function DocumentsView({ documents }: { documents: ProcessedDocument[] }) {
+  const params = useSearchParams();
+  const initialImpact = params.get("impact");
   const [q, setQ] = useState("");
-  const [impact, setImpact] = useState<string>("all");
+  const [impact, setImpact] = useState<string>(initialImpact && (IMPACTS as readonly string[]).includes(initialImpact) ? initialImpact : "all");
   const [status, setStatus] = useState<string>("all");
   const statuses = useMemo(() => Array.from(new Set(documents.map((d) => d.status))), [documents]);
   const impactItems = Object.fromEntries(IMPACTS.map((k) => [k, k === "all" ? "All impacts" : impactLabel[k]]));
@@ -56,7 +59,7 @@ export function DocumentsView({ documents }: { documents: ProcessedDocument[] })
             ))}
           </SelectContent>
         </Select>
-        <span className="text-xs text-muted-foreground">
+        <span className="ml-auto text-xs text-muted-foreground tabular-nums">
           {rows.length} of {documents.length}
         </span>
       </div>

@@ -40,30 +40,42 @@ export function eventDetail(e: AuditEvent): string {
   }
 }
 
+const tone: Record<string, string> = {
+  CONFLICT_DETECTED: "border-warning/50 bg-warning/10 text-warning",
+  NEEDS_INVESTIGATION: "border-warning/50 bg-warning/10 text-warning",
+  REVIEW_REQUESTED: "border-warning/50 bg-warning/10 text-warning",
+  SCAN_FAILED: "border-destructive/50 bg-destructive/10 text-destructive",
+  PIPELINE_FAILED: "border-destructive/50 bg-destructive/10 text-destructive",
+  APPROVED: "border-success/50 bg-success/10 text-success",
+  TICKET_CREATED: "border-success/50 bg-success/10 text-success",
+};
+
+/** Compact timeline: a rail with one node per event, the event first, its detail second, the time out of the way on the right. */
 export function ActivityFeed({ events, limit, quiet }: { events: AuditEvent[]; limit?: number; quiet?: boolean }) {
   const visible = quiet ? events.filter((e) => e.event_type !== "DOCUMENT_SKIPPED" && e.event_type !== "POLICIES_RETRIEVED") : events;
   const rows = limit ? visible.slice(0, limit) : visible;
   if (!rows.length) return <EmptyState icon={ActivityIcon} title="No activity yet" description="Run a scan to start the audit trail." />;
   return (
-    <ol className="divide-y divide-border">
+    <ol className="relative space-y-0 before:absolute before:top-3 before:bottom-3 before:left-[11px] before:w-px before:bg-border">
       {rows.map((e) => {
         const Icon = icon[e.event_type] ?? ActivityIcon;
         const human = e.actor_type === "human";
+        const ring = tone[e.event_type] ?? (human ? "border-foreground/30 bg-foreground/5 text-foreground" : "border-border bg-card text-muted-foreground");
         return (
-          <li key={e.id} className="flex items-start gap-3 py-2.5">
-            <span className="w-14 shrink-0 pt-0.5 font-mono text-[11px] text-muted-foreground" title={e.timestamp}>
-              {fmtTime(e.timestamp, false)}
-            </span>
-            <span className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border ${human ? "border-foreground/30 bg-foreground/5" : "border-border bg-muted"}`}>
+          <li key={e.id} className="relative flex items-start gap-3 py-2">
+            <span className={`relative z-[1] mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border ${ring}`}>
               <Icon aria-hidden className="size-3" />
             </span>
-            <div className="min-w-0">
-              <p className="text-sm">{eventLabel[e.event_type] ?? e.event_type}</p>
-              <p className="truncate text-xs text-muted-foreground">
-                {human ? `@${e.actor} · ` : ""}
-                {eventDetail(e)}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm leading-6">
+                <span className="font-medium">{eventLabel[e.event_type] ?? e.event_type}</span>
+                {human ? <span className="ml-1.5 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-foreground/80">@{e.actor}</span> : null}
               </p>
+              {eventDetail(e) ? <p className="truncate text-xs text-muted-foreground">{eventDetail(e)}</p> : null}
             </div>
+            <time dateTime={e.timestamp} title={e.timestamp} className="shrink-0 pt-1 font-mono text-[11px] text-muted-foreground tabular-nums">
+              {fmtTime(e.timestamp, false)}
+            </time>
           </li>
         );
       })}

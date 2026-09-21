@@ -12,10 +12,11 @@ export default async function PoliciesPage() {
   const ctx = await shellContext();
   const { data } = await load<PolicyIndex>(ctx, "/api/policies", { index: null, documents: [] });
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
-        title="Policies"
-        description="The internal corpus retrieval searches — read from the connected repository's default branch and chunked by section."
+        eyebrow={`${ctx.tenant.companyName} · Policies`}
+        title="Internal policies"
+        description="The corpus retrieval searches — read from the connected repository's default branch and chunked by section."
         meta={
           data.index ? (
             <>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "cn";
 import type { AnalysisRecord } from "@/lib/pipeline-types";
 
 type Impact = NonNullable<AnalysisRecord["impact"]>;
@@ -12,26 +13,25 @@ export function WhyBlock({ impact }: { impact: Impact }) {
   const clauses = Array.from(new Set(impact.policy_evidence.map((e) => `${e.doc_id} §${e.section}`)));
   const headline = impact.reason.split(/(?<=\.)\s|:\s/)[0].replace(/\.$/, "");
   const title = impact.applicability === "NO" ? "Why it does not apply" : impact.alignment === "CONFLICT" ? "Why this is a conflict" : impact.alignment === "ALIGNED" ? "Why the policy already complies" : "Why a person is needed";
+  const tone = impact.applicability === "NO" ? "border-border" : impact.alignment === "CONFLICT" ? "border-destructive" : impact.alignment === "ALIGNED" ? "border-success" : "border-warning";
   return (
-    <section className="space-y-3">
-      <h3 className="text-sm font-medium">{title}</h3>
-      <p className="text-sm leading-6">{headline}.</p>
+    <section className={cn("space-y-3 border-l-2 pl-4", tone)}>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <p className="text-[15px] leading-7">{headline}.</p>
       {clauses.length ? (
-        <div>
-          <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Affected clauses</p>
-          <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-sm">
-            {clauses.map((c) => (
-              <li key={c} className="font-mono text-xs">
-                {c}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+          Affected clauses
+          {clauses.map((c) => (
+            <span key={c} className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-foreground/80">
+              {c}
+            </span>
+          ))}
+        </p>
       ) : null}
       {impact.reason.length > headline.length + 2 ? (
         <>
           {more ? <p className="text-sm leading-6 text-muted-foreground">{impact.reason}</p> : null}
-          <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={() => setMore((m) => !m)}>
+          <Button variant="ghost" size="xs" className="-ml-2 text-muted-foreground" onClick={() => setMore((m) => !m)}>
             {more ? "Hide detailed comparison" : "Show detailed comparison"}
           </Button>
         </>
