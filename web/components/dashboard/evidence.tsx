@@ -4,6 +4,8 @@ import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Citations } from "@/components/agents/citations";
+import { evidenceCitations } from "@/lib/citations";
 import type { Evidence, PolicyEvidence } from "@/lib/pipeline-types";
 import { fmtDate } from "./labels";
 
@@ -92,6 +94,7 @@ export function EvidencePair({ regulatory, policy, source }: { regulatory: Evide
           </ul>
         </div>
       </div>
+      <Citations citations={evidenceCitations(regulatory, policy, { label: source?.label, url: source?.url })} title="Sources" />
     </section>
   );
 }

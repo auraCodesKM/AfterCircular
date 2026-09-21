@@ -2,11 +2,15 @@
 
 import { ArrowUpRight, FileText, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { CitationStack } from "@/components/agents/citations";
+import { StreamingResponse } from "@/components/agents/streaming-response";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { evidenceCitations } from "@/lib/citations";
 import type { DocCard, Investigation } from "@/lib/pipeline-types";
+import { useTypewriter } from "./use-typewriter";
 import { EvidencePair } from "./evidence";
 import { Markdown } from "./markdown";
 import { ImpactBadge } from "./impact-badge";
@@ -43,6 +47,11 @@ export function DocCardView({ card, expanded, onOpenAnalysis }: { card: DocCard;
             <div><dt className="text-muted-foreground">Evidence</dt><dd>{card.regulatory_evidence.length} regulatory · {card.policy_evidence.length} policy</dd></div>
           </dl>
           {card.reason ? <p className="line-clamp-2 px-3 pb-2.5 text-xs leading-5 text-muted-foreground">{card.reason.split(/(?<=\.)\s|:\s/)[0]}</p> : null}
+          {card.regulatory_evidence.length || card.policy_evidence.length ? (
+            <div className="px-3 pb-2.5">
+              <CitationStack citations={evidenceCitations(card.regulatory_evidence, card.policy_evidence, { label: `${card.source} circular` })} />
+            </div>
+          ) : null}
         </>
       ) : null}
       <Separator />
@@ -71,9 +80,14 @@ export function DocCardView({ card, expanded, onOpenAnalysis }: { card: DocCard;
 }
 
 /** Renders an Investigation answer as structured sections. Prose is limited to the one-line summary. */
-export function AnswerView({ inv, compact, onAsk }: { inv: Investigation; compact?: boolean; onAsk?: (q: string) => void }) {
+export function AnswerView({ inv, compact, onAsk, stream = true }: { inv: Investigation; compact?: boolean; onAsk?: (q: string) => void; stream?: boolean }) {
   const { analysis } = useWorkspace();
   const a = inv.answer;
+  const typed = useTypewriter(stream ? inv.summary : "", 110);
+  const summaryShown = stream ? typed.shown : inv.summary;
+  const streaming = stream && !typed.done;
+  const primary = a.document ?? (a.documents?.length === 1 ? a.documents[0] : null);
+  const sources = primary ? evidenceCitations(primary.regulatory_evidence, primary.policy_evidence, { label: `${primary.source} circular` }) : [];
   const openAnalysis = (c: DocCard) =>
     analysis.open({
       id: c.document_pk, source: c.source, jurisdiction: "IN", document_id: c.circular_number ?? c.document_pk, circular_number: c.circular_number, title: c.title,
@@ -83,14 +97,18 @@ export function AnswerView({ inv, compact, onAsk }: { inv: Investigation; compac
 
   return (
     <div className="space-y-4">
-      <p className="text-sm">{inv.summary}</p>
+      <StreamingResponse status={streaming ? "streaming" : "complete"} copyText={inv.summary} sources={sources.length ? sources : undefined} showActions={!streaming}>
+        <p className="text-sm leading-6">{summaryShown}</p>
+      </StreamingResponse>
 
-      {a.document ? (
+      {streaming ? null : a.document ? (
         <DocCardView card={a.document} expanded onOpenAnalysis={openAnalysis} />
       ) : null}
-      {a.document && !compact ? <EvidencePair regulatory={a.document.regulatory_evidence} policy={a.document.policy_evidence} /> : null}
+      {!streaming && a.document && !compact ? (
+        <EvidencePair regulatory={a.document.regulatory_evidence} policy={a.document.policy_evidence} source={{ label: `${a.document.source} circular`, published: a.document.published_date }} />
+      ) : null}
 
-      {a.documents?.length ? (
+      {!streaming && a.documents?.length ? (
         <div className="space-y-2">
           {a.documents.map((c) => (
             <DocCardView key={c.document_pk} card={c} expanded={!compact && a.documents!.length === 1} onOpenAnalysis={openAnalysis} />
@@ -98,7 +116,7 @@ export function AnswerView({ inv, compact, onAsk }: { inv: Investigation; compac
         </div>
       ) : null}
 
-      {a.policy ? (
+      {!streaming && a.policy ? (
         <div className="rounded-md border border-border">
           <div className="px-3 py-2.5">
             <p className="text-sm font-medium">
@@ -122,7 +140,7 @@ export function AnswerView({ inv, compact, onAsk }: { inv: Investigation; compac
         </div>
       ) : null}
 
-      {a.scan ? (
+      {!streaming && a.scan ? (
         <dl className="grid grid-cols-2 gap-2 rounded-md border border-border p-3 text-xs sm:grid-cols-4">
           <div><dt className="text-muted-foreground">Status</dt><dd className="font-medium">{a.scan.status}</dd></div>
           <div><dt className="text-muted-foreground">Source</dt><dd>{a.scan.source_mode === "DEMO_SNAPSHOT" ? "Demo snapshot" : "Live"}</dd></div>
@@ -131,13 +149,13 @@ export function AnswerView({ inv, compact, onAsk }: { inv: Investigation; compac
         </dl>
       ) : null}
 
-      {a.actions?.some((x) => x.kind === "scan") ? (
+      {!streaming && a.actions?.some((x) => x.kind === "scan") ? (
         <Button variant="outline" size="sm" render={<Link href="/dashboard?scan=1" />}>
           <RefreshCw /> Go to Scan now
         </Button>
       ) : null}
 
-      {a.suggestions?.length && onAsk ? (
+      {!streaming && a.suggestions?.length && onAsk ? (
         <div className="flex flex-wrap gap-1.5">
           {a.suggestions.map((s) => (
             <Button key={s} variant="outline" size="xs" onClick={() => onAsk(s)}>

@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored registry components (beui.dev) — kept verbatim, not held to the React Compiler lint rules.
+    "components/agents/**",
+    "components/motion/**",
+    "lib/hooks/**",
   ]),
 ]);
 

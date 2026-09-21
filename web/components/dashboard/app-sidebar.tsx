@@ -41,7 +41,7 @@ type Props = { pendingReviews: number; user: { login: string; name?: string | nu
 
 export function AppSidebar({ pendingReviews, user, signOut }: Props) {
   const pathname = usePathname();
-  const { ask, palette, recent, tenant } = useWorkspace();
+  const { palette, recent, tenant } = useWorkspace();
   const { isMobile, setOpenMobile } = useSidebar();
   const go = () => isMobile && setOpenMobile(false);
   const initials = (user.name || user.login).slice(0, 2).toUpperCase();
@@ -52,7 +52,7 @@ export function AppSidebar({ pendingReviews, user, signOut }: Props) {
         <Logo href="/dashboard" />
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => { go(); ask.start(); }} className="border border-border bg-background hover:bg-muted">
+            <SidebarMenuButton render={<Link href="/dashboard/ask" onClick={go} />} className="border border-border bg-background hover:bg-muted">
               <Plus />
               <span>New investigation</span>
               <kbd className="ml-auto hidden font-mono text-[10px] text-muted-foreground sm:inline">⌘K</kbd>
@@ -88,7 +88,7 @@ export function AppSidebar({ pendingReviews, user, signOut }: Props) {
               <SidebarMenu>
                 {recent.slice(0, 6).map((inv) => (
                   <SidebarMenuItem key={inv.id}>
-                    <SidebarMenuButton size="sm" isActive={pathname.endsWith(inv.id)} render={<Link href={`/dashboard/investigations/${inv.id}`} onClick={go} />} title={inv.question}>
+                    <SidebarMenuButton size="sm" isActive={pathname.endsWith(inv.id)} render={<Link href={`/dashboard/ask?open=${inv.id}`} onClick={go} />} title={inv.question}>
                       <Search className="text-muted-foreground" />
                       <span className="truncate">{inv.question}</span>
                     </SidebarMenuButton>
@@ -135,9 +135,9 @@ export function AppSidebar({ pendingReviews, user, signOut }: Props) {
                   <GitBranch />
                   Change repository
                 </DropdownMenuItem>
-                <DropdownMenuItem render={<a href={`https://github.com/${user.login}`} target="_blank" rel="noreferrer" />}>
+                <DropdownMenuItem render={<Link href="/dashboard/profile" />}>
                   <User />
-                  Account
+                  Profile
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive" onClick={() => signOut()}>

@@ -13,7 +13,7 @@ import { useWorkspace } from "./workspace-provider";
 export function SiteHeader({ companyName }: { companyName: string }) {
   const pathname = usePathname();
   const { palette } = useWorkspace();
-  const current = pathname.includes("/investigations/") ? "Investigation" : (NAV.find((n) => (n.href === "/dashboard" ? pathname === n.href : pathname.startsWith(n.href)))?.label ?? "Overview");
+  const current = pathname.includes("/investigations/") || pathname.startsWith("/dashboard/ask") ? "Investigation" : pathname.startsWith("/dashboard/profile") ? "Profile" : (NAV.find((n) => (n.href === "/dashboard" ? pathname === n.href : pathname.startsWith(n.href)))?.label ?? "Overview");
   return (
     <header className="sticky top-0 z-20 flex h-12 items-center gap-2 border-b border-border bg-background/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:px-4">
       <SidebarTrigger className="-ml-1" />
