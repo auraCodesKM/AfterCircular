@@ -30,7 +30,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${geist.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`${inter.variable} ${geist.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         {/* Theme class drives only the shadcn tokens used by the app under /dashboard; the landing keeps its own light palette. */}
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="ac-theme" disableTransitionOnChange>

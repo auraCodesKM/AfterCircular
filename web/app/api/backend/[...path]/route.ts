@@ -11,7 +11,10 @@ async function handle(req: Request, params: Promise<{ path: string[] }>, method:
   const { path } = await params;
   if (!path.length || !ALLOWED.has(path[0])) return NextResponse.json({ detail: "Not found" }, { status: 404 });
   const session = await auth();
-  if (!session) return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
+  if (!session) return NextResponse.json({ detail: "Not signed in" }, { status: 401 });
+  if (session.error === "RefreshTokenError" || session.error === "RefreshTokenMissing") {
+    return NextResponse.json({ detail: "Your GitHub session expired and could not be refreshed. Sign in again." }, { status: 401 });
+  }
   const { tenant } = await activeTenant(session.user.githubId);
   if (!tenant) return NextResponse.json({ detail: "No repository connected" }, { status: 409 });
   const url = new URL(req.url);

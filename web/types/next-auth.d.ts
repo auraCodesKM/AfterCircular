@@ -3,7 +3,7 @@ import type { DefaultSession } from "next-auth";
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
-    error?: "RefreshTokenMissing" | "RefreshTokenError";
+    error?: "RefreshTokenMissing" | "RefreshTokenError" | "RefreshTokenNetwork";
     user: DefaultSession["user"] & { login: string; githubId: string };
   }
 }
@@ -13,7 +13,8 @@ declare module "next-auth/jwt" {
     accessToken?: string;
     refreshToken?: string;
     expiresAt?: number;
-    error?: "RefreshTokenMissing" | "RefreshTokenError";
+    refreshFailedAt?: number;
+    error?: "RefreshTokenMissing" | "RefreshTokenError" | "RefreshTokenNetwork";
     login: string;
     githubId: string;
   }

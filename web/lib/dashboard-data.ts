@@ -20,6 +20,9 @@ export async function activeTenant(githubId: string): Promise<{ tenants: Tenant[
 export async function shellContext(): Promise<ShellContext> {
   const session = await auth();
   if (!session) redirect("/signin");
+  // GitHub refused to refresh the token (revoked / rotated grant): the session cannot read repositories any more → sign in again.
+  // A *network* failure to refresh keeps the last token and is not a reason to log the person out.
+  if (session.error === "RefreshTokenError" || session.error === "RefreshTokenMissing") redirect("/signin?error=SessionExpired");
   const { tenants, tenant } = await activeTenant(session.user.githubId);
   if (!tenant) redirect("/connect");
   let health: Health | null = null;

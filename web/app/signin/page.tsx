@@ -29,7 +29,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
     >
       {error ? (
         <p role="alert" className="mb-4 rounded-xl border border-brand/50 bg-brand/15 px-4 py-3 text-sm">
-          Sign-in didn&rsquo;t complete ({error}). Try again.
+          {error === "SessionExpired" ? "Your GitHub session expired and could not be refreshed. Sign in again to continue." : `Sign-in didn’t complete (${error}). Try again.`}
         </p>
       ) : null}
       <GitHubButton label="Continue with GitHub" />
