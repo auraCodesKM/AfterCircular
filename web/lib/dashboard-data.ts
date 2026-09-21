@@ -37,6 +37,22 @@ export async function shellContext(): Promise<ShellContext> {
   return { session, tenant, tenants, health, backendError };
 }
 
+/** AWAITING_REVIEW count for every company the user connected — so a review waiting in another workspace is never invisible. */
+export async function pendingByCompany(ctx: ShellContext): Promise<Record<string, number>> {
+  if (ctx.backendError) return {};
+  const entries = await Promise.all(
+    ctx.tenants.map(async (t) => {
+      try {
+        const rows = await backendFetch<unknown[]>("/api/reviews?status=AWAITING_REVIEW", { tenant: t, session: ctx.session });
+        return [t.tenantId, rows.length] as const;
+      } catch {
+        return [t.tenantId, 0] as const;
+      }
+    }),
+  );
+  return Object.fromEntries(entries);
+}
+
 /** Fetch one backend resource for a page; returns `fallback` (and the error) instead of throwing so pages render an Alert. */
 export async function load<T>(ctx: ShellContext, path: string, fallback: T): Promise<{ data: T; error: string | null }> {
   if (ctx.backendError) return { data: fallback, error: ctx.backendError };

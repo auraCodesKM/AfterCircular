@@ -54,7 +54,7 @@ export const NAV = [
   { href: "/dashboard/models", label: "Models", icon: Cpu },
 ] as const;
 
-export type Company = { tenantId: string; companyName: string; githubRepo: string };
+export type Company = { tenantId: string; companyName: string; githubRepo: string; pending?: number };
 
 type Props = {
   pendingReviews: number;
@@ -207,6 +207,11 @@ export function AppSidebar({ pendingReviews, user, companies, activeTenantId, si
                         <span className="truncate">{c.companyName}</span>
                         <span className="truncate font-mono text-[11px] text-muted-foreground">{c.githubRepo}</span>
                       </div>
+                      {c.pending ? (
+                        <span className="ml-2 rounded-sm bg-destructive/10 px-1.5 text-[11px] font-medium text-destructive" title={`${c.pending} review(s) waiting`}>
+                          {c.pending}
+                        </span>
+                      ) : null}
                       {c.tenantId === activeTenantId ? <Check className="ml-2 size-4" /> : null}
                     </DropdownMenuItem>
                   ))}

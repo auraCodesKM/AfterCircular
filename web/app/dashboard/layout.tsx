@@ -12,18 +12,16 @@ import { WorkspaceProvider } from "@/components/dashboard/workspace-provider";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { load, shellContext } from "@/lib/dashboard-data";
-import type { Investigation, ReviewRecord } from "@/lib/pipeline-types";
+import { load, pendingByCompany, shellContext } from "@/lib/dashboard-data";
+import type { Investigation } from "@/lib/pipeline-types";
 
 export const dynamic = "force-dynamic";
 
 /** Workspace shell: sidebar (nav + investigations + workspace), header (⌘K), agent sheet, analysis sheet, palette, toasts. */
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const ctx = await shellContext();
-  const [pending, recent] = await Promise.all([
-    load<ReviewRecord[]>(ctx, "/api/reviews?status=AWAITING_REVIEW", []),
-    load<Investigation[]>(ctx, "/api/investigations?limit=8", []),
-  ]);
+  const [pendingAll, recent] = await Promise.all([pendingByCompany(ctx), load<Investigation[]>(ctx, "/api/investigations?limit=8", [])]);
+  const pending = pendingAll[ctx.tenant.tenantId] ?? 0;
 
   async function doSignOut() {
     "use server";
@@ -37,9 +35,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <div className="bg-background font-(family-name:--font-geist) text-foreground">
             <SidebarProvider>
               <AppSidebar
-                pendingReviews={pending.data.length}
+                pendingReviews={pending}
                 user={{ login: ctx.session.user.login, name: ctx.session.user.name, image: ctx.session.user.image }}
-                companies={ctx.tenants.map((t) => ({ tenantId: t.tenantId, companyName: t.companyName, githubRepo: t.githubRepo }))}
+                companies={ctx.tenants.map((t) => ({ tenantId: t.tenantId, companyName: t.companyName, githubRepo: t.githubRepo, pending: pendingAll[t.tenantId] ?? 0 }))}
                 activeTenantId={ctx.tenant.tenantId}
                 signOut={doSignOut}
                 switchTenant={switchTenant}
