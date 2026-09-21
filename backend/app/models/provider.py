@@ -6,6 +6,7 @@ import json
 import logging
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
@@ -160,13 +161,8 @@ class FoundryProvider(LLMProvider):
         if not s.foundry_endpoint:
             raise ProviderError("FOUNDRY_ENDPOINT is not set")
         base = s.foundry_endpoint.rstrip("/") + "/openai/v1/"
-        if s.foundry_api_key:
-            key: Any = s.foundry_api_key
-        else:  # az login / managed identity; the token provider is called per request
-            from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-
-            key = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
-        self.client = AsyncOpenAI(base_url=base, api_key=key, timeout=90, max_retries=s.max_retries)
+        self._credential = None if s.foundry_api_key else EntraCredential()
+        self.client = AsyncOpenAI(base_url=base, api_key=s.foundry_api_key or self._credential.provider(), timeout=90, max_retries=s.max_retries)  # type: ignore[union-attr]
         self.api = s.foundry_api
         self._sem = asyncio.Semaphore(max(1, s.max_concurrent_calls))
         self._strict_ok: dict[str, bool] = {}  # schema name → whether the API accepted the strict schema
@@ -238,6 +234,11 @@ class FoundryProvider(LLMProvider):
         except Exception as e:  # noqa: BLE001
             raise ProviderError(f"Foundry call failed ({type(e).__name__}): {str(e)[:200]}") from e
 
+    async def aclose(self) -> None:
+        await self.client.close()
+        if self._credential is not None:
+            await self._credential.aclose()
+
     async def embed(self, texts):
         try:
             async with self._sem:
@@ -246,6 +247,32 @@ class FoundryProvider(LLMProvider):
             log.warning("embedding failed (%s); keyword-only retrieval", e)
             return None
         return [d.embedding for d in resp.data]
+
+
+class EntraCredential:
+    """Entra ID token source for `AsyncOpenAI`. The async client *awaits* its `api_key` callable, so this must be the
+    `azure.identity.aio` provider (returns a coroutine); the sync `azure.identity.get_bearer_token_provider` returns a plain
+    str and fails with "object str can't be used in 'await' expression". DefaultAzureCredential (aio) picks up `az login`
+    locally and the managed identity in Azure; scope is the Cognitive Services resource. `aclose()` releases its HTTP session."""
+
+    SCOPE = "https://cognitiveservices.azure.com/.default"
+
+    def __init__(self) -> None:
+        from azure.identity.aio import DefaultAzureCredential
+
+        self.credential = DefaultAzureCredential()
+
+    def provider(self) -> Callable[[], Awaitable[str]]:
+        from azure.identity.aio import get_bearer_token_provider
+
+        return get_bearer_token_provider(self.credential, self.SCOPE)
+
+    async def aclose(self) -> None:
+        await self.credential.close()
+
+
+def entra_token_provider() -> Callable[[], Awaitable[str]]:
+    return EntraCredential().provider()
 
 
 def _schema_rejected(e: Exception) -> bool:

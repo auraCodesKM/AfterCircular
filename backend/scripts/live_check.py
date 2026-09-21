@@ -101,7 +101,11 @@ async def embed() -> None:
 
     _need(settings().foundry_configured, "FOUNDRY_ENDPOINT not set")
     t0 = time.perf_counter()
-    vec = await FoundryProvider().embed(["client-level position limits for index derivatives"])
+    p = FoundryProvider()
+    try:
+        vec = await p.embed(["client-level position limits for index derivatives"])
+    finally:
+        await p.aclose()
     _need(vec is not None, "embedding call failed (see log)")
     assert vec is not None
     print(f"embedding dims={len(vec[0])} latency_ms={int((time.perf_counter() - t0) * 1000)} model={settings().embedding_model}")
@@ -110,18 +114,28 @@ async def embed() -> None:
 async def search() -> None:
     """Shared index `AZURE_SEARCH_INDEX`, tenant_id='live-check'. Upserts the local Acme corpus once (one embedding batch if
     Foundry is configured), then runs ONE hybrid query with the tenant filter."""
-    import yaml
-
     from app.models.provider import FoundryProvider
     from app.retrieval.azure_search import AzureSearchRetriever
-    from app.services.policies import chunk_markdown, enrich_chunks, parse_front_matter
 
     s = settings()
     _need(s.search_configured, "AZURE_SEARCH_ENDPOINT not set")
     _need(CORPUS.exists(), f"local corpus not found at {CORPUS}")
     ret = AzureSearchRetriever()
+    llm = FoundryProvider() if s.foundry_configured else None
     tenant = "live-check"
     print(f"index={ret.index_name} dims={ret.dims} auth={'api-key' if s.azure_search_api_key else 'entra-id'}")
+    try:
+        await _search_body(ret, llm, tenant)
+    finally:
+        if llm:
+            await llm.aclose()
+
+
+async def _search_body(ret, llm, tenant: str) -> None:
+    import yaml
+
+    from app.services.policies import chunk_markdown, enrich_chunks, parse_front_matter
+
     if not await ret.is_ready(tenant):
         manifest = yaml.safe_load((CORPUS / "aftercircular.yml").read_text(encoding="utf-8"))
         chunks: list[dict] = []
@@ -133,7 +147,6 @@ async def search() -> None:
             chunks += chunk_markdown(doc_id, title, d["path"], version, body)
             docs.append({"doc_id": doc_id, "category": d.get("category"), "effective_date": meta.get("effective_date"), "topics": d.get("topics", [])})
         enrich_chunks(chunks, docs, manifest, "live-check")
-        llm = FoundryProvider() if s.foundry_configured else None
         vectors = await llm.embed([c["text"] for c in chunks]) if llm else None
         for i, c in enumerate(chunks):
             c["embedding"] = vectors[i] if vectors else None
@@ -141,8 +154,8 @@ async def search() -> None:
         print(f"upserted {len(chunks)} chunks for tenant_id={tenant} (vectors={'yes' if vectors else 'no'})")
         await asyncio.sleep(2)
     q = "client-level position limits for index derivatives reviewed every six months"
-    vec = (await FoundryProvider().embed([q])) if s.foundry_configured else None
-    _need(not s.foundry_configured or vec is not None, "query embedding failed (check FOUNDRY_ENDPOINT / EMBEDDING_MODEL / RBAC)")
+    vec = (await llm.embed([q])) if llm else None
+    _need(llm is None or vec is not None, "query embedding failed (check FOUNDRY_ENDPOINT / EMBEDDING_MODEL / RBAC)")
     t0 = time.perf_counter()
     hits = await ret.search(tenant, q, vec[0] if vec else None, k=5)
     print(f"{len(hits)} hits in {int((time.perf_counter() - t0) * 1000)} ms (hybrid={'yes' if vec else 'keyword-only'})")

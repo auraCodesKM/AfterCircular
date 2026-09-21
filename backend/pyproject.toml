@@ -19,6 +19,7 @@ dependencies = [
     "toon-format==0.9.0b1",
     "tiktoken>=0.14.0",
     "azure-monitor-opentelemetry>=1.8.10",
+    "aiohttp>=3.14.3",
 ]
 
 [dependency-groups]

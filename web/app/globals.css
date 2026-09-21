@@ -137,6 +137,8 @@
 html {
   scroll-behavior: smooth;
   color-scheme: light;
+  /* No rubber-band past the page: the bounce exposed the bare canvas behind body (paper on landing, bg-background on /dashboard). */
+  overscroll-behavior-y: none;
 }
 
 body {
