@@ -14,7 +14,7 @@ export default async function ConnectPage() {
   const session = await auth();
   if (!session?.accessToken) redirect("/signin");
 
-  const [repos, existing] = await Promise.all([listRepos(session.accessToken), tenantStore().getByOwner(session.user.githubId)]);
+  const [repos, existing] = await Promise.all([listRepos(session.accessToken), tenantStore().listByOwner(session.user.githubId)]);
 
   return (
     <div className="min-h-dvh">
@@ -41,18 +41,26 @@ export default async function ConnectPage() {
             AfterCircular watches this repository&rsquo;s default branch. When a regulator publishes something that conflicts with a policy
             here, it drafts the fix and opens an issue for review.
           </p>
-          {existing ? (
+          {existing.length ? (
             <Glass tone="ink" className="mt-8" bodyClassName="p-5">
-              <p className="eyebrow text-white/55">Currently connected</p>
-              <p className="mt-2 font-medium">{existing.companyName}</p>
-              <p className="font-mono text-sm text-white/70">{existing.githubRepo}</p>
-              <p className="mt-2 text-xs text-white/50">Choosing another repository replaces this connection.</p>
+              <p className="eyebrow text-white/55">Connected companies</p>
+              <ul className="mt-2 space-y-2">
+                {existing.map((t) => (
+                  <li key={t.tenantId}>
+                    <p className="font-medium">{t.companyName}</p>
+                    <p className="font-mono text-sm text-white/70">{t.githubRepo}</p>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-xs text-white/50">
+                Each company is an isolated tenant. Adding another keeps these; using the same company name re-points its repository.
+              </p>
             </Glass>
           ) : null}
         </div>
         <div className="min-w-0 md:col-span-7">
           <Glass tone="paper" bodyClassName="p-6 md:p-8">
-            <RepoPicker repos={repos} defaultCompany={existing?.companyName} />
+            <RepoPicker repos={repos} />
           </Glass>
         </div>
       </main>

@@ -39,3 +39,9 @@ def by_owner(github_id: str, s: StateStore = Depends(db)) -> TenantIn:
     if not r:
         raise HTTPException(404, "No tenant for this owner")
     return _out(r)
+
+
+@router.get("/tenants/by-owner/{github_id}/all", response_model=list[TenantIn])
+def all_by_owner(github_id: str, s: StateStore = Depends(db)) -> list[TenantIn]:
+    """Every company this GitHub user connected; each is an isolated tenant_id."""
+    return [_out(r) for r in s.tenants_by_owner(github_id)]

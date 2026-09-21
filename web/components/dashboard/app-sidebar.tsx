@@ -3,6 +3,8 @@
 import {
   Activity,
   BookOpen,
+  Building2,
+  Check,
   ChevronsUpDown,
   ClipboardCheck,
   Cpu,
@@ -21,6 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -50,13 +53,18 @@ export const NAV = [
   { href: "/dashboard/models", label: "Models", icon: Cpu },
 ] as const;
 
+export type Company = { tenantId: string; companyName: string; githubRepo: string };
+
 type Props = {
   pendingReviews: number;
   user: { login: string; name?: string | null; image?: string | null };
+  companies: Company[];
+  activeTenantId: string;
   signOut: () => Promise<void>;
+  switchTenant: (tenantId: string) => Promise<void>;
 };
 
-export function AppSidebar({ pendingReviews, user, signOut }: Props) {
+export function AppSidebar({ pendingReviews, user, companies, activeTenantId, signOut, switchTenant }: Props) {
   const pathname = usePathname();
   const { palette, recent, tenant } = useWorkspace();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -161,17 +169,46 @@ export function AppSidebar({ pendingReviews, user, signOut }: Props) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border p-2">
-        <div className="px-2 pb-1.5">
-          <p className="truncate text-sm font-medium">{tenant.companyName}</p>
-          <p
-            className="flex items-center gap-1 truncate text-[11px] text-muted-foreground"
-            title={`${tenant.repo} · ${tenant.branch}`}
-          >
-            <GitBranch aria-hidden className="size-3 shrink-0" />
-            <span className="truncate font-mono">{tenant.repo}</span>
-          </p>
-        </div>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={<SidebarMenuButton size="lg" className="data-[popup-open]:bg-sidebar-accent" />}
+                title={`${tenant.repo} · ${tenant.branch}`}
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background">
+                  <Building2 className="size-4" />
+                </span>
+                <div className="grid min-w-0 flex-1 text-left leading-tight">
+                  <span className="truncate text-sm font-medium">{tenant.companyName}</span>
+                  <span className="flex items-center gap-1 truncate text-[11px] text-muted-foreground">
+                    <GitBranch aria-hidden className="size-3 shrink-0" />
+                    <span className="truncate font-mono">{tenant.repo}</span>
+                  </span>
+                </div>
+                <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side={isMobile ? "top" : "right"} align="end" className="w-64">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>Companies</DropdownMenuLabel>
+                  {companies.map((c) => (
+                    <DropdownMenuItem key={c.tenantId} onClick={() => switchTenant(c.tenantId)}>
+                      <div className="grid min-w-0 flex-1 leading-tight">
+                        <span className="truncate">{c.companyName}</span>
+                        <span className="truncate font-mono text-[11px] text-muted-foreground">{c.githubRepo}</span>
+                      </div>
+                      {c.tenantId === activeTenantId ? <Check className="ml-2 size-4" /> : null}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem nativeButton={false} render={<Link href="/connect" />}>
+                  <Plus />
+                  Add company
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -199,22 +236,17 @@ export function AppSidebar({ pendingReviews, user, signOut }: Props) {
                 align="end"
                 className="w-56"
               >
-                <DropdownMenuLabel>
-                  <p className="text-sm font-medium">
-                    {user.name || `@${user.login}`}
-                  </p>
-                  <p className="text-xs font-normal text-muted-foreground">
-                    @{user.login} · GitHub
-                  </p>
-                </DropdownMenuLabel>
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>
+                    <p className="text-sm font-medium text-foreground">
+                      {user.name || `@${user.login}`}
+                    </p>
+                    <p className="text-xs font-normal text-muted-foreground">
+                      @{user.login} · GitHub
+                    </p>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  nativeButton={false}
-                  render={<Link href="/connect" />}
-                >
-                  <GitBranch />
-                  Change repository
-                </DropdownMenuItem>
                 <DropdownMenuItem
                   nativeButton={false}
                   render={<Link href="/dashboard/profile" />}

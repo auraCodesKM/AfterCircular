@@ -45,3 +45,13 @@ export function fmtDate(iso: string | null | undefined) {
   const d = new Date(iso.length === 10 ? `${iso}T00:00:00` : iso);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
+
+/** "12s", "5m", "3h", "2d" — relative to now; falls back to the date past a week. */
+export function relTime(iso: string, now = Date.now()) {
+  const s = Math.max(0, Math.round((now - new Date(iso).getTime()) / 1000));
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  if (s < 7 * 86400) return `${Math.floor(s / 86400)}d`;
+  return fmtDate(iso);
+}

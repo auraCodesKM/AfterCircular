@@ -23,6 +23,7 @@
   "menuAccent": "subtle",
   "registries": {
     "@react-bits": "https://reactbits.dev/r/{name}.json",
-    "@beui": "https://beui.dev/r/{name}.json"
+    "@beui": "https://beui.dev/r/{name}.json",
+    "@spectrumui": "https://ui.spectrumhq.in/r/{name}.json"
   }
 }

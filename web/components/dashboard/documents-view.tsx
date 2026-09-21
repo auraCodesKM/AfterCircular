@@ -16,6 +16,8 @@ export function DocumentsView({ documents }: { documents: ProcessedDocument[] })
   const [impact, setImpact] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
   const statuses = useMemo(() => Array.from(new Set(documents.map((d) => d.status))), [documents]);
+  const impactItems = Object.fromEntries(IMPACTS.map((k) => [k, k === "all" ? "All impacts" : impactLabel[k]]));
+  const statusItems = { all: "All statuses", ...Object.fromEntries(statuses.map((s) => [s, statusLabel[s]])) };
   const rows = documents.filter((d) => {
     if (impact !== "all" && impactKind(d.impact, d.status) !== impact) return false;
     if (status !== "all" && d.status !== status) return false;
@@ -29,7 +31,7 @@ export function DocumentsView({ documents }: { documents: ProcessedDocument[] })
           <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search regulatory publications" className="pl-8" aria-label="Search publications" />
         </div>
-        <Select value={impact} onValueChange={(v) => setImpact(String(v ?? "all"))}>
+        <Select value={impact} onValueChange={(v) => setImpact(String(v ?? "all"))} items={impactItems}>
           <SelectTrigger size="sm" className="w-40" aria-label="Filter by impact">
             <SelectValue />
           </SelectTrigger>
@@ -41,7 +43,7 @@ export function DocumentsView({ documents }: { documents: ProcessedDocument[] })
             ))}
           </SelectContent>
         </Select>
-        <Select value={status} onValueChange={(v) => setStatus(String(v ?? "all"))}>
+        <Select value={status} onValueChange={(v) => setStatus(String(v ?? "all"))} items={statusItems}>
           <SelectTrigger size="sm" className="w-44" aria-label="Filter by status">
             <SelectValue />
           </SelectTrigger>

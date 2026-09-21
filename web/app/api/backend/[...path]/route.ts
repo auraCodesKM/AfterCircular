@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { BackendError, backendFetch } from "@/lib/backend";
-import { tenantStore } from "@/lib/tenant-store";
+import { activeTenant } from "@/lib/dashboard-data";
 
 /** Authenticated proxy: browser → this route (session cookie) → FastAPI (API key + tenant headers + user's GitHub token). */
 
@@ -12,7 +12,7 @@ async function handle(req: Request, params: Promise<{ path: string[] }>, method:
   if (!path.length || !ALLOWED.has(path[0])) return NextResponse.json({ detail: "Not found" }, { status: 404 });
   const session = await auth();
   if (!session) return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
-  const tenant = await tenantStore().getByOwner(session.user.githubId);
+  const { tenant } = await activeTenant(session.user.githubId);
   if (!tenant) return NextResponse.json({ detail: "No repository connected" }, { status: 409 });
   const url = new URL(req.url);
   let body: unknown;

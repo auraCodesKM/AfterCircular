@@ -1,18 +1,26 @@
 import "server-only";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Session } from "next-auth";
 import { auth } from "@/auth";
 import { BackendError, backendConfigured, backendFetch } from "@/lib/backend";
 import type { Health } from "@/lib/pipeline-types";
-import { tenantStore, type Tenant } from "@/lib/tenant-store";
+import { ACTIVE_TENANT_COOKIE, tenantStore, type Tenant } from "@/lib/tenant-store";
 
 /** Server-side context every dashboard route needs: session, tenant, backend health. Redirects when missing. */
-export type ShellContext = { session: Session; tenant: Tenant; health: Health | null; backendError: string | null };
+export type ShellContext = { session: Session; tenant: Tenant; tenants: Tenant[]; health: Health | null; backendError: string | null };
+
+/** The user's companies plus the one the `ac-tenant` cookie selects (newest when unset or stale). */
+export async function activeTenant(githubId: string): Promise<{ tenants: Tenant[]; tenant: Tenant | null }> {
+  const tenants = await tenantStore().listByOwner(githubId);
+  const wanted = (await cookies()).get(ACTIVE_TENANT_COOKIE)?.value;
+  return { tenants, tenant: tenants.find((t) => t.tenantId === wanted) ?? tenants[0] ?? null };
+}
 
 export async function shellContext(): Promise<ShellContext> {
   const session = await auth();
   if (!session) redirect("/signin");
-  const tenant = await tenantStore().getByOwner(session.user.githubId);
+  const { tenants, tenant } = await activeTenant(session.user.githubId);
   if (!tenant) redirect("/connect");
   let health: Health | null = null;
   let backendError: string | null = null;
@@ -26,7 +34,7 @@ export async function shellContext(): Promise<ShellContext> {
       backendError = `Backend unreachable at ${process.env.BACKEND_URL}`;
     }
   }
-  return { session, tenant, health, backendError };
+  return { session, tenant, tenants, health, backendError };
 }
 
 /** Fetch one backend resource for a page; returns `fallback` (and the error) instead of throwing so pages render an Alert. */

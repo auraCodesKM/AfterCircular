@@ -302,10 +302,86 @@ body {
   animation: rail-flow 1.6s linear infinite;
 }
 
+/* ---------- metallic edge (ask bar) ----------
+   A rotating conic gradient painted in a 1.5px ring behind the surface, plus a soft
+   outer glow. Pure CSS, no WebGL. Light mode uses a dark graphite metal so the edge
+   reads against paper; dark mode uses brushed silver. */
+@property --metal-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes metal-spin {
+  to {
+    --metal-angle: 360deg;
+  }
+}
+.metal-edge {
+  --metal-a: #1a1d22;
+  --metal-b: #6b7280;
+  --metal-c: #e5e7eb;
+  --metal-glow: rgb(17 19 23 / 0.28);
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 8px 24px -12px var(--metal-glow);
+}
+.metal-edge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--metal-angle),
+    var(--metal-a) 0%,
+    var(--metal-b) 12%,
+    var(--metal-c) 20%,
+    var(--metal-a) 32%,
+    var(--metal-a) 50%,
+    var(--metal-b) 62%,
+    var(--metal-c) 70%,
+    var(--metal-a) 82%,
+    var(--metal-a) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: metal-spin 6s linear infinite;
+}
+.metal-edge::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  z-index: -2;
+  border-radius: inherit;
+  background: conic-gradient(from var(--metal-angle), transparent 0%, var(--metal-glow) 18%, transparent 30%, transparent 50%, var(--metal-glow) 68%, transparent 80%);
+  filter: blur(10px);
+  opacity: 0.7;
+  animation: metal-spin 6s linear infinite;
+}
+/* Light mode: a dark glow reads as a smudge on paper, so the ring alone carries the metal. */
+:root:not(.dark) .metal-edge::after {
+  display: none;
+}
+.dark .metal-edge {
+  --metal-a: #3a3f47;
+  --metal-b: #9ca3af;
+  --metal-c: #f5f5f5;
+  --metal-glow: rgb(229 231 235 / 0.22);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.05), 0 6px 22px -10px var(--metal-glow);
+}
+
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+  .metal-edge::before,
+  .metal-edge::after {
+    animation: none;
   }
   .reveal {
     opacity: 1;

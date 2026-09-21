@@ -160,6 +160,10 @@ class StateStore:
     def tenant_by_owner(self, github_id: str) -> dict[str, Any] | None:
         return _row(self.conn.execute("SELECT * FROM tenants WHERE connected_by=? ORDER BY connected_at DESC", (github_id,)).fetchone())
 
+    def tenants_by_owner(self, github_id: str) -> list[dict[str, Any]]:
+        rows = self.conn.execute("SELECT * FROM tenants WHERE connected_by=? ORDER BY connected_at DESC", (github_id,)).fetchall()
+        return [r for r in (_row(x) for x in rows) if r]
+
     # ---- scans -------------------------------------------------------------------------
     def create_scan(self, tenant_id: str, steps: list[ScanStep], ai_provider: str, retrieval_backend: str) -> ScanRecord:
         rec = ScanRecord(id=new_id("scan"), tenant_id=tenant_id, status="RUNNING", started_at=now(), steps=steps,

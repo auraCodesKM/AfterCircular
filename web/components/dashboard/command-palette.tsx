@@ -157,7 +157,7 @@ export function CommandPalette() {
             </CommandItem>
             <CommandItem onSelect={() => nav("/connect")}>
               <GitBranch />
-              Change repository
+              Add company
             </CommandItem>
           </CommandGroup>
           {docs.length ? (

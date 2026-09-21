@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { signOut } from "@/auth";
+import { switchTenant } from "@/app/connect/actions";
 import { AnalysisSheet } from "@/components/dashboard/analysis-sheet";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { AskSheet } from "@/components/dashboard/ask-sheet";
@@ -34,7 +35,14 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <WorkspaceProvider health={ctx.health} tenant={{ companyName: ctx.tenant.companyName, repo: ctx.tenant.githubRepo, branch: ctx.tenant.defaultBranch }} recent={recent.data}>
           <div className="bg-background text-foreground">
             <SidebarProvider>
-              <AppSidebar pendingReviews={pending.data.length} user={{ login: ctx.session.user.login, name: ctx.session.user.name, image: ctx.session.user.image }} signOut={doSignOut} />
+              <AppSidebar
+                pendingReviews={pending.data.length}
+                user={{ login: ctx.session.user.login, name: ctx.session.user.name, image: ctx.session.user.image }}
+                companies={ctx.tenants.map((t) => ({ tenantId: t.tenantId, companyName: t.companyName, githubRepo: t.githubRepo }))}
+                activeTenantId={ctx.tenant.tenantId}
+                signOut={doSignOut}
+                switchTenant={switchTenant}
+              />
               <SidebarInset className="min-w-0">
                 <SiteHeader companyName={ctx.tenant.companyName} />
                 <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 md:px-6">{children}</main>

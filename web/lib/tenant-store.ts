@@ -16,8 +16,13 @@ export type Tenant = {
   connectedAt: string; // ISO
 };
 
+/** Cookie naming the active company. Each company is an isolated tenant; the user picks one from the sidebar. */
+export const ACTIVE_TENANT_COOKIE = "ac-tenant";
+
 export interface TenantStore {
   getByOwner(githubId: string): Promise<Tenant | null>;
+  /** Every company this user connected, newest first. Each is an isolated tenantId. */
+  listByOwner(githubId: string): Promise<Tenant[]>;
   upsert(tenant: Tenant): Promise<Tenant>;
 }
 
@@ -34,11 +39,15 @@ class JsonFileTenantStore implements TenantStore {
   }
 
   async getByOwner(githubId: string) {
-    return (await this.readAll()).find((t) => t.connectedBy === githubId) ?? null;
+    return (await this.listByOwner(githubId))[0] ?? null;
+  }
+
+  async listByOwner(githubId: string) {
+    return (await this.readAll()).filter((t) => t.connectedBy === githubId).sort((a, b) => b.connectedAt.localeCompare(a.connectedAt));
   }
 
   async upsert(tenant: Tenant) {
-    const all = (await this.readAll()).filter((t) => t.connectedBy !== tenant.connectedBy);
+    const all = (await this.readAll()).filter((t) => t.tenantId !== tenant.tenantId);
     all.push(tenant);
     await mkdir(path.dirname(this.file), { recursive: true });
     await writeFile(this.file, JSON.stringify(all, null, 2));
@@ -65,6 +74,15 @@ class BackendTenantStore implements TenantStore {
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`Backend ${res.status}`);
     return (await res.json()) as Tenant;
+  }
+
+  async listByOwner(githubId: string) {
+    const res = await fetch(`${this.base}/api/tenants/by-owner/${encodeURIComponent(githubId)}/all`, {
+      headers: this.headers(),
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`Backend ${res.status}`);
+    return (await res.json()) as Tenant[];
   }
 
   async upsert(tenant: Tenant) {

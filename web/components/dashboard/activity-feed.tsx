@@ -11,7 +11,7 @@ const icon: Record<string, LucideIcon> = {
   APPROVED: User, REJECTED: User, TICKET_CREATED: GitPullRequest, ARCHIVED: CheckCircle2, PIPELINE_FAILED: XCircle,
 };
 
-function detail(e: AuditEvent): string {
+export function eventDetail(e: AuditEvent): string {
   const m = e.metadata as Record<string, unknown>;
   switch (e.event_type) {
     case "SCAN_COMPLETED":
@@ -61,7 +61,7 @@ export function ActivityFeed({ events, limit, quiet }: { events: AuditEvent[]; l
               <p className="text-sm">{eventLabel[e.event_type] ?? e.event_type}</p>
               <p className="truncate text-xs text-muted-foreground">
                 {human ? `@${e.actor} · ` : ""}
-                {detail(e)}
+                {eventDetail(e)}
               </p>
             </div>
           </li>

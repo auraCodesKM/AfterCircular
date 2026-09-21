@@ -69,7 +69,7 @@ export default async function ProfilePage() {
           <dd className="font-mono text-xs">{ctx.tenant.tenantId}</dd>
         </dl>
         <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/connect" />}>
-          Change repository
+          Add company
         </Button>
       </section>
       <Separator />
