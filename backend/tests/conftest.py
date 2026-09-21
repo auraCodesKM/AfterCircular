@@ -3,6 +3,8 @@ import os
 os.environ.setdefault("AI_PROVIDER", "stub")
 os.environ.setdefault("SEBI_MODE", "snapshot")
 os.environ.setdefault("BACKEND_API_KEY", "test-key")
+os.environ.setdefault("DEFAULT_JUDGE", "stub")
+os.environ["DECISION_ROUTES"] = ""
 
 import pytest  # noqa: E402
 

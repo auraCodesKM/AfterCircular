@@ -2,27 +2,241 @@
   "id": "aligned-regulatory-change-timelines",
   "description": "Fictional circular requires a 30-day policy review after any publication; POL-004 §7.3 already requires exactly that.",
   "document_file": "../../data/snapshot/demo-015-regulatory-change-timelines.json",
-  "expected": {"applicability": "YES", "alignment": "ALIGNED", "affected_policies": [], "policy_evidence_sections": ["POL-004 §7.3"], "min_obligations": 2},
+  "expected": {
+    "applicability": "YES",
+    "alignment": "ALIGNED",
+    "affected_policies": [],
+    "policy_evidence_sections": [
+      "POL-004 §7.3"
+    ],
+    "min_obligations": 2
+  },
   "fixtures": {
     "extraction": {
-      "regulator": "SEBI", "circular_number": "DEMO/SEBI/HO/MIRSD/CIR/2026/015", "published_date": "2026-09-16", "effective_date": "2026-09-16",
-      "applies_to": ["stock brokers"],
+      "regulator": "SEBI",
+      "circular_number": "DEMO/SEBI/HO/MIRSD/CIR/2026/015",
+      "published_date": "2026-09-16",
+      "effective_date": "2026-09-16",
+      "applies_to": [
+        "stock brokers"
+      ],
       "summary": "Stock brokers must assess applicability of each publication within 7 working days, amend affected policies within 30 calendar days or by the effective date, and keep a record of each review.",
       "obligations": [
-        {"requirement": "Assess and record the applicability of each SEBI or exchange publication within 7 working days.", "affected_area": "governance", "deadline": "7 working days of publication", "evidence": {"section": "2.1", "text": "Every stock broker shall assess the applicability of each SEBI or exchange publication and record the assessment within 7 working days of publication."}},
-        {"requirement": "Review and amend affected internal policies within 30 calendar days of publication or by the effective date, whichever is earlier.", "affected_area": "governance", "deadline": "30 calendar days", "evidence": {"section": "2.2", "text": "Internal policies and procedures affected by a publication shall be reviewed and, where required, amended within 30 calendar days of the publication date, or by the effective date stated in the publication, whichever is earlier."}},
-        {"requirement": "Maintain a record of each review citing the regulatory provision and affected document.", "affected_area": "record_keeping", "deadline": null, "evidence": {"section": "2.3", "text": "A record of each such review, citing the regulatory provision and the affected internal document, shall be maintained and made available to the stock exchange on request."}}
+        {
+          "requirement": "Assess and record the applicability of each SEBI or exchange publication within 7 working days.",
+          "affected_area": "governance",
+          "deadline": "7 working days of publication",
+          "evidence": {
+            "section": "2.1",
+            "text": "Every stock broker shall assess the applicability of each SEBI or exchange publication and record the assessment within 7 working days of publication."
+          }
+        },
+        {
+          "requirement": "Review and amend affected internal policies within 30 calendar days of publication or by the effective date, whichever is earlier.",
+          "affected_area": "governance",
+          "deadline": "30 calendar days",
+          "evidence": {
+            "section": "2.2",
+            "text": "Internal policies and procedures affected by a publication shall be reviewed and, where required, amended within 30 calendar days of the publication date, or by the effective date stated in the publication, whichever is earlier."
+          }
+        },
+        {
+          "requirement": "Maintain a record of each review citing the regulatory provision and affected document.",
+          "affected_area": "record_keeping",
+          "deadline": null,
+          "evidence": {
+            "section": "2.3",
+            "text": "A record of each such review, citing the regulatory provision and the affected internal document, shall be maintained and made available to the stock exchange on request."
+          }
+        }
       ]
     },
     "impact": {
-      "applicability": "YES", "alignment": "ALIGNED", "affected_policies": [],
+      "applicability": "YES",
+      "alignment": "ALIGNED",
+      "affected_policies": [],
       "reason": "Acme is a stock broker. POL-004 §7.2 records applicability within 5 working days (stricter than 7), §7.3 requires amendment within 30 calendar days or by the effective date, and §7.4 records each review as a compliance review issue citing both clauses — meeting every obligation.",
-      "regulatory_evidence": [{"section": "2.2", "text": "amended within 30 calendar days of the publication date, or by the effective date stated in the publication, whichever is earlier"}],
-      "policy_evidence": [
-        {"doc_id": "POL-004", "section": "7.3", "text": "Affected Documents shall be reviewed and, where required, amended within **30 calendar days** of the publication date, or by the effective date stated in the publication, whichever is earlier."},
-        {"doc_id": "POL-004", "section": "7.2", "text": "compliance shall record within 5 working days whether it is applicable to Acme and which documents are affected."}
+      "regulatory_evidence": [
+        {
+          "section": "2.2",
+          "text": "amended within 30 calendar days of the publication date, or by the effective date stated in the publication, whichever is earlier"
+        }
       ],
-      "effective_date": "2026-09-16", "recommended_action": "No change required; log the review.", "confidence": 0.9
+      "policy_evidence": [
+        {
+          "doc_id": "POL-004",
+          "section": "7.3",
+          "text": "Affected Documents shall be reviewed and, where required, amended within **30 calendar days** of the publication date, or by the effective date stated in the publication, whichever is earlier."
+        },
+        {
+          "doc_id": "POL-004",
+          "section": "7.2",
+          "text": "compliance shall record within 5 working days whether it is applicable to Acme and which documents are affected."
+        }
+      ],
+      "effective_date": "2026-09-16",
+      "recommended_action": "No change required; log the review.",
+      "confidence": 0.9
+    },
+    "judgments": {
+      "extraction_check": {
+        "ob0:stated": {
+          "noul": 0.98
+        },
+        "ob0:evidence_supports": {
+          "noul": 0.97
+        },
+        "ob1:stated": {
+          "noul": 0.98
+        },
+        "ob1:evidence_supports": {
+          "noul": 0.97
+        },
+        "ob2:stated": {
+          "noul": 0.98
+        },
+        "ob2:evidence_supports": {
+          "noul": 0.97
+        },
+        "ob3:stated": {
+          "noul": 0.98
+        },
+        "ob3:evidence_supports": {
+          "noul": 0.97
+        },
+        "ob4:stated": {
+          "noul": 0.98
+        },
+        "ob4:evidence_supports": {
+          "noul": 0.97
+        }
+      },
+      "applicability": {
+        "entity_in_scope": {
+          "noul": 0.98
+        },
+        "activity_in_scope": {
+          "noul": 0.7
+        },
+        "depends_on_unstated_fact": {
+          "noul": 0.1
+        },
+        "applicability": {
+          "choice": "applies",
+          "probabilities": {
+            "applies": 0.99,
+            "does_not_apply": 0.0,
+            "cannot_tell_from_profile": 0.01
+          },
+          "confidence": 0.985
+        },
+        "severity": {
+          "score": 0.5,
+          "probabilities": {
+            "0": 0.5,
+            "1": 0.5,
+            "2": 0.0
+          },
+          "confidence": 0.25
+        }
+      },
+      "rerank": {
+        "relevant": {
+          "noul": 0.1
+        },
+        "by_chunk": {
+          "POL-004#7.3": {
+            "relevant": {
+              "noul": 0.99
+            }
+          },
+          "POL-004#7.2": {
+            "relevant": {
+              "noul": 0.98
+            }
+          },
+          "POL-004#7.4": {
+            "relevant": {
+              "noul": 0.98
+            }
+          }
+        }
+      },
+      "alignment": {
+        "ob0:relation": {
+          "choice": "not_addressed",
+          "probabilities": {
+            "satisfies": 0.05,
+            "conflicts": 0.02,
+            "not_addressed": 0.93
+          },
+          "confidence": 0.895
+        },
+        "ob1:relation": {
+          "choice": "not_addressed",
+          "probabilities": {
+            "satisfies": 0.05,
+            "conflicts": 0.02,
+            "not_addressed": 0.93
+          },
+          "confidence": 0.895
+        },
+        "ob2:relation": {
+          "choice": "not_addressed",
+          "probabilities": {
+            "satisfies": 0.05,
+            "conflicts": 0.02,
+            "not_addressed": 0.93
+          },
+          "confidence": 0.895
+        },
+        "by_chunk": {
+          "POL-004#7.2": {
+            "ob0:relation": {
+              "choice": "satisfies",
+              "probabilities": {
+                "satisfies": 0.96,
+                "conflicts": 0.02,
+                "not_addressed": 0.02
+              },
+              "confidence": 0.94
+            }
+          },
+          "POL-004#7.3": {
+            "ob1:relation": {
+              "choice": "satisfies",
+              "probabilities": {
+                "satisfies": 0.99,
+                "conflicts": 0.0,
+                "not_addressed": 0.01
+              },
+              "confidence": 0.985
+            }
+          },
+          "POL-004#7.4": {
+            "ob2:relation": {
+              "choice": "satisfies",
+              "probabilities": {
+                "satisfies": 0.97,
+                "conflicts": 0.01,
+                "not_addressed": 0.02
+              },
+              "confidence": 0.955
+            }
+          }
+        }
+      },
+      "verification": {
+        "relation": {
+          "choice": "supports",
+          "probabilities": {
+            "supports": 0.99,
+            "contradicts": 0.0,
+            "says_nothing": 0.01
+          },
+          "confidence": 0.985
+        }
+      }
     }
   }
 }

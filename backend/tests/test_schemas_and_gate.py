@@ -1,9 +1,9 @@
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.impact import ImpactAnalysis, PolicyChunk, PolicyEvidence, RegulatoryEvidence
+from app.schemas.impact import ImpactAnalysis, PolicyEvidence, RegulatoryEvidence
 from app.schemas.obligations import ExtractionResult
-from app.services.gate import cheap_prefilter, route
+from app.services.gate import route
 
 
 def test_extraction_requires_evidence():
@@ -33,13 +33,3 @@ def test_gate_rejects_conflict_without_two_sided_evidence():
     assert route(_impact(policy_evidence=[]))[0] == "NEEDS_INVESTIGATION"
     assert route(_impact(regulatory_evidence=[]))[0] == "NEEDS_INVESTIGATION"
     assert route(_impact(affected_policies=[]))[0] == "NEEDS_INVESTIGATION"
-
-
-def test_cheap_prefilter_skips_model_call_when_nothing_relevant():
-    ex = ExtractionResult.model_validate({"regulator": "SEBI", "applies_to": [], "summary": "s", "obligations": []})
-    assert cheap_prefilter(ex, [])[0] is False
-    ex = ExtractionResult.model_validate({"regulator": "SEBI", "applies_to": [], "summary": "s",
-                                          "obligations": [{"requirement": "r", "affected_area": "other", "evidence": {"text": "q", "section": "1"}}]})
-    assert cheap_prefilter(ex, [])[0] is False
-    chunk = PolicyChunk(chunk_id="POL-001#4.1", doc_id="POL-001", title="t", path="p", section="4.1", text="x", score=0.03)
-    assert cheap_prefilter(ex, [chunk])[0] is True

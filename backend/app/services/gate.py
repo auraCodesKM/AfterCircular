@@ -1,23 +1,10 @@
-"""Impact Gate: deterministic routing around the model's structured analysis (PRD §9, §17; prompt §19).
+"""Impact Gate: the final deterministic routing of an ImpactAnalysis (PRD §17/§18).
 
-Cheap pass first: if retrieval finds nothing that overlaps the circular's topics, the expensive analysis call is skipped
-and the circular is archived as not applicable. Only candidates that pass reach the model.
+The typed decision layer (app/decisions) decides applicability and alignment; this function is the last word on what
+happens next and enforces the evidence rule: a CONFLICT without two-sided evidence is never acted on.
 """
 
-from app.schemas.impact import GateOutcome, ImpactAnalysis, PolicyChunk
-from app.schemas.obligations import ExtractionResult
-
-# retrieval score below this (RRF scale, ~1/61 per rank-1 hit) means "no policy is plausibly related"
-MIN_RRF_SCORE = 1 / 120
-
-
-def cheap_prefilter(extraction: ExtractionResult, chunks: list[PolicyChunk]) -> tuple[bool, str]:
-    """(should_run_full_analysis, reason). Never says CONFLICT on its own — only decides whether to spend a model call."""
-    if not extraction.obligations:
-        return False, "No obligations extracted — nothing to compare"
-    if not chunks or max(c.score for c in chunks) < MIN_RRF_SCORE:
-        return False, "No internal policy chunk overlaps the circular's obligations"
-    return True, f"{len(chunks)} candidate policy chunks pass the cheap filter"
+from app.schemas.impact import GateOutcome, ImpactAnalysis
 
 
 def route(impact: ImpactAnalysis) -> tuple[GateOutcome, str]:
@@ -32,4 +19,4 @@ def route(impact: ImpactAnalysis) -> tuple[GateOutcome, str]:
         return "CONFLICT", f"Conflict with {', '.join(impact.affected_policies)}"
     if impact.alignment == "ALIGNED":
         return "ALIGNED", "Applicable and already aligned — archived with evidence"
-    return "NEEDS_INVESTIGATION", "Applicable but alignment not stated — routed to a human"
+    return "NEEDS_INVESTIGATION", "Applicable but alignment not settled — routed to a human"

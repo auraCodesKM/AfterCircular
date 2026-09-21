@@ -107,6 +107,9 @@ export function Dashboard({ tenant, initial }: Props) {
           <Badge variant="outline" className={`font-mono text-[11px] uppercase tracking-wider ${h?.ai_provider === "stub" ? "border-amber/60 bg-amber/20" : "border-line"}`}>
             AI: {h?.ai_provider === "foundry" ? "Microsoft Foundry" : h?.ai_provider === "stub" ? "stub — no model calls" : "—"}
           </Badge>
+          <Badge variant="outline" className={`font-mono text-[11px] uppercase tracking-wider ${h?.judge?.default === "stub" ? "border-amber/60 bg-amber/20" : "border-line"}`}>
+            judgments: {h?.judge?.default === "typesafe" ? `Jev (${h.judge.model})` : h?.judge?.default === "foundry" ? "Foundry (uncalibrated)" : h?.judge?.default === "stub" ? "stub — no model calls" : "—"}
+          </Badge>
           <Badge variant="outline" className="border-line font-mono text-[11px] uppercase tracking-wider">
             retrieval: {h?.retrieval ?? "—"}
           </Badge>
@@ -227,9 +230,16 @@ export function Dashboard({ tenant, initial }: Props) {
                           <TableCell className="whitespace-nowrap text-ink-2">{statusLabel[d.status]}</TableCell>
                           <TableCell className="text-right">
                             {d.ticket_url ? (
-                              <a href={d.ticket_url} target="_blank" rel="noreferrer" className="text-sm underline underline-offset-4">
-                                Issue #{d.ticket_id}
-                              </a>
+                              <span className="inline-flex items-center gap-3">
+                                <a href={d.ticket_url} target="_blank" rel="noreferrer" className="text-sm underline underline-offset-4">
+                                  Issue #{d.ticket_id}
+                                </a>
+                                {d.analysis_id ? (
+                                  <Button size="sm" variant="secondary" onClick={() => setOpen(d)}>
+                                    Why?
+                                  </Button>
+                                ) : null}
+                              </span>
                             ) : d.analysis_id ? (
                               <Button size="sm" variant={d.status === "AWAITING_REVIEW" ? "primary" : "secondary"} onClick={() => setOpen(d)}>
                                 {d.status === "AWAITING_REVIEW" ? "Review" : "Why?"}
@@ -271,6 +281,53 @@ export function Dashboard({ tenant, initial }: Props) {
 
         <TabsContent value="models">
           <Glass tone="paper" bodyClassName="p-5 md:p-6">
+            {snap.evals?.judges ? (
+              <div className="mb-6 space-y-3">
+                <p className="text-sm text-ink-2">
+                  Judgment layer · {snap.evals.judges.scenarios.length} golden scenarios · {fmtTime(snap.evals.judges.generated_at)}
+                </p>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Judge</TableHead>
+                        <TableHead>Applicability</TableHead>
+                        <TableHead>Alignment</TableHead>
+                        <TableHead>Affected</TableHead>
+                        <TableHead>Evidence verbatim</TableHead>
+                        <TableHead>Rerank hit</TableHead>
+                        <TableHead>Escalated</TableHead>
+                        <TableHead>Brier</TableHead>
+                        <TableHead>Req / case</TableHead>
+                        <TableHead>Tokens / case</TableHead>
+                        <TableHead>Cost / case</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {snap.evals.judges.summary.map((r) => (
+                        <TableRow key={r.judge}>
+                          <TableCell className="font-mono text-xs">
+                            {r.judge} · {r.models.join(", ")}
+                            {r.calibrated ? "" : " (self-reported)"}
+                          </TableCell>
+                          <TableCell>{pctOrDash(r.applicability_accuracy)}</TableCell>
+                          <TableCell>{pctOrDash(r.alignment_accuracy)}</TableCell>
+                          <TableCell>{pctOrDash(r.affected_accuracy)}</TableCell>
+                          <TableCell>{pctOrDash(r.evidence_verbatim_rate)}</TableCell>
+                          <TableCell>{pctOrDash(r.rerank_hit_rate)}</TableCell>
+                          <TableCell>{pctOrDash(r.escalation_rate)}</TableCell>
+                          <TableCell>{r.brier_mean ?? "—"}</TableCell>
+                          <TableCell>{r.requests_per_case ?? "—"}</TableCell>
+                          <TableCell>{r.input_tokens_per_case ?? "—"}</TableCell>
+                          <TableCell>{r.estimated_cost_per_case == null ? "—" : `$${r.estimated_cost_per_case}`}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {snap.evals.judges.note ? <p className="text-xs text-muted">{snap.evals.judges.note}</p> : null}
+              </div>
+            ) : null}
             {!snap.evals || !snap.evals.available ? (
               <p className="text-sm text-ink-2">{snap.evals && !snap.evals.available ? snap.evals.message : "No evaluation report."}</p>
             ) : (
@@ -349,3 +406,4 @@ function metaSummary(m: Record<string, unknown>) {
 }
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
+const pctOrDash = (n: number | null) => (n == null ? "—" : pct(n));

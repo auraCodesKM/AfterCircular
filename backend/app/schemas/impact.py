@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 Applicability = Literal["YES", "NO", "UNCERTAIN"]
+Severity = Literal["administrative", "operational", "prohibitive"]
 Alignment = Literal["ALIGNED", "CONFLICT"]
 
 
@@ -37,7 +38,8 @@ class ImpactAnalysis(BaseModel):
     policy_evidence: list[PolicyEvidence] = Field(default_factory=list)
     effective_date: str | None = None
     recommended_action: str | None = None
-    confidence: float = Field(ge=0, le=1)
+    confidence: float = Field(ge=0, le=1, description="Model-reported; a routing signal, never proof of correctness")
+    severity: Severity | None = None
 
 
 class Memo(BaseModel):

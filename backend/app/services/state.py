@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from app.config import settings
+from app.schemas.decisions import DecisionRecord
 from app.schemas.actions import (
     AnalysisRecord,
     AuditEvent,
@@ -44,8 +45,15 @@ CREATE TABLE IF NOT EXISTS processed_documents (
 CREATE TABLE IF NOT EXISTS analyses (
   id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, document_pk TEXT NOT NULL, scan_id TEXT,
   extraction TEXT NOT NULL, retrieved_chunks TEXT NOT NULL, impact TEXT, gate_outcome TEXT, memo TEXT,
-  ai_provider TEXT NOT NULL, models TEXT NOT NULL, metrics TEXT NOT NULL, created_at TEXT NOT NULL
+  ai_provider TEXT NOT NULL, models TEXT NOT NULL, metrics TEXT NOT NULL, created_at TEXT NOT NULL,
+  decision_path TEXT NOT NULL DEFAULT '[]', escalation_reason TEXT
 );
+CREATE TABLE IF NOT EXISTS decisions (
+  id TEXT PRIMARY KEY, analysis_id TEXT NOT NULL, tenant_id TEXT NOT NULL, stage TEXT NOT NULL, provider TEXT NOT NULL, model TEXT NOT NULL,
+  calibrated INTEGER, question_ids TEXT NOT NULL, state_digest TEXT NOT NULL, evidence_ids TEXT NOT NULL, answers TEXT NOT NULL,
+  routing TEXT NOT NULL, latency_ms INTEGER NOT NULL, input_tokens INTEGER, output_tokens INTEGER, created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS decisions_analysis ON decisions(analysis_id);
 CREATE TABLE IF NOT EXISTS reviews (
   id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, document_pk TEXT NOT NULL UNIQUE, analysis_id TEXT NOT NULL,
   status TEXT NOT NULL, requested_at TEXT NOT NULL, decided_at TEXT, decided_by TEXT, note TEXT,
@@ -95,6 +103,15 @@ class StateStore:
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.executescript(SCHEMA)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """Additive column migrations for existing dev databases (CREATE TABLE IF NOT EXISTS never alters)."""
+        cols = {r["name"] for r in self.conn.execute("PRAGMA table_info(analyses)").fetchall()}
+        for name, ddl in (("decision_path", "TEXT NOT NULL DEFAULT '[]'"), ("escalation_reason", "TEXT")):
+            if name not in cols:
+                self.conn.execute(f"ALTER TABLE analyses ADD COLUMN {name} {ddl}")
+        self.conn.commit()
 
     # ---- tenants -----------------------------------------------------------------------
     def upsert_tenant(self, t: dict[str, Any]) -> dict[str, Any]:
@@ -192,12 +209,14 @@ class StateStore:
     # ---- analyses ----------------------------------------------------------------------
     def save_analysis(self, a: AnalysisRecord) -> AnalysisRecord:
         self.conn.execute(
-            """INSERT INTO analyses(id, tenant_id, document_pk, scan_id, extraction, retrieved_chunks, impact, gate_outcome, memo, ai_provider, models, metrics, created_at)
-               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """INSERT INTO analyses(id, tenant_id, document_pk, scan_id, extraction, retrieved_chunks, impact, gate_outcome, memo, ai_provider, models, metrics, created_at, decision_path, escalation_reason)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                ON CONFLICT(id) DO UPDATE SET extraction=excluded.extraction, retrieved_chunks=excluded.retrieved_chunks, impact=excluded.impact,
-               gate_outcome=excluded.gate_outcome, memo=excluded.memo, models=excluded.models, metrics=excluded.metrics""",
+               gate_outcome=excluded.gate_outcome, memo=excluded.memo, models=excluded.models, metrics=excluded.metrics,
+               decision_path=excluded.decision_path, escalation_reason=excluded.escalation_reason""",
             (a.id, a.tenant_id, a.document_pk, a.scan_id, _j(a.extraction), _j(a.retrieved_chunks), _j(a.impact) if a.impact is not None else None,
-             a.gate_outcome, _j(a.memo) if a.memo is not None else None, a.ai_provider, _j(a.models), _j(a.metrics), a.created_at.isoformat()),
+             a.gate_outcome, _j(a.memo) if a.memo is not None else None, a.ai_provider, _j(a.models), _j(a.metrics), a.created_at.isoformat(),
+             _j(a.decision_path), a.escalation_reason),
         )
         self.conn.commit()
         return a
@@ -206,9 +225,30 @@ class StateStore:
         r = _row(self.conn.execute("SELECT * FROM analyses WHERE id=? AND tenant_id=?", (analysis_id, tenant_id)).fetchone())
         if not r:
             return None
-        for k in ("extraction", "retrieved_chunks", "impact", "memo", "models", "metrics"):
+        for k in ("extraction", "retrieved_chunks", "impact", "memo", "models", "metrics", "decision_path"):
             r[k] = json.loads(r[k]) if r[k] is not None else None
         return AnalysisRecord.model_validate(r)
+
+    # ---- decision records (typed judgments + routing) ----------------------------------
+    def save_decisions(self, records: list[DecisionRecord]) -> None:
+        self.conn.executemany(
+            """INSERT OR REPLACE INTO decisions(id, analysis_id, tenant_id, stage, provider, model, calibrated, question_ids, state_digest, evidence_ids,
+               answers, routing, latency_ms, input_tokens, output_tokens, created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            [(r.id, r.analysis_id, r.tenant_id, r.stage, r.provider, r.model, None if r.calibrated is None else int(r.calibrated), _j(r.question_ids),
+              r.state_digest, _j(r.evidence_ids), _j({k: v.model_dump(exclude_none=True) for k, v in r.answers.items()}), _j(r.routing), r.latency_ms,
+              r.input_tokens, r.output_tokens, r.created_at.isoformat()) for r in records],
+        )
+        self.conn.commit()
+
+    def decisions_for(self, analysis_id: str, tenant_id: str) -> list[DecisionRecord]:
+        out = []
+        for r in self.conn.execute("SELECT * FROM decisions WHERE analysis_id=? AND tenant_id=? ORDER BY created_at, rowid", (analysis_id, tenant_id)).fetchall():
+            d = dict(r)
+            for k in ("question_ids", "evidence_ids", "answers", "routing"):
+                d[k] = json.loads(d[k])
+            d["calibrated"] = None if d["calibrated"] is None else bool(d["calibrated"])
+            out.append(DecisionRecord.model_validate(d))
+        return out
 
     # ---- reviews -----------------------------------------------------------------------
     def upsert_review(self, rev: ReviewRecord) -> ReviewRecord:

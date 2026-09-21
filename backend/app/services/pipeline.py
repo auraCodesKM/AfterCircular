@@ -8,7 +8,6 @@ import logging
 import traceback
 from typing import Any
 
-from app.agents.impact_analysis import analyze_impact
 from app.agents.memo_generation import generate_memo
 from app.agents.obligation_extraction import extract_obligations
 from app.config import settings
@@ -17,10 +16,11 @@ from app.models.provider import LLMProvider, LLMResult, provider
 from app.retrieval.azure_search import retriever as make_retriever
 from app.retrieval.base import Retriever
 from app.schemas.actions import AnalysisRecord, ProcessedDocument, ReviewRecord, ScanRecord, ScanStep, TenantContext
-from app.schemas.impact import PolicyChunk
+from app.schemas.impact import ImpactAnalysis
 from app.schemas.regulatory import RegulatoryDocument
 from app.services import audit
-from app.services.gate import cheap_prefilter, route
+from app.decisions.impact import decide_impact
+from app.services.gate import route
 from app.services.policies import company_profile, ensure_indexed
 from app.services.state import StateStore, new_id, now
 from app.tools.github import GitHubClient
@@ -94,7 +94,7 @@ class Scan:
                 self.step("index", "done", f"{meta.get('chunk_count', 0)} chunks from {t.github_repo}@{str(meta.get('commit_sha', ''))[:7]} ({self.ret.name}{', re-indexed' if reindexed else ', up to date'})")
                 profile = company_profile(manifest, t)
                 for doc in fresh:
-                    await self.process(doc, profile)
+                    await self.process(doc, profile, manifest)
                 for k in ("extract", "retrieve", "analyze", "gate", "memo", "review"):
                     if next(s for s in self.rec.steps if s.key == k).status == "pending":
                         self.step(k, "skipped")
@@ -142,7 +142,7 @@ class Scan:
         return rec
 
     # ---- per-document pipeline ------------------------------------------------------------
-    async def process(self, doc: ProcessedDocument, profile: str) -> None:
+    async def process(self, doc: ProcessedDocument, profile: str, manifest: dict[str, Any]) -> None:
         t, db = self.tenant, self.db
         analysis = AnalysisRecord(id=new_id("ana"), tenant_id=t.tenant_id, document_pk=doc.id, scan_id=self.rec.id, extraction={}, retrieved_chunks=[],
                                   impact=None, gate_outcome=None, memo=None, ai_provider=self.llm.name, models={}, metrics={}, created_at=now())
@@ -165,7 +165,7 @@ class Scan:
             self.step("retrieve", "running")
             query = " ".join([extraction.summary, *(o.requirement for o in extraction.obligations[:6])])[:2000]
             vec = await self.llm.embed([query])
-            chunks = await self.ret.search(t.tenant_id, query, vec[0] if vec else None, k=6)
+            chunks = await self.ret.search(t.tenant_id, query, vec[0] if vec else None, k=10)
             analysis.retrieved_chunks = [c.model_dump() for c in chunks]
             analysis.metrics["retrieval"] = {"backend": self.ret.name, "count": len(chunks), "vector": bool(vec)}
             db.save_analysis(analysis)
@@ -173,21 +173,29 @@ class Scan:
                          chunks=[c.chunk_id for c in chunks], backend=self.ret.name)
             self.step("retrieve", "done", ", ".join(dict.fromkeys(c.doc_id for c in chunks)) or "no matches")
 
-            # 3. gate (cheap pass) → analyze (expensive) → gate (route)
+            # 3. decide: typed judgments (Jev) → deterministic routing → reasoning-model escalation → gate
             db.update_document(doc.id, status="ANALYZING")
             self.step("analyze", "running")
-            run_full, why = cheap_prefilter(extraction, chunks)
-            analysis.metrics["gate_prefilter"] = {"full_analysis": run_full, "reason": why}
-            if run_full:
-                impact, res = await analyze_impact(self.llm, extraction, chunks, profile, document_id=doc.document_id)
-                analysis.impact, analysis.models["impact"], analysis.metrics["impact"] = impact.model_dump(), res.model, self._llm(res)
+            if not extraction.obligations:
+                outcome, reason = "ARCHIVED", "No obligations extracted — nothing to compare"
+                analysis.impact = None
+                self.step("analyze", "skipped", reason)
+            else:
+                decision = await decide_impact(analysis_id=analysis.id, tenant_id=t.tenant_id, document_id=doc.document_id, extraction=extraction,
+                                               circular_text=reg.content, candidates=chunks, manifest=manifest, company_name=t.company_name, profile=profile, llm=self.llm)
+                impact = decision.impact or ImpactAnalysis(applicability="UNCERTAIN", reason="decision layer returned nothing", confidence=0.0)
+                for res in decision.llm_results:
+                    analysis.models["impact"], analysis.metrics["impact"] = res.model, self._llm(res)
+                db.save_decisions(decision.records)
+                analysis.impact, analysis.decision_path, analysis.escalation_reason = impact.model_dump(), decision.path, decision.escalation_reason
+                analysis.metrics["decisions"] = {"records": len(decision.records), "judges": sorted({r.provider for r in decision.records if r.provider != "code"}),
+                                                 "kept_chunks": [c.chunk_id for c in decision.kept_chunks], "obligations_verified": len(decision.obligations)}
+                chunks = decision.kept_chunks or chunks
                 outcome, reason = route(impact)
                 audit.record(db, t.tenant_id, "IMPACT_ANALYZED", scan_id=self.rec.id, document_pk=doc.id, analysis_id=analysis.id,
-                             applicability=impact.applicability, alignment=impact.alignment, confidence=impact.confidence, model=res.model)
-                self.step("analyze", "done", f"applicability {impact.applicability}" + (f", {impact.alignment}" if impact.alignment else ""))
-            else:
-                outcome, reason = "ARCHIVED", why
-                self.step("analyze", "skipped", f"gate: {why} — no model call spent")
+                             applicability=impact.applicability, alignment=impact.alignment, confidence=impact.confidence,
+                             path=decision.path, escalation=decision.escalation_reason, severity=impact.severity)
+                self.step("analyze", "done", f"applicability {impact.applicability}" + (f", {impact.alignment}" if impact.alignment else "") + f" via {' → '.join(decision.path)}")
             analysis.gate_outcome = outcome
             db.save_analysis(analysis)
             self.step("gate", "done", f"{outcome}: {reason}")

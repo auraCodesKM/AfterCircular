@@ -50,3 +50,17 @@ async def test_scan_end_to_end_with_stub_provider(db, tenant):
     assert rec2.status == "COMPLETED" and rec2.new_documents == 0 and rec2.skipped_documents == 3
     assert len(db.list_reviews(tenant.tenant_id)) == 1
     assert len(db.list_documents(tenant.tenant_id)) == 3
+
+
+async def test_decision_records_persist_and_path_is_visible(db, tenant):
+    await Scan(db, tenant).run()
+    docs = {d.document_id: d for d in db.list_documents(tenant.tenant_id)}
+    conflict = db.get_analysis(docs["DEMO-2026-014"].analysis_id, tenant.tenant_id)
+    assert conflict.decision_path == ["stub:extraction_check", "stub:applicability", "stub:rerank", "stub:alignment", "stub:verification"]
+    recs = db.decisions_for(conflict.id, tenant.tenant_id)
+    assert {r.stage for r in recs} >= {"applicability", "rerank", "alignment", "verification"}
+    assert all(r.provider == "stub" and r.calibrated is False for r in recs if r.provider != "code")
+    na = db.get_analysis(docs["DEMO-2026-016"].analysis_id, tenant.tenant_id)
+    assert na.decision_path == ["stub:extraction_check", "stub:applicability"]  # archived without retrieval or alignment calls
+    aligned = db.get_analysis(docs["DEMO-2026-015"].analysis_id, tenant.tenant_id)
+    assert aligned.impact["alignment"] == "ALIGNED" and aligned.escalation_reason is None

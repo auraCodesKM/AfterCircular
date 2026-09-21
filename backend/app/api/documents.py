@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.deps import db, tenant
 from app.schemas.actions import AnalysisRecord, AuditEvent, ProcessedDocument, TenantContext
+from app.schemas.decisions import DecisionRecord
 from app.services.state import StateStore
 
 router = APIRouter()
@@ -33,6 +34,14 @@ def get_analysis(analysis_id: str, t: TenantContext = Depends(tenant), s: StateS
     if not a:
         raise HTTPException(404, "Analysis not found")
     return a
+
+
+@router.get("/analyses/{analysis_id}/decisions", response_model=list[DecisionRecord])
+def get_decisions(analysis_id: str, t: TenantContext = Depends(tenant), s: StateStore = Depends(db)) -> list[DecisionRecord]:
+    """Every typed judgment behind an analysis: provider, model, what it saw (digest + evidence ids), answers, routing."""
+    if not s.get_analysis(analysis_id, t.tenant_id):
+        raise HTTPException(404, "Analysis not found")
+    return s.decisions_for(analysis_id, t.tenant_id)
 
 
 @router.get("/audit", response_model=list[AuditEvent])

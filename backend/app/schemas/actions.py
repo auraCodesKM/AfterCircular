@@ -120,6 +120,8 @@ class AnalysisRecord(BaseModel):
     ai_provider: str
     models: dict[str, str]
     metrics: dict[str, Any]
+    decision_path: list[str] = Field(default_factory=list, description="e.g. ['typesafe:applicability','typesafe:rerank','typesafe:alignment','typesafe:verification']")
+    escalation_reason: str | None = None
     created_at: datetime
 
 

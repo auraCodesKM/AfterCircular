@@ -6,14 +6,15 @@ FastAPI service that runs the regulatory-intelligence pipeline (PRD §0 Tier 0):
 POST /api/scan
   SEBI connector (live sebi.gov.in, or labelled demo snapshot)
   → content-hash detection, versioning, idempotency (SQLite `processed_documents`)
-  → obligation extraction (Foundry, structured + evidence required)
-  → policy retrieval (Azure AI Search hybrid, or local BM25+vector fallback) over the tenant's GitHub repo
-  → Impact Gate: cheap prefilter → impact analysis (Foundry) → deterministic routing
-  → CONFLICT: memo draft → review row (AWAITING_REVIEW)
+  → obligation extraction (Foundry, generative, evidence required)
+  → decision layer (app/decisions): Jev typed judgments — extraction check, applicability, rerank, alignment, citation check —
+    with deterministic routing (policy.py thresholds), Foundry escalation for uncertain cases, human for the rest
+  → Impact Gate (evidence rule) → CONFLICT: memo draft → review row (AWAITING_REVIEW)
 POST /api/reviews/{id}/approve   → GitHub issue (the only side effect; human-gated)
 ```
 
-AI does: understand, extract, reason, draft. Code does: fetch, hash, persist, state transitions, approval, GitHub, audit.
+Code does: fetch, hash, persist, state transitions, thresholds, routing, approval, GitHub, audit. Jev does: small typed
+judgments with calibrated probabilities. Foundry does: generation and hard reasoning. See `../docs/architecture.md`.
 
 ## Run
 
@@ -36,6 +37,9 @@ Point the frontend at it: in `web/.env.local` set `BACKEND_URL=http://localhost:
 | `AI_PROVIDER` | `foundry` (real model calls) or `stub` (fixture outputs from `evals/scenarios`, labelled everywhere, no AI). |
 | `FOUNDRY_ENDPOINT` / `FOUNDRY_API_KEY` / `FOUNDRY_API_VERSION` | Microsoft Foundry / Azure OpenAI resource. Empty key → Entra ID via `DefaultAzureCredential` (managed identity on Azure, `az login` locally). |
 | `EXTRACTION_MODEL` / `IMPACT_MODEL` / `MEMO_MODEL` / `EMBEDDING_MODEL` | Deployment names, one per task (PRD §23). |
+| `TYPESAFE_API_KEY` / `TYPESAFE_MODEL` | TypeSafe System One (Jev) for typed judgments. `TYPE_SAFE_API_KEY` is accepted as an alias. Empty → stub judge, labelled. |
+| `DECISION_ROUTES` / `DEFAULT_JUDGE` | Per-task judge (`typesafe` \| `foundry` \| `stub`) for `extraction_check, applicability, rerank, alignment, verification`. |
+| `DECISION_THRESHOLDS` | JSON override of `app/decisions/policy.py` (uncertain band, confidence floors, rerank keep, …). |
 | `AZURE_SEARCH_ENDPOINT` / `AZURE_SEARCH_API_KEY` | Azure AI Search. Empty → in-process hybrid retriever (BM25 + cosine, RRF-fused) over SQLite. |
 | `SEBI_MODE` | `live` (fetch sebi.gov.in; snapshot on failure) or `snapshot` (always the fictional demo circulars). |
 | `SEBI_MAX_DOCUMENTS` | Circulars per scan (default 5). |
@@ -80,7 +84,7 @@ GET  /health
 POST /api/scan                     {force?: bool}   → 202 ScanRecord (poll it)
 GET  /api/scans/latest | /api/scans/{id}
 GET  /api/documents | /api/documents/{id} | /api/documents/{id}/content
-GET  /api/analyses/{id}
+GET  /api/analyses/{id} | /api/analyses/{id}/decisions   (typed judgments: provider, model, state digest, answers, routing)
 GET  /api/reviews?status= | /api/reviews/{id}
 POST /api/reviews/{id}/approve | /reject          {note?}
 GET  /api/audit?limit=&document=
@@ -94,8 +98,14 @@ PUT  /api/tenants, GET /api/tenants/by-owner/{githubId}
 uv run pytest            # hashing, detection/versioning, connector parsing + fallback, schemas, gate, retrieval,
                          # approval transitions, ticket payload, full stub pipeline incl. idempotency
 uv run mypy app evals
-uv run python -m evals.run --models gpt-4o-mini,gpt-4o   # needs FOUNDRY_*; corpus from ../acme-securities-policies (or --corpus)
+uv run python -m evals.judges --judges typesafe,foundry,stub   # decision layer per judge; needs TYPESAFE_API_KEY (and FOUNDRY_* for foundry)
+uv run python -m evals.run --models gpt-4o-mini,gpt-4o        # generative deployments; needs FOUNDRY_*
+RUN_LIVE=1 uv run pytest -k live                              # one live Jev request
 ```
+
+`evals/judges.py` runs applicability → rerank → alignment → verification for every golden scenario per judge with identical
+extraction input and records applicability/alignment/affected accuracy, evidence-verbatim rate, rerank hit rate, escalation
+rate, a Brier term on the applicability distribution, requests, tokens, latency and priced cost → `evals/results/judges-latest.json`.
 
 `evals/run.py` runs every golden scenario (CONFLICT, ALIGNED, not-applicable, UNCERTAIN) per model, scores extraction / impact / memo with documented task-specific checks (schema validity, verbatim-evidence accuracy, applicability/alignment/affected-policy match), records latency and tokens, estimates cost from `evals/pricing.json` (null when a model has no price entry), and writes `evals/results/latest.json`, which the dashboard's *Model intelligence* tab reads. With the stub provider the report is explicitly marked as measuring the harness, not a model.
 
@@ -106,8 +116,10 @@ app/
   main.py, config.py
   api/          health, scan, documents (+analyses, audit), reviews, tenants, evals
   connectors/   base.RegulatorySource, sebi.SEBIConnector (live + snapshot)
-  agents/       obligation_extraction, impact_analysis, memo_generation (prompts + structured calls)
-  models/       provider.LLMProvider → FoundryProvider | StubProvider
+  agents/       obligation_extraction, impact_analysis (escalation rung), memo_generation — generative
+  decisions/    providers (TypeSafe | Foundry-emulated | stub judges), questions (Noul/Choice/Score builders),
+                policy (thresholds), impact (stages + deterministic routing + cascade)
+  models/       provider.LLMProvider → FoundryProvider | StubProvider (generative)
   retrieval/    base (RRF), local (BM25+cosine), azure_search (index-per-tenant hybrid)
   services/     state (SQLite repo), pipeline (Scan), gate, policies, reviews, tickets, audit
   schemas/      regulatory, obligations, impact, actions

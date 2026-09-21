@@ -34,6 +34,8 @@ def build_ticket(doc: ProcessedDocument, analysis: AnalysisRecord, review: Revie
 ## Impact analysis
 - **Applicability:** {impact.applicability}
 - **Alignment:** {impact.alignment or '—'}
+- **Severity (model-rated):** {impact.severity or '—'}
+- **Decision path:** {' → '.join(analysis.decision_path) or '—'}{(' · escalated: ' + analysis.escalation_reason) if analysis.escalation_reason else ''}
 - **Effective date:** {impact.effective_date or extraction.effective_date or '—'}
 - **Reasoning:** {impact.reason}
 - **Recommended action:** {impact.recommended_action or '—'}
@@ -53,4 +55,5 @@ def build_ticket(doc: ProcessedDocument, analysis: AnalysisRecord, review: Revie
 _Opened by AfterCircular after human approval. Models: {', '.join(f'{k}={v}' for k, v in analysis.models.items())} (provider: {analysis.ai_provider})._
 _{MARKER} {analysis.id}_
 """
-    return TicketPayload(title=title[:250], body=body.strip(), labels=["compliance", "needs-review"])
+    labels = ["compliance", "needs-review"] + ([f"severity:{impact.severity}"] if impact.severity else [])
+    return TicketPayload(title=title[:250], body=body.strip(), labels=labels)

@@ -1,6 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -21,6 +22,13 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     eval_models: str = ""
 
+    # TypeSafe System One (Jev) — typed judgments. TYPE_SAFE_API_KEY accepted as an alias.
+    typesafe_api_key: str = Field(default="", validation_alias=AliasChoices("TYPESAFE_API_KEY", "TYPE_SAFE_API_KEY"))
+    typesafe_model: str = "jev-latest"
+    # task → judge ("typesafe" | "foundry" | "stub"); tasks: extraction_check, applicability, rerank, alignment, verification
+    decision_routes_raw: str = Field(default="", validation_alias="DECISION_ROUTES")
+    default_judge: Literal["typesafe", "foundry", "stub"] = "typesafe"
+
     azure_search_endpoint: str = ""
     azure_search_api_key: str = ""
 
@@ -29,6 +37,15 @@ class Settings(BaseSettings):
     sebi_timeout_seconds: float = 20
 
     github_token: str = ""
+
+    @property
+    def decision_routes(self) -> dict[str, str]:
+        out: dict[str, str] = {}
+        for part in self.decision_routes_raw.split(","):
+            if "=" in part:
+                k, v = part.split("=", 1)
+                out[k.strip()] = v.strip()
+        return out
 
     @property
     def foundry_configured(self) -> bool:

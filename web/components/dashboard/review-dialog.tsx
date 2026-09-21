@@ -16,6 +16,7 @@ import type {
   ProcessedDocument,
   ReviewRecord,
 } from "@/lib/pipeline-types";
+import { DecisionPath } from "./decision-path";
 import { toneClass } from "./labels";
 
 type Api = <T>(path: string, init?: RequestInit) => Promise<T>;
@@ -123,8 +124,9 @@ function ReviewBody({
                     ? "Not applicable"
                     : "Uncertain"}
               </Badge>
-              <span className="text-xs text-muted">
-                confidence {Math.round(impact.confidence * 100)}%
+              {impact.severity ? <Badge variant="outline">severity: {impact.severity}</Badge> : null}
+              <span className="text-xs text-muted" title="Model-reported; it routes the case, it does not prove it">
+                model confidence {Math.round(impact.confidence * 100)}%
               </span>
             </>
           ) : null}
@@ -133,7 +135,7 @@ function ReviewBody({
           ) : null}
           {analysis?.ai_provider === "stub" ? (
             <Badge variant="outline" className="border-amber/60 bg-amber/20">
-              stub provider — fixture output, no AI
+              extraction: stub fixture, no generative model
             </Badge>
           ) : null}
         </div>
@@ -290,9 +292,18 @@ function ReviewBody({
         </section>
       ) : null}
 
+      {analysis?.escalation_reason ? (
+        <p className="rounded-xl bg-amber/20 px-3 py-2 text-xs">
+          <span className="font-medium">Escalated:</span> {analysis.escalation_reason}
+          {analysis.decision_path.some((p) => p.endsWith(":escalation")) ? " → resolved by the reasoning model" : " → no reasoning model available, routed to a person"}
+        </p>
+      ) : null}
+
+      {analysis ? <DecisionPath analysisId={analysis.id} api={api} /> : null}
+
       {analysis ? (
         <p className="text-[11px] text-muted">
-          Analysis {analysis.id} · provider {analysis.ai_provider} · models{" "}
+          Analysis {analysis.id} · path {analysis.decision_path.join(" → ") || "—"} · provider {analysis.ai_provider} · models{" "}
           {Object.entries(analysis.models)
             .map(([k, v]) => `${k}=${v}`)
             .join(", ") || "—"}{" "}

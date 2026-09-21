@@ -2,28 +2,138 @@
   "id": "uncertain-algo-trading-facility",
   "description": "Fictional circular for brokers that offer algorithmic trading to retail clients; the Acme profile does not say whether it does.",
   "document": {
-    "source": "SEBI", "jurisdiction": "IN", "document_id": "DEMO-2026-017", "circular_number": "DEMO/SEBI/HO/MRD/CIR/2026/017",
+    "source": "SEBI",
+    "jurisdiction": "IN",
+    "document_id": "DEMO-2026-017",
+    "circular_number": "DEMO/SEBI/HO/MRD/CIR/2026/017",
     "title": "Safeguards for Retail Algorithmic Trading Facilities Offered by Stock Brokers",
-    "published_date": "2026-09-18", "effective_date": "2026-12-01", "url": "https://example.invalid/sebi/demo/2026/017", "document_type": "circular",
+    "published_date": "2026-09-18",
+    "effective_date": "2026-12-01",
+    "url": "https://example.invalid/sebi/demo/2026/017",
+    "document_type": "circular",
     "content": "FICTIONAL DEMO CIRCULAR — NOT AN ACTUAL SEBI PUBLICATION.\n\nTo,\nAll Stock Brokers offering algorithmic trading facilities to retail clients.\n\nSub: Safeguards for Retail Algorithmic Trading Facilities Offered by Stock Brokers\n\n1. Stock brokers that provide application programming interface access or algorithmic order placement to retail clients shall register each algorithm with the stock exchange and tag every algorithmic order with the exchange-assigned algorithm identifier.\n\n2. Such stock brokers shall implement an order-per-second throttle per client, approved by the exchange, and shall maintain a kill switch that can halt all algorithmic orders of a client within one minute.\n\n3. These provisions apply only to stock brokers offering algorithmic trading facilities to retail clients and come into effect on December 1, 2026.\n\n4. Issued for demonstration purposes only."
   },
-  "expected": {"applicability": "UNCERTAIN", "alignment": null, "affected_policies": [], "policy_evidence_sections": [], "min_obligations": 2},
+  "expected": {
+    "applicability": "UNCERTAIN",
+    "alignment": null,
+    "affected_policies": [],
+    "policy_evidence_sections": [],
+    "min_obligations": 2
+  },
   "fixtures": {
     "extraction": {
-      "regulator": "SEBI", "circular_number": "DEMO/SEBI/HO/MRD/CIR/2026/017", "published_date": "2026-09-18", "effective_date": "2026-12-01",
-      "applies_to": ["stock brokers offering algorithmic trading facilities to retail clients"],
+      "regulator": "SEBI",
+      "circular_number": "DEMO/SEBI/HO/MRD/CIR/2026/017",
+      "published_date": "2026-09-18",
+      "effective_date": "2026-12-01",
+      "applies_to": [
+        "stock brokers offering algorithmic trading facilities to retail clients"
+      ],
       "summary": "Brokers offering retail algorithmic trading must register algorithms, tag orders, throttle order rates per client and maintain a one-minute kill switch.",
       "obligations": [
-        {"requirement": "Register each algorithm with the exchange and tag algorithmic orders with the exchange identifier.", "affected_area": "risk_management", "deadline": "2026-12-01", "evidence": {"section": "1", "text": "shall register each algorithm with the stock exchange and tag every algorithmic order with the exchange-assigned algorithm identifier."}},
-        {"requirement": "Implement an exchange-approved per-client order throttle and a kill switch effective within one minute.", "affected_area": "risk_management", "deadline": "2026-12-01", "evidence": {"section": "2", "text": "shall implement an order-per-second throttle per client, approved by the exchange, and shall maintain a kill switch that can halt all algorithmic orders of a client within one minute."}}
+        {
+          "requirement": "Register each algorithm with the exchange and tag algorithmic orders with the exchange identifier.",
+          "affected_area": "risk_management",
+          "deadline": "2026-12-01",
+          "evidence": {
+            "section": "1",
+            "text": "shall register each algorithm with the stock exchange and tag every algorithmic order with the exchange-assigned algorithm identifier."
+          }
+        },
+        {
+          "requirement": "Implement an exchange-approved per-client order throttle and a kill switch effective within one minute.",
+          "affected_area": "risk_management",
+          "deadline": "2026-12-01",
+          "evidence": {
+            "section": "2",
+            "text": "shall implement an order-per-second throttle per client, approved by the exchange, and shall maintain a kill switch that can halt all algorithmic orders of a client within one minute."
+          }
+        }
       ]
     },
     "impact": {
-      "applicability": "UNCERTAIN", "alignment": null, "affected_policies": [],
+      "applicability": "UNCERTAIN",
+      "alignment": null,
+      "affected_policies": [],
       "reason": "Acme is a stock broker, but the circular applies only to brokers offering algorithmic trading facilities to retail clients. Neither the company profile nor the retrieved policies state whether Acme offers API or algorithmic order placement to retail clients.",
-      "regulatory_evidence": [{"section": "3", "text": "These provisions apply only to stock brokers offering algorithmic trading facilities to retail clients"}],
-      "policy_evidence": [], "effective_date": "2026-12-01",
-      "recommended_action": "Confirm with the Head of Trading whether Acme offers retail algorithmic/API trading; if yes, re-run the analysis against POL-002.", "confidence": 0.55
+      "regulatory_evidence": [
+        {
+          "section": "3",
+          "text": "These provisions apply only to stock brokers offering algorithmic trading facilities to retail clients"
+        }
+      ],
+      "policy_evidence": [],
+      "effective_date": "2026-12-01",
+      "recommended_action": "Confirm with the Head of Trading whether Acme offers retail algorithmic/API trading; if yes, re-run the analysis against POL-002.",
+      "confidence": 0.55
+    },
+    "judgments": {
+      "extraction_check": {
+        "ob0:stated": {
+          "noul": 0.98
+        },
+        "ob0:evidence_supports": {
+          "noul": 0.97
+        },
+        "ob1:stated": {
+          "noul": 0.98
+        },
+        "ob1:evidence_supports": {
+          "noul": 0.97
+        },
+        "ob2:stated": {
+          "noul": 0.98
+        },
+        "ob2:evidence_supports": {
+          "noul": 0.97
+        },
+        "ob3:stated": {
+          "noul": 0.98
+        },
+        "ob3:evidence_supports": {
+          "noul": 0.97
+        },
+        "ob4:stated": {
+          "noul": 0.98
+        },
+        "ob4:evidence_supports": {
+          "noul": 0.97
+        }
+      },
+      "applicability": {
+        "entity_in_scope": {
+          "noul": 0.55
+        },
+        "activity_in_scope": {
+          "noul": 0.5
+        },
+        "depends_on_unstated_fact": {
+          "noul": 0.92
+        },
+        "applicability": {
+          "choice": "cannot_tell_from_profile",
+          "probabilities": {
+            "applies": 0.3,
+            "does_not_apply": 0.1,
+            "cannot_tell_from_profile": 0.6
+          },
+          "confidence": 0.4
+        },
+        "severity": {
+          "score": 1.0,
+          "probabilities": {
+            "0": 0.1,
+            "1": 0.8,
+            "2": 0.1
+          },
+          "confidence": 0.7
+        }
+      },
+      "rerank": {
+        "relevant": {
+          "noul": 0.3
+        }
+      }
     }
   }
 }
