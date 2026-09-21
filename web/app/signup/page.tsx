@@ -9,7 +9,7 @@ import "@/components/ui/glass.css";
 export const metadata: Metadata = { title: "Sign up" };
 
 export default async function SignUpPage() {
-  if (await auth()) redirect("/connect");
+  if (await auth()) redirect("/dashboard");
   return (
     <AuthShell
       title="Create your workspace"

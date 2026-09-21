@@ -9,7 +9,7 @@ import "@/components/ui/glass.css";
 export const metadata: Metadata = { title: "Sign in" };
 
 export default async function SignInPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  if (await auth()) redirect("/connect");
+  if (await auth()) redirect("/dashboard");
   const { error } = await searchParams;
   return (
     <AuthShell
@@ -33,7 +33,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
         </p>
       ) : null}
       <GitHubButton label="Continue with GitHub" />
-      <p className="mt-4 text-sm text-white/55">You&rsquo;ll pick the exact repository on the next step.</p>
+      <p className="mt-4 text-sm text-white/55">Already connected a company? You&rsquo;ll land in your workspace. New here? You&rsquo;ll pick the repository next.</p>
     </AuthShell>
   );
 }

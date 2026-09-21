@@ -9,7 +9,7 @@ function GitHubIcon() {
 }
 
 /** Server-action form: no client JS, CSRF handled by Auth.js. */
-export function GitHubButton({ label, redirectTo = "/connect" }: { label: string; redirectTo?: string }) {
+export function GitHubButton({ label, redirectTo = "/dashboard" }: { label: string; redirectTo?: string }) {
   return (
     <form
       action={async () => {

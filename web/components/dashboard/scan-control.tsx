@@ -34,32 +34,42 @@ export function ScanControl({ initial, disabled, title, description, children }:
   const [starting, setStarting] = useState(false);
   const [open, setOpen] = useState(initial?.status === "RUNNING");
   const alive = useRef(true);
+  // One poll loop per scan id. router.refresh() re-renders the server page with a RUNNING `initial`,
+  // which used to start another loop per refresh — and each loop fired its own completion toasts.
+  const polling = useRef<string | null>(null);
   const running = scan?.status === "RUNNING";
 
   const poll = useCallback(
     async (id: string) => {
+      if (polling.current === id) return;
+      polling.current = id;
       try {
         for (;;) {
           const rec = await api<ScanRecord>(`scans/${id}`);
-          if (!alive.current) return;
+          if (!alive.current || polling.current !== id) return;
           setScan(rec);
-          router.refresh();
           if (rec.status !== "RUNNING") {
+            router.refresh();
             if (rec.status === "COMPLETED") {
               sound(rec.new_documents ? "notification" : "success");
-              toast.success("Scan completed", { description: `${rec.new_documents} new · ${rec.skipped_documents} already processed` });
-              if (rec.source_mode === "DEMO_SNAPSHOT" && rec.steps.find((s) => s.key === "connect")?.detail?.includes("unavailable"))
-                toast.warning("SEBI source unavailable", { description: "Using the fictional demo snapshot." });
+              const snapshot = rec.source_mode === "DEMO_SNAPSHOT" && rec.steps.find((s) => s.key === "connect")?.detail?.includes("unavailable");
+              toast.success("Scan completed", {
+                id: `scan-${id}`,
+                description: `${rec.new_documents} new · ${rec.skipped_documents} already processed${snapshot ? " · SEBI unreachable, used the demo snapshot" : ""}`,
+              });
             } else {
               sound("error");
-              toast.error(ERROR_TITLE[rec.error_kind ?? "backend"], { description: rec.error ?? undefined });
+              toast.error(ERROR_TITLE[rec.error_kind ?? "backend"], { id: `scan-${id}`, description: rec.error ?? undefined });
             }
             return;
           }
+          router.refresh();
           await new Promise((r) => setTimeout(r, 1500));
         }
       } catch (e) {
-        toast.error("Lost contact with the backend", { description: (e as Error).message });
+        toast.error("Lost contact with the backend", { id: `scan-${id}`, description: (e as Error).message });
+      } finally {
+        if (polling.current === id) polling.current = null;
       }
     },
     [router, sound],
@@ -81,9 +91,10 @@ export function ScanControl({ initial, disabled, title, description, children }:
   }, [poll, sound]);
 
   const autoStarted = useRef(false);
+  const initialId = initial?.status === "RUNNING" ? initial.id : null;
   useEffect(() => {
     alive.current = true;
-    const id = initial?.status === "RUNNING" ? initial.id : null;
+    const id = initialId;
     let t: ReturnType<typeof setTimeout> | null = null;
     if (id) t = setTimeout(() => poll(id), 0);
     else if (params.get("scan") === "1" && !disabled && !autoStarted.current) {
@@ -97,7 +108,7 @@ export function ScanControl({ initial, disabled, title, description, children }:
       alive.current = false;
       if (t) clearTimeout(t);
     };
-  }, [initial, poll, params, scanNow, disabled, router]);
+  }, [initialId, poll, params, scanNow, disabled, router]);
 
   const button = (
     <Button onClick={scanNow} disabled={running || starting || disabled} size="sm">
