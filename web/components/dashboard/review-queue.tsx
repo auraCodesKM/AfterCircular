@@ -14,14 +14,26 @@ type Row = { doc: ProcessedDocument; review: ReviewRecord; affected: string[] };
 /** Compact action queue. Review opens the analysis sheet; the sheet owns the approve/reject controls. */
 export function ReviewQueue({ rows, decided }: { rows: Row[]; decided?: boolean }) {
   const { analysis } = useWorkspace();
-  if (!rows.length) return decided ? null : <EmptyState icon={ClipboardCheck} title="You're all caught up" description="No conflicts are waiting for approval." />;
+  if (!rows.length)
+    return decided ? null : (
+      <EmptyState
+        icon={ClipboardCheck}
+        title="No reviews need your attention"
+        description="New regulatory conflicts will appear here when AfterCircular detects them."
+        action={
+          <Button size="sm" variant="outline" render={<Link href="/dashboard?scan=1" />}>
+            Scan now
+          </Button>
+        }
+      />
+    );
   return (
     <ul className="divide-y divide-border rounded-md border border-border">
       {rows.map(({ doc, review, affected }) => (
         <li key={review.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5">
           <ImpactBadge kind={impactKind(doc.impact, doc.status)} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium" title={doc.title}>
+            <p className="line-clamp-2 text-sm leading-5 font-medium" title={doc.title}>
               {doc.title}
             </p>
             <p className="truncate text-xs text-muted-foreground">

@@ -21,7 +21,7 @@ export default async function OverviewPage() {
     load<ScanRecord | null>(ctx, "/api/scans/latest", null),
     load<ProcessedDocument[]>(ctx, "/api/documents", []),
     load<ReviewRecord[]>(ctx, "/api/reviews", []),
-    load<AuditEvent[]>(ctx, "/api/audit?limit=6", []),
+    load<AuditEvent[]>(ctx, "/api/audit?limit=20", []),
   ]);
   const docs = documents.data;
   const pending = reviews.data.filter((r) => r.status === "AWAITING_REVIEW").length;
@@ -78,7 +78,7 @@ export default async function OverviewPage() {
             All activity
           </Button>
         </div>
-        <ActivityFeed events={audit.data} limit={6} />
+        <ActivityFeed events={audit.data} limit={6} quiet />
       </section>
       <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
         <MessageSquare aria-hidden className="size-3" /> AI detects, analyzes and drafts. A person decides. Nothing external happens without approval.

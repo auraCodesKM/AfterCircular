@@ -15,7 +15,9 @@ function detail(e: AuditEvent): string {
   const m = e.metadata as Record<string, unknown>;
   switch (e.event_type) {
     case "SCAN_COMPLETED":
-      return `${m.new ?? 0} new · ${m.skipped ?? 0} already processed · ${m.mode === "DEMO_SNAPSHOT" ? "demo snapshot" : "live"}`;
+      return `${Number(m.new ?? 0) + Number(m.skipped ?? 0)} publications checked · ${m.new ?? 0} new`;
+    case "SCAN_FAILED":
+      return String(m.error ?? "").split(":")[0].slice(0, 90);
     case "IMPACT_ANALYZED":
       return `${String(m.applicability)}${m.alignment ? ` · ${String(m.alignment)}` : ""} · via ${(m.path as string[] | undefined)?.map((p) => p.split(":")[0]).filter((v, i, a) => a.indexOf(v) === i).join(" + ") ?? "—"}`;
     case "TICKET_CREATED":
@@ -29,15 +31,18 @@ function detail(e: AuditEvent): string {
       return `${String(m.chunks)} chunks · ${String(m.commit ?? "").slice(0, 7)} · ${String(m.backend)}`;
     case "POLICIES_RETRIEVED":
       return `${(m.chunks as string[] | undefined)?.length ?? 0} candidates · ${String(m.backend)}`;
+    case "CONFLICT_DETECTED":
+      return String(m.reason ?? "").replace(/^Conflict with /, "");
     default: {
       const keys = ["reason", "note", "error"].filter((k) => m[k]);
-      return keys.map((k) => String(m[k]).slice(0, 120)).join(" · ");
+      return keys.map((k) => String(m[k]).split(" — ")[0].slice(0, 90)).join(" · ");
     }
   }
 }
 
-export function ActivityFeed({ events, limit }: { events: AuditEvent[]; limit?: number }) {
-  const rows = limit ? events.slice(0, limit) : events;
+export function ActivityFeed({ events, limit, quiet }: { events: AuditEvent[]; limit?: number; quiet?: boolean }) {
+  const visible = quiet ? events.filter((e) => e.event_type !== "DOCUMENT_SKIPPED" && e.event_type !== "POLICIES_RETRIEVED") : events;
+  const rows = limit ? visible.slice(0, limit) : visible;
   if (!rows.length) return <EmptyState icon={ActivityIcon} title="No activity yet" description="Run a scan to start the audit trail." />;
   return (
     <ol className="divide-y divide-border">

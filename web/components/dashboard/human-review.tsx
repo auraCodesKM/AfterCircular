@@ -22,7 +22,15 @@ import { api } from "@/lib/client-api";
 import type { ReviewRecord } from "@/lib/pipeline-types";
 
 /** The one place a side effect is authorized. Approve is confirmed in an AlertDialog; the backend enforces the state machine. */
-export function HumanReview({ review, onDecided }: { review: ReviewRecord; onDecided?: (r: ReviewRecord) => void }) {
+export function HumanReview({
+  review,
+  onDecided,
+  compact,
+}: {
+  review: ReviewRecord;
+  onDecided?: (r: ReviewRecord) => void;
+  compact?: boolean;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
   const [result, setResult] = useState<ReviewRecord | null>(null);
@@ -33,14 +41,27 @@ export function HumanReview({ review, onDecided }: { review: ReviewRecord; onDec
   async function decide(kind: "approve" | "reject") {
     setBusy(kind);
     try {
-      const r = await api<ReviewRecord>(`reviews/${review.id}/${kind}`, { method: "POST", body: JSON.stringify({ note: note || null }) });
+      const r = await api<ReviewRecord>(`reviews/${review.id}/${kind}`, {
+        method: "POST",
+        body: JSON.stringify({ note: note || null }),
+      });
       setResult(r);
       onDecided?.(r);
-      if (kind === "approve") toast.success("Approval recorded", { description: r.ticket_id ? `GitHub issue #${r.ticket_id} created` : undefined });
-      else toast("Rejected", { description: "No action taken. Recorded in the audit log." });
+      if (kind === "approve")
+        toast.success("Approval recorded", {
+          description: r.ticket_id
+            ? `GitHub issue #${r.ticket_id} created`
+            : undefined,
+        });
+      else
+        toast("Rejected", {
+          description: "No action taken. Recorded in the audit log.",
+        });
       router.refresh();
     } catch (e) {
-      toast.error(kind === "approve" ? "Approval failed" : "Rejection failed", { description: (e as Error).message });
+      toast.error(kind === "approve" ? "Approval failed" : "Rejection failed", {
+        description: (e as Error).message,
+      });
     } finally {
       setBusy(null);
     }
@@ -50,16 +71,30 @@ export function HumanReview({ review, onDecided }: { review: ReviewRecord; onDec
     <section className="space-y-3">
       <Alert>
         <ShieldCheck />
-        <AlertTitle>Human review required</AlertTitle>
+        <AlertTitle>
+          {canDecide
+            ? "Human review required"
+            : current.status === "APPROVED"
+              ? "Approved"
+              : "Rejected"}
+        </AlertTitle>
         <AlertDescription>
           {canDecide
-            ? "AI has identified a policy conflict and drafted a memo. No external action has been taken. Approving opens a compliance-review issue in the connected repository; the policy itself is not modified."
-            : `${current.status === "APPROVED" ? "Approved" : "Rejected"} by @${current.decided_by}${current.note ? ` — “${current.note}”` : ""}.`}
+            ? compact
+              ? "AI identified a conflict and drafted a memo. No external action has been taken."
+              : "AI has identified a policy conflict and drafted a memo. No external action has been taken. Approving opens a compliance-review issue in the connected repository; the policy itself is not modified."
+            : `by @${current.decided_by}${current.note ? ` — “${current.note}”` : ""}.`}
           {current.ticket_url ? (
             <>
               {" "}
-              <a href={current.ticket_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-medium underline-offset-4 hover:underline">
-                GitHub issue #{current.ticket_id} <ExternalLink aria-hidden className="size-3" />
+              <a
+                href={current.ticket_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-0.5 font-medium underline-offset-4 hover:underline"
+              >
+                GitHub issue #{current.ticket_id}{" "}
+                <ExternalLink aria-hidden className="size-3" />
               </a>
             </>
           ) : null}
@@ -67,26 +102,53 @@ export function HumanReview({ review, onDecided }: { review: ReviewRecord; onDec
       </Alert>
       {canDecide ? (
         <>
-          <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note for the audit log (optional)" rows={2} aria-label="Review note" />
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" disabled={!!busy} onClick={() => decide("reject")}>
-              {busy === "reject" ? "Rejecting…" : "Reject"}
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger render={<Button size="sm" disabled={!!busy} />}>{busy === "approve" ? "Creating issue…" : "Approve"}</AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Approve and open a GitHub issue?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    A compliance-review issue with the evidence and the AI-drafted memo will be created in the connected repository. The policy file is not modified. Recorded in the audit log under your GitHub account.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => decide("approve")}>Approve</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+          <div
+            className={compact ? "flex flex-wrap items-end gap-2" : "space-y-3"}
+          >
+            <Textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Note for the audit log (optional)"
+              rows={compact ? 1 : 2}
+              aria-label="Review note"
+              className={compact ? "min-h-8 flex-1" : ""}
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!!busy}
+                onClick={() => decide("reject")}
+              >
+                {busy === "reject" ? "Rejecting…" : "Reject"}
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger
+                  render={<Button size="sm" disabled={!!busy} />}
+                >
+                  {busy === "approve" ? "Creating issue…" : "Approve"}
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Approve and open a GitHub issue?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      A compliance-review issue with the evidence and the
+                      AI-drafted memo will be created in the connected
+                      repository. The policy file is not modified. Recorded in
+                      the audit log under your GitHub account.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => decide("approve")}>
+                      Approve
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         </>
       ) : null}

@@ -132,10 +132,15 @@ export function ScanControl({ initial, disabled, title, description, children }:
       ) : null}
       {scan ? (
         <Collapsible open={open || running} onOpenChange={setOpen}>
-          <CollapsibleTrigger className="group flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+          <CollapsibleTrigger className="group flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
             <ChevronDown aria-hidden className="size-3.5 transition-transform group-data-[panel-open]:rotate-180" />
-            Pipeline · {scan.steps.filter((s) => s.status === "done").length}/{scan.steps.length} steps
-            {running ? " · running" : scan.status === "FAILED" ? " · failed" : ""}
+            <span className="font-medium text-foreground">Pipeline</span>
+            {running
+              ? ` · ${scan.steps.filter((s) => s.status === "done").length} of ${scan.steps.length} steps · processing…`
+              : scan.status === "FAILED"
+                ? " · last scan failed"
+                : ` · last scan completed · ${scan.new_documents} new`}
+            <span className="ml-1 underline-offset-4 group-hover:underline">{open || running ? "Hide details" : "Show details"}</span>
           </CollapsibleTrigger>
           <CollapsibleContent>
             <ol className="mt-2 grid gap-x-6 gap-y-1 rounded-md border border-border p-3 sm:grid-cols-2" aria-live="polite" aria-label="Pipeline steps">

@@ -23,7 +23,7 @@ export function DocCardView({ card, expanded, onOpenAnalysis }: { card: DocCard;
       <div className="flex flex-wrap items-start gap-2 px-3 py-2.5">
         <FileText aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium leading-snug">{card.title}</p>
+          <p className="line-clamp-2 text-sm leading-5 font-medium">{card.title}</p>
           <p className="font-mono text-[11px] text-muted-foreground">
             {card.source} · {card.circular_number} · {fmtDate(card.published_date)}
             {card.effective_date ? ` · effective ${fmtDate(card.effective_date)}` : ""}
@@ -41,7 +41,7 @@ export function DocCardView({ card, expanded, onOpenAnalysis }: { card: DocCard;
             <div><dt className="text-muted-foreground">Affected policy</dt><dd className="font-mono">{card.affected_policies.join(", ") || "—"}</dd></div>
             <div><dt className="text-muted-foreground">Evidence</dt><dd>{card.regulatory_evidence.length} regulatory · {card.policy_evidence.length} policy</dd></div>
           </dl>
-          {card.reason ? <p className="px-3 pb-2.5 text-xs text-muted-foreground">{card.reason}</p> : null}
+          {card.reason ? <p className="line-clamp-2 px-3 pb-2.5 text-xs leading-5 text-muted-foreground">{card.reason.split(/(?<=\.)\s|:\s/)[0]}</p> : null}
         </>
       ) : null}
       <Separator />
@@ -145,9 +145,8 @@ export function AnswerView({ inv, compact, onAsk }: { inv: Investigation; compac
       ) : null}
 
       <p className="text-[11px] text-muted-foreground">
-        Routed by {inv.judge.provider === "typesafe" ? `Jev (${inv.judge.model})` : inv.judge.provider}
-        {inv.judge.intent_confidence != null ? ` · intent confidence ${inv.judge.intent_confidence.toFixed(2)}` : ""}
-        {inv.judge.note ? ` · ${inv.judge.note}` : ""} · answer assembled from workspace records, not generated
+        {inv.judge.provider === "typesafe" ? "Routed by Jev · System One" : inv.judge.provider === "stub" ? "Routed by keywords (no model)" : `Routed by ${inv.judge.provider}`} · assembled from workspace records, not generated
+        {inv.judge.note ? ` · ${inv.judge.note}` : ""}
         {inv.judge.provider !== "typesafe" ? <Badge variant="outline" className="ml-1 border-warning/40 text-[10px] text-warning">no model</Badge> : null}
       </p>
     </div>

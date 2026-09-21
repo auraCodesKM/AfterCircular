@@ -34,9 +34,9 @@ export function DocumentsTable({ documents, compact }: { documents: ProcessedDoc
           {documents.map((d) => {
             const kind = impactKind(d.impact, d.status);
             return (
-              <TableRow key={d.id} className={cn("cursor-pointer", kind === "conflict" && "shadow-[inset_2px_0_0_0_var(--destructive)]")} onClick={() => d.analysis_id && analysis.open(d)}>
+              <TableRow key={d.id} className={cn("cursor-pointer transition-colors", kind === "conflict" && "shadow-[inset_2px_0_0_0_var(--destructive)]")} onClick={() => d.analysis_id && analysis.open(d)}>
                 <TableCell className="max-w-[16rem] lg:max-w-xs xl:max-w-md">
-                  <p className="truncate font-medium" title={d.title}>
+                  <p className={cn("font-medium leading-5", compact ? "truncate" : "line-clamp-2")} title={d.title}>
                     {d.title}
                   </p>
                   <p className="truncate font-mono text-[11px] text-muted-foreground">

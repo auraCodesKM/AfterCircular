@@ -25,6 +25,13 @@ export function impactKind(impact: string | null, status: DocumentStatus): Impac
   return "pending";
 }
 
+/** Kind for a document that has an analysis: prefer the analysis result over the document's cached impact. */
+export function analysisKind(doc: { impact: string | null; status: DocumentStatus }, impact: { applicability: string; alignment: string | null } | null): ImpactKind {
+  if (!impact) return impactKind(doc.impact, doc.status);
+  if (impact.applicability === "YES") return impact.alignment === "CONFLICT" ? "conflict" : impact.alignment === "ALIGNED" ? "aligned" : "uncertain";
+  return impact.applicability === "NO" ? "na" : "uncertain";
+}
+
 export const impactLabel: Record<ImpactKind, string> = { conflict: "Conflict", aligned: "Aligned", na: "Not applicable", uncertain: "Uncertain", failed: "Failed", pending: "Pending" };
 
 export function fmtTime(iso: string | null | undefined, withDate = true) {

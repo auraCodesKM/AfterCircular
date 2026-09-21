@@ -9,7 +9,7 @@ export function StatusStrip({ health, scan }: { health: Health | null; scan: Sca
   const demo = scan?.source_mode === "DEMO_SNAPSHOT" || (scan == null && health?.sebi_mode === "snapshot");
   const items: { label: string; value: string; help: string; warn?: boolean }[] = [
     { label: "Source", value: demo ? "Demo snapshot" : "SEBI live", help: demo ? "Fictional circulars from data/snapshot, labelled everywhere they appear." : "sebi.gov.in circular listing." },
-    { label: "Judgments", value: health?.judge?.default === "typesafe" ? `Jev ${health.judge.model}` : health?.judge?.default === "stub" ? "Stub" : "Foundry", help: "Applicability, relevance, alignment and citation checks — typed, calibrated decisions.", warn: health?.judge?.default === "stub" },
+    { label: "Judgments", value: health?.judge?.default === "typesafe" ? "Jev" : health?.judge?.default === "stub" ? "Stub" : "Foundry", help: `Applicability, relevance, alignment and citation checks — typed, calibrated decisions${health?.judge?.model ? ` (${health.judge.model})` : ""}.`, warn: health?.judge?.default === "stub" },
     { label: "Generative", value: health?.ai_provider === "foundry" ? "Foundry" : "Stub", help: "Obligation extraction, memo drafting, reasoning escalation.", warn: health?.ai_provider !== "foundry" },
     { label: "Retrieval", value: health?.retrieval === "azure-ai-search" ? "Azure AI Search" : "Local hybrid", help: "Candidate policy chunks before the relevance judgment." },
     { label: "Last scan", value: fmtTime(scan?.finished_at ?? scan?.started_at, false), help: scan ? `${scan.new_documents} new · ${scan.skipped_documents} already processed` : "No scan yet." },
