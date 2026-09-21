@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     max_context_tokens: int = 12000
     # TOON for repeated structured context (obligations, chunks, evidence) in Foundry prompts. JSON stays at API boundaries.
     toon_context: bool = True
+    # Ask: Jev makes the judgments; the generative deployment renders them into grounded sentences (strict schema, ids validated).
+    # false → answers are composed from the judgments alone (no narrative model call).
+    ask_narrative: bool = True
 
     # Application Insights (azure-monitor-opentelemetry). Empty → no exporter, local logging only.
     applicationinsights_connection_string: str = ""

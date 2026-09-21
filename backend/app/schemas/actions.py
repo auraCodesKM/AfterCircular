@@ -181,6 +181,7 @@ class Investigation(BaseModel):
     policy_id: str | None = None
     answer: dict[str, Any] = Field(default_factory=dict, description="structured sections the UI renders")
     judge: dict[str, Any] = Field(default_factory=dict, description="provider/model/confidence behind the intent routing")
+    conversation_id: str | None = None  # follow-ups share one id; previous turns are fed back as bounded context
     actor: str
     created_at: datetime
 

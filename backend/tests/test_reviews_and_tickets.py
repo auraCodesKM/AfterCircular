@@ -86,7 +86,8 @@ async def test_ask_routes_with_stub_and_answers_from_state(db, tenant):
     inv = await investigate(db, tenant, "What needs my review?")
     assert inv.intent == "pending_reviews" and "1 conflict" in inv.summary and inv.answer["documents"][0]["alignment"] == "CONFLICT"
     inv = await investigate(db, tenant, "Why does DEMO/SEBI/HO/MRD/POD-1/CIR/2026/014 conflict?")
-    assert inv.intent == "explain_document" and inv.document_pk == "doc_1" and inv.answer["document"]["affected_policies"] == ["POL-001"]
+    assert inv.intent == "explain" and inv.document_pk == "doc_1" and inv.answer["reasoning"]["kind"] == "jev_reasoning"
+    assert inv.answer["documents"] and inv.answer["documents"][0]["affected_policies"] == ["POL-001"]
     assert db.list_investigations(tenant.tenant_id)[0].id == inv.id
     inv = await investigate(db, tenant, "run a scan")
     assert inv.intent == "run_scan" and inv.answer["actions"][0]["kind"] == "scan"

@@ -140,6 +140,7 @@ class StateStore:
             "scans": (("error_kind", "TEXT"), ("error_detail", "TEXT"), ("llm_calls", "INTEGER NOT NULL DEFAULT 0"), ("deferred_documents", "INTEGER NOT NULL DEFAULT 0"),
                       ("estimated_cost_usd", "REAL NOT NULL DEFAULT 0"), ("source_status", "TEXT"), ("source_error", "TEXT")),
             "processed_documents": (("synthetic", "INTEGER NOT NULL DEFAULT 0"), ("document_url", "TEXT"), ("fetched_at", "TEXT")),
+            "investigations": (("conversation_id", "TEXT"),),
         }
         for table, cols in wanted.items():
             have = {r["name"] for r in self.conn.execute(f"PRAGMA table_info({table})").fetchall()}
@@ -421,8 +422,8 @@ class StateStore:
     # ---- investigations (agent surface) --------------------------------------------------
     def save_investigation(self, inv: Investigation) -> Investigation:
         self.conn.execute(
-            "INSERT INTO investigations(id, tenant_id, question, intent, summary, document_pk, analysis_id, policy_id, answer, judge, actor, created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
-            (inv.id, inv.tenant_id, inv.question, inv.intent, inv.summary, inv.document_pk, inv.analysis_id, inv.policy_id, _j(inv.answer), _j(inv.judge), inv.actor, inv.created_at.isoformat()),
+            "INSERT INTO investigations(id, tenant_id, question, intent, summary, document_pk, analysis_id, policy_id, answer, judge, actor, created_at, conversation_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (inv.id, inv.tenant_id, inv.question, inv.intent, inv.summary, inv.document_pk, inv.analysis_id, inv.policy_id, _j(inv.answer), _j(inv.judge), inv.actor, inv.created_at.isoformat(), inv.conversation_id),
         )
         self.conn.commit()
         return inv
@@ -433,6 +434,16 @@ class StateStore:
             return None
         r["answer"], r["judge"] = json.loads(r["answer"]), json.loads(r["judge"])
         return Investigation.model_validate(r)
+
+    def conversation(self, tenant_id: str, conversation_id: str, limit: int = 3) -> list[Investigation]:
+        """Previous turns of one conversation, oldest first, bounded."""
+        rows = self.conn.execute("SELECT * FROM investigations WHERE tenant_id=? AND conversation_id=? ORDER BY created_at DESC LIMIT ?", (tenant_id, conversation_id, limit)).fetchall()
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["answer"], d["judge"] = json.loads(d["answer"]), json.loads(d["judge"])
+            out.append(Investigation.model_validate(d))
+        return list(reversed(out))
 
     def list_investigations(self, tenant_id: str, limit: int = 20) -> list[Investigation]:
         out = []

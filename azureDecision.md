@@ -142,6 +142,21 @@ tokens and takes 18–30 s per call; a one-document scan is ~1–2 minutes.
 - ✅ **Verified live 2026-09-21** (`scripts/live_check.py jev`): applicability Choice `applies` p=0.99, `entity_in_scope` Noul 0.99,
   latency 1106 ms, 899 input / 122 output tokens, `calibrated=True`.
 
+### Ask AfterCircular (workspace Q&A) — what is real
+Jev returns typed judgments, not prose, so the split is: **Jev routes** (intent, targets, follow-up, action request, answerable —
+one request) and **Jev judges** the selected records (relevance, action needed, urgency Score, evidence support, sufficiency —
+one request); **Foundry `gpt-5-mini` writes** the sentences under a strict schema where every claim carries a record id and
+evidence ids that **code validates against the context** (unknown ids are dropped and counted); when no narrative model is
+available the sentences are composed from the judgments and the answer says so. Deterministic questions (counts, lists, scan
+status, approvals) are answered from records and labelled "Workspace data". Action requests are refused — the review screen is
+the only path to a GitHub issue. Follow-ups share a `conversation_id`; the previous turns and the records they cited are fed
+back as bounded context. Every answer stores the Jev route/judgment telemetry (model, latency, tokens) and the narrative
+call's telemetry (also in `llm_calls`, task `ask`), and the UI prints them — "Not recorded" when absent, never a placeholder.
+The context builder (`services/ask_context.py`) caps records (8), obligations (6), evidence (4 each) and text length.
+Verified live 2026-09-21 with the 10-question set (`evals/results/ask_smartness.json`): 7 reasoning answers grounded in
+D-ids with quoted evidence, 3 deterministic, 1 refusal; the "latest live circular" answer correctly said the workspace only
+holds that circular's header because triage archived it without extraction.
+
 ## 7. TOON Token Optimization
 
 ### Why TOON?

@@ -16,7 +16,7 @@ from app.config import settings
 log = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
 
-TASK_MODELS = {"extraction": "extraction_model", "impact": "impact_model", "memo": "memo_model"}
+TASK_MODELS = {"extraction": "extraction_model", "impact": "impact_model", "memo": "memo_model", "ask": "extraction_model"}
 
 # USD per 1M tokens: (input, cached input, output). Public list-price snapshot (Azure OpenAI, global standard, Sept 2026
 # as known to this code) — an *estimate* for telemetry only. Override with MODEL_PRICING_JSON={"<deployment>":[in,cached,out]}.

@@ -49,7 +49,8 @@ function AskBody({ initial }: { initial: string }) {
     setTurns((t) => [...t, { id, question }]);
     setBusy(true);
     try {
-      const inv = await api<Investigation>("ask", { method: "POST", body: JSON.stringify({ question }) });
+      const inv = await api<Investigation>("ask", { method: "POST", body: JSON.stringify({ question, conversation_id: conversation.current }) });
+      conversation.current = inv.conversation_id ?? conversation.current;
       addRecent(inv);
       sound(inv.intent === "other" ? "warning" : "chirp");
       setTurns((t) => t.map((x) => (x.id === id ? { ...x, inv } : x)));
@@ -78,6 +79,7 @@ function AskBody({ initial }: { initial: string }) {
 
   const judge = health?.judge?.default === "typesafe" ? "Jev" : health?.judge?.default === "stub" ? "keywords" : "Foundry";
   const suggestions = questionsFor(pathname);
+  const conversation = useRef<string | null>(null);
 
   return (
     <>
@@ -86,7 +88,7 @@ function AskBody({ initial }: { initial: string }) {
         <div className="min-w-0">
           <SheetTitle className="text-sm font-semibold tracking-tight">Ask AfterCircular</SheetTitle>
           <SheetDescription className="truncate text-xs">
-            Routed by {judge} · answered from this workspace&rsquo;s records, never generated
+            Routed and judged by {judge} · answers built only from this workspace&rsquo;s records; every claim is checked against them
           </SheetDescription>
         </div>
       </SheetHeader>

@@ -11,11 +11,12 @@ router = APIRouter()
 
 class AskRequest(BaseModel):
     question: str = Field(min_length=2, max_length=500)
+    conversation_id: str | None = Field(default=None, max_length=64, description="Send the id from the first answer to make this a follow-up")
 
 
 @router.post("/ask", response_model=Investigation)
 async def ask(body: AskRequest, t: TenantContext = Depends(tenant), s: StateStore = Depends(db)) -> Investigation:
-    return await investigate(s, t, body.question)
+    return await investigate(s, t, body.question, conversation_id=body.conversation_id)
 
 
 @router.get("/investigations", response_model=list[Investigation])

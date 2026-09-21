@@ -28,6 +28,7 @@ export function InvestigationChat({ initialLogin, avatar }: { initialLogin: stri
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const opened = useRef<string | null>(null);
+  const conversation = useRef<string | null>(null); // follow-ups share one id so the backend feeds previous turns back as context
 
   async function ask(question: string) {
     const q = question.trim();
@@ -36,7 +37,8 @@ export function InvestigationChat({ initialLogin, avatar }: { initialLogin: stri
     setTurns((t) => [...t, { id: `u-${Date.now()}`, role: "user", text: q }]);
     setBusy(true);
     try {
-      const inv = await api<Investigation>("ask", { method: "POST", body: JSON.stringify({ question: q }) });
+      const inv = await api<Investigation>("ask", { method: "POST", body: JSON.stringify({ question: q, conversation_id: conversation.current }) });
+      conversation.current = inv.conversation_id ?? conversation.current;
       addRecent(inv);
       sound(inv.intent === "other" ? "warning" : "chirp");
       setTurns((t) => [...t, { id: inv.id, role: "assistant", inv, stream: true }]);
@@ -69,7 +71,10 @@ export function InvestigationChat({ initialLogin, avatar }: { initialLogin: stri
           inv = undefined;
         }
       }
-      if (inv) setTurns([{ id: `u-${inv.id}`, role: "user", text: inv.question }, { id: inv.id, role: "assistant", inv, stream: false }]);
+      if (inv) {
+        conversation.current = inv.conversation_id ?? null; // continuing a past investigation keeps its thread
+        setTurns([{ id: `u-${inv.id}`, role: "user", text: inv.question }, { id: inv.id, role: "assistant", inv, stream: false }]);
+      }
     }, 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -80,9 +85,9 @@ export function InvestigationChat({ initialLogin, avatar }: { initialLogin: stri
       <div className="flex items-center gap-2 border-b border-border px-4 py-2 md:px-6">
         <Orb state={busy ? "weaving" : turns.length ? "composing" : "solving"} px={26} />
         <p className="text-sm font-medium">Ask AfterCircular</p>
-        <p className="hidden text-xs text-muted-foreground sm:block">· routed by Jev · answered from this workspace, never generated</p>
+        <p className="hidden text-xs text-muted-foreground sm:block">· routed and judged by Jev · claims written only from workspace records and validated</p>
         {turns.length ? (
-          <Button size="xs" variant="ghost" className="ml-auto" onClick={() => { setTurns([]); router.replace("/dashboard/ask"); }}>
+          <Button size="xs" variant="ghost" className="ml-auto" onClick={() => { setTurns([]); conversation.current = null; router.replace("/dashboard/ask"); }}>
             <Plus /> New
           </Button>
         ) : null}

@@ -104,6 +104,7 @@ export type PolicyIndex = { index: { repo: string; commit_sha: string; indexed_a
 
 /** A card the agent returns for one processed circular. */
 export type DocCard = {
+  id?: string; document_id?: string; gate?: string | null; confidence?: number | null; review?: { status: string; decided_by?: string | null; decided_at?: string | null; ticket_id?: string | null; ticket_url?: string | null } | null;
   document_pk: string; title: string; circular_number: string | null; source: string; published_date: string | null; effective_date: string | null;
   impact: string | null; status: DocumentStatus; source_mode: "LIVE" | "DEMO_SNAPSHOT"; synthetic?: boolean; document_url?: string | null; fetched_at?: string | null; analysis_id: string | null;
   applicability: "YES" | "NO" | "UNCERTAIN" | null; alignment: "ALIGNED" | "CONFLICT" | null; affected_policies: string[]; reason: string | null;
@@ -111,11 +112,21 @@ export type DocCard = {
   decision_path: string[]; escalation_reason: string | null; ticket_url: string | null; ticket_id: string | null;
 };
 
+export type AskEvidence = { id: string; record: string; section?: string | null; text?: string; doc_id?: string; requirement?: string; area?: string };
+export type AskPoint = { record_id: string; claim: string; evidence_ids: string[]; evidence: AskEvidence[] };
+export type AskReasoning = {
+  kind: "workspace_data" | "jev_reasoning" | "refused" | "clarify"; workspace?: string; sources: number; cited: string[];
+  jev_route?: { provider: string; model: string; calibrated?: boolean; latency_ms?: number; input_tokens?: number | null; output_tokens?: number | null; questions?: number; note?: string; error?: string };
+  jev_judgments?: { provider?: string; model?: string; calibrated?: boolean; questions?: number; latency_ms?: number; input_tokens?: number | null; output_tokens?: number | null; error?: string };
+  narrative?: { provider?: string; model?: string; latency_ms?: number; input_tokens?: number | null; output_tokens?: number | null; cached_tokens?: number | null; estimated_cost_usd?: number | null; structured_mode?: string; context_format?: string | null; error?: string } | null;
+  composed?: boolean; dropped_uncited?: string[]; evidence?: { regulatory: number; policy: number; obligations: number };
+};
 export type Investigation = {
-  id: string; question: string; intent: string; summary: string; document_pk: string | null; analysis_id: string | null; policy_id: string | null;
+  id: string; question: string; intent: string; summary: string; document_pk: string | null; analysis_id: string | null; policy_id: string | null; conversation_id?: string | null;
   answer: {
     intent: string; documents?: DocCard[]; document?: DocCard; review?: ReviewRecord | null; policy?: PolicyDetail & { sections: { section: string; text: string }[] };
     policies?: PolicyDoc[]; scan?: ScanRecord | null; actions?: { label: string; kind: string }[]; suggestions?: string[];
+    points?: AskPoint[]; insufficient_evidence?: boolean; caveat?: string | null; reasoning?: AskReasoning;
   };
   judge: { provider: string; model: string; calibrated: boolean; intent_confidence?: number; document_confidence?: number; policy_confidence?: number; note?: string; latency_ms?: number };
   actor: string; created_at: string;

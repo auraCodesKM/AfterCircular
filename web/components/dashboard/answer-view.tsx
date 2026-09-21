@@ -132,6 +132,41 @@ export function AnswerView({ inv, compact, onAsk, stream = true, onDone }: { inv
         </p>
       </StreamingResponse>
 
+      {!streaming && a.points?.length ? (
+        <ol className="space-y-2">
+          {a.points.map((p, i) => {
+            const card = a.documents?.find((d) => d.id === p.record_id);
+            return (
+              <li key={`${p.record_id}-${i}`} className="rounded-md border border-border px-3 py-2.5">
+                <p className="text-sm leading-6">
+                  <span className="mr-2 font-mono text-[11px] text-muted-foreground">{i + 1}.</span>
+                  {card ? (
+                    <button type="button" className="font-medium underline-offset-4 hover:underline" onClick={() => openAnalysis(card)}>
+                      {card.circular_number ?? card.title}
+                    </button>
+                  ) : (
+                    <span className="font-mono text-xs">{p.record_id}</span>
+                  )}
+                  {card ? <span className="ml-2 text-xs text-muted-foreground">{card.source_mode === "DEMO_SNAPSHOT" ? "demo snapshot · synthetic" : "live · sebi.gov.in"}</span> : null}
+                </p>
+                <p className="mt-1 text-sm leading-6 text-foreground/90">{p.claim}</p>
+                {p.evidence.length ? (
+                  <ul className="mt-2 space-y-1">
+                    {p.evidence.map((e) => (
+                      <li key={e.id} className="flex gap-2 text-xs text-muted-foreground">
+                        <span className="shrink-0 font-mono text-[10px]">{e.id.includes(".R") ? `circular §${e.section ?? "?"}` : e.id.includes(".P") ? `${e.doc_id ?? "policy"} §${e.section ?? "?"}` : `obligation ${e.section ? `§${e.section}` : ""}`}</span>
+                        <span className="italic">“{e.text ?? e.requirement}”</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
+      ) : null}
+      {!streaming && a.caveat ? <p className="text-xs text-muted-foreground">{a.caveat}</p> : null}
+
       {streaming ? null : a.document ? (
         <DocCardView card={a.document} expanded onOpenAnalysis={openAnalysis} />
       ) : null}
@@ -196,13 +231,54 @@ export function AnswerView({ inv, compact, onAsk, stream = true, onDone }: { inv
         </div>
       ) : null}
 
-      {!streaming ? (
-        <p className="text-[11px] text-muted-foreground">
-          {inv.judge.provider === "typesafe" ? "Routed by Jev · System One" : inv.judge.provider === "stub" ? "Routed by keywords (no model)" : `Routed by ${inv.judge.provider}`} · assembled from workspace records, not generated
-          {inv.judge.note ? ` · ${inv.judge.note}` : ""}
-          {inv.judge.provider !== "typesafe" ? <Badge variant="outline" className="ml-1 border-warning/40 text-[10px] text-warning">no model</Badge> : null}
-        </p>
-      ) : null}
+      {!streaming ? <Provenance inv={inv} /> : null}
     </div>
+  );
+}
+
+
+/** Says exactly what produced the answer — every value comes from the recorded call telemetry, never a placeholder. */
+function Provenance({ inv }: { inv: Investigation }) {
+  const r = inv.answer.reasoning;
+  const jevOk = inv.judge.provider === "typesafe";
+  const ms = (v?: number | null) => (v === undefined || v === null ? "not recorded" : `${v} ms`);
+  const tok = (i?: number | null, o?: number | null) => (i === undefined || i === null ? "tokens not recorded" : `${i}→${o ?? 0} tokens`);
+  if (!r) {
+    return <p className="text-[11px] text-muted-foreground">{jevOk ? "Routed by Jev · System One" : "Routed by keywords (no model)"} · assembled from workspace records</p>;
+  }
+  const route = r.jev_route;
+  const routeLine = jevOk && route ? `Routed by Jev (${route.model ?? "jev"}, ${ms(route.latency_ms)}, ${tok(route.input_tokens, route.output_tokens)})` : `Routed by keywords (Jev unavailable${route?.error ? `: ${route.error}` : ""})`;
+  if (r.kind === "jev_reasoning") {
+    const j = r.jev_judgments;
+    const n = r.narrative;
+    return (
+      <div className="space-y-0.5 text-[11px] text-muted-foreground">
+        <p>
+          <span className="font-medium text-foreground/80">Reasoned by Jev</span>
+          {j && !j.error ? ` · ${j.questions ?? "?"} typed judgments (${j.model ?? "jev"}, calibrated, ${ms(j.latency_ms)}, ${tok(j.input_tokens, j.output_tokens)})` : j?.error ? ` · judgments unavailable: ${j.error}` : ""}
+        </p>
+        <p>
+          {n && !n.error
+            ? `Written by ${n.provider === "foundry" ? "Foundry" : n.provider} ${n.model ?? ""} (${n.structured_mode ?? "?"}, ${ms(n.latency_ms)}, ${tok(n.input_tokens, n.output_tokens)}${n.estimated_cost_usd !== undefined && n.estimated_cost_usd !== null ? `, est. $${n.estimated_cost_usd.toFixed(4)}` : ""}) — every claim validated against the records`
+            : r.composed
+              ? `Sentences composed from the judgments and records (no narrative model${n?.error ? `: ${n.error}` : ""})`
+              : ""}
+          {r.dropped_uncited?.length ? ` · ${r.dropped_uncited.length} uncited claim(s) dropped` : ""}
+        </p>
+        <p>
+          Sources: {r.sources} workspace record{r.sources === 1 ? "" : "s"}
+          {r.evidence ? ` · Evidence: ${r.evidence.regulatory} regulatory excerpt${r.evidence.regulatory === 1 ? "" : "s"}, ${r.evidence.policy} policy section${r.evidence.policy === 1 ? "" : "s"}${r.evidence.obligations ? `, ${r.evidence.obligations} obligations` : ""}` : ""}
+          {r.workspace ? ` · Workspace: ${r.workspace}` : ""} · {routeLine}
+        </p>
+      </div>
+    );
+  }
+  return (
+    <p className="text-[11px] text-muted-foreground">
+      <span className="font-medium text-foreground/80">{r.kind === "refused" ? "Refused — actions need human approval" : r.kind === "clarify" ? "Needs clarification" : "Workspace data"}</span>
+      {r.kind === "workspace_data" ? ` · Sources: ${r.sources} record${r.sources === 1 ? "" : "s"} · no reasoning model, no generated text` : ""}
+      {r.workspace ? ` · Workspace: ${r.workspace}` : ""} · {routeLine}
+      {!jevOk ? <Badge variant="outline" className="ml-1 border-warning/40 text-[10px] text-warning">no model</Badge> : null}
+    </p>
   );
 }
