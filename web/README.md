@@ -7,6 +7,9 @@ the authenticated app under `/dashboard` is an application shell built on shadcn
 alert-dialog, dropdown-menu, tooltip, table, tabs, card, alert, badge, skeleton, sonner) using the semantic tokens
 (`background/foreground/card/muted/accent/border/destructive/success/warning`) with light and dark sets in `app/globals.css`.
 Theme: `next-themes` (`class` attribute, `ac-theme` storage key, system default) — scoped to the dashboard layout.
+AI presence: `thinking-orbs` (`components/dashboard/orb.tsx` — breathing / searching / working / solving / connecting states, client-only)
+and `metal-fx` (`components/dashboard/metal.tsx` — liquid-metal send button and "Jev · System One" tag; falls back without WebGL2).
+Markdown (policy sections, memos, summaries) renders through `components/dashboard/markdown.tsx` (react-markdown + remark-gfm, token-styled tables).
 
 ```bash
 npm install

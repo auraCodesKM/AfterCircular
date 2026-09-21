@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import type { DocCard, Investigation } from "@/lib/pipeline-types";
 import { EvidencePair } from "./evidence";
+import { Markdown } from "./markdown";
 import { ImpactBadge } from "./impact-badge";
 import { fmtDate, impactKind } from "./labels";
 import { useWorkspace } from "./workspace-provider";
@@ -112,7 +113,9 @@ export function AnswerView({ inv, compact, onAsk }: { inv: Investigation; compac
             {a.policy.sections.slice(0, compact ? 4 : 40).map((s) => (
               <AccordionItem key={s.section} value={s.section}>
                 <AccordionTrigger className="py-2 text-xs">§{s.section}</AccordionTrigger>
-                <AccordionContent className="text-xs whitespace-pre-wrap text-muted-foreground">{s.text}</AccordionContent>
+                <AccordionContent>
+                  <Markdown className="text-[13px]">{s.text}</Markdown>
+                </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>

@@ -8,6 +8,7 @@ import type { AnalysisRecord, ProcessedDocument } from "@/lib/pipeline-types";
 import { DecisionDetails } from "./decision-path";
 import { EvidencePair } from "./evidence";
 import { MemoView } from "./memo-view";
+import { Markdown } from "./markdown";
 import { WhyBlock } from "./why-block";
 
 /** Shared investigation body: what changed → impact → why → evidence → action → memo → decision details. */
@@ -29,7 +30,7 @@ export function AnalysisBody({ doc, analysis }: { doc: ProcessedDocument; analys
       {ex?.summary ? (
         <section className="space-y-1.5">
           <h3 className="text-sm font-medium">What changed</h3>
-          <p className="text-sm leading-6">{ex.summary}</p>
+          <Markdown>{ex.summary}</Markdown>
           {ex.applies_to?.length ? <p className="text-xs text-muted-foreground">Applies to {ex.applies_to.join(", ")}</p> : null}
         </section>
       ) : null}

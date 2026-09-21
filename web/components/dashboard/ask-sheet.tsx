@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, CornerDownLeft, Loader2 } from "lucide-react";
+import { ArrowUp, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/client-api";
 import type { Investigation } from "@/lib/pipeline-types";
 import { AnswerView } from "./answer-view";
+import { MetalRing } from "./metal";
+import { Orb } from "./orb";
 import { useWorkspace } from "./workspace-provider";
 
 const SUGGESTIONS = [
@@ -76,12 +78,17 @@ function AskBody({ initial }: { initial: string }) {
     }
   }
 
-  submitRef.current = submit;
+  useEffect(() => {
+    submitRef.current = submit;
+  });
 
   return (
     <>
       <SheetHeader className="border-b border-border px-5 py-4">
-        <SheetTitle className="text-base">Ask AfterCircular</SheetTitle>
+        <SheetTitle className="flex items-center gap-2 text-base">
+          <Orb state={busy ? "searching" : inv ? "connecting" : "breathing"} size={20} />
+          Ask AfterCircular
+        </SheetTitle>
         <SheetDescription>
           Questions are routed by typed judgments and answered from this
           workspace&rsquo;s records.
@@ -102,22 +109,21 @@ function AskBody({ initial }: { initial: string }) {
             placeholder="What changed in the latest SEBI publication?"
             rows={2}
             aria-label="Question"
-            className="pr-10"
+            className="pr-12"
           />
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            className="absolute right-1.5 bottom-1.5"
-            onClick={() => submit()}
-            disabled={busy || q.trim().length < 2}
-            aria-label="Ask"
-          >
-            {busy ? (
-              <Loader2 className="animate-spin motion-reduce:animate-none" />
-            ) : (
-              <CornerDownLeft />
-            )}
-          </Button>
+          <div className="absolute right-1.5 bottom-1.5">
+            <MetalRing>
+              <button
+                type="button"
+                onClick={() => submit()}
+                disabled={busy || q.trim().length < 2}
+                aria-label="Ask"
+                className="flex size-8 items-center justify-center rounded-full bg-foreground text-background transition-opacity disabled:opacity-40"
+              >
+                {busy ? <Orb state="working" size={20} /> : <ArrowUp className="size-4" />}
+              </button>
+            </MetalRing>
+          </div>
         </div>
         {!inv && !busy ? (
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -139,7 +145,14 @@ function AskBody({ initial }: { initial: string }) {
       </div>
       <div className="flex-1 overflow-y-auto px-5 py-4">
         {busy ? (
-          <div className="space-y-3" aria-busy>
+          <div className="space-y-4" aria-busy aria-live="polite">
+            <div className="flex items-center gap-3">
+              <Orb state="searching" size={64} />
+              <div className="space-y-1">
+                <p className="text-sm">Routing your question…</p>
+                <p className="text-xs text-muted-foreground">Jev picks the intent, document and policy; code assembles the answer.</p>
+              </div>
+            </div>
             <Skeleton className="h-4 w-2/3" />
             <Skeleton className="h-24 w-full" />
           </div>

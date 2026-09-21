@@ -14,6 +14,7 @@ import { AnalysisBody } from "./analysis-body";
 import { HumanReview } from "./human-review";
 import { ImpactBadge } from "./impact-badge";
 import { analysisKind, fmtDate } from "./labels";
+import { Orb } from "./orb";
 import { useWorkspace } from "./workspace-provider";
 
 export function AnalysisSheet() {
@@ -82,6 +83,10 @@ function Body({ doc }: { doc: ProcessedDocument }) {
         ) : null}
         {loading ? (
           <div className="space-y-4" aria-busy>
+            <div className="flex items-center gap-3">
+              <Orb state="solving" size={64} />
+              <p className="text-sm text-muted-foreground">Loading the analysis…</p>
+            </div>
             <Skeleton className="h-4 w-1/3" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-5/6" />

@@ -1,4 +1,5 @@
 import type { AnalysisRecord } from "@/lib/pipeline-types";
+import { Markdown } from "./markdown";
 
 export function MemoView({ memo }: { memo: NonNullable<AnalysisRecord["memo"]> }) {
   return (
@@ -15,7 +16,9 @@ export function MemoView({ memo }: { memo: NonNullable<AnalysisRecord["memo"]> }
       ).map(([k, v]) => (
         <div key={k}>
           <dt className="text-xs text-muted-foreground">{k}</dt>
-          <dd className="whitespace-pre-wrap">{v}</dd>
+          <dd>
+            <Markdown>{v}</Markdown>
+          </dd>
         </div>
       ))}
       <div>

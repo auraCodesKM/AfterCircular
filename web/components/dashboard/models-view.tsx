@@ -4,6 +4,7 @@ import type { EvalReport, Health } from "@/lib/pipeline-types";
 import { EmptyState } from "./empty-state";
 import { Cpu } from "lucide-react";
 import { fmtTime } from "./labels";
+import { MetalTag } from "./metal";
 
 const pct = (n: number | null | undefined) => (n == null ? "Not evaluated" : `${Math.round(n * 100)}%`);
 const num = (n: number | null | undefined, suffix = "") => (n == null ? "—" : `${n}${suffix}`);
@@ -44,8 +45,9 @@ export function ModelsView({ health, evals }: { health: Health | null; evals: Ev
         <dl className="grid gap-3 rounded-md border border-border p-3 text-sm md:grid-cols-3">
           {models.map((m) => (
             <div key={m.name}>
-              <dt className="font-medium">
-                {m.name} <span className="font-normal text-muted-foreground">· {m.vendor}</span>
+              <dt className="flex items-center gap-2 font-medium">
+                {m.name === "Jev" ? <MetalTag>Jev · System One</MetalTag> : m.name}
+                <span className="font-normal text-muted-foreground">· {m.vendor}</span>
               </dt>
               <dd className="text-xs text-muted-foreground">{m.role}</dd>
               <dd className={`text-xs ${m.status === "not configured" ? "text-warning" : "text-muted-foreground"}`}>{m.status}</dd>

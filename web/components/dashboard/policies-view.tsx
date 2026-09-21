@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/client-api";
 import type { PolicyDetail, PolicyDoc } from "@/lib/pipeline-types";
 import { EmptyState } from "./empty-state";
+import { Markdown } from "./markdown";
 import { fmtDate } from "./labels";
 import { useWorkspace } from "./workspace-provider";
 
@@ -104,7 +105,9 @@ function PolicyBody({ docId, repo, branch, onAsk }: { docId: string; repo: strin
               {p.sections.map((s) => (
                 <AccordionItem key={s.chunk_id} value={s.chunk_id}>
                   <AccordionTrigger className="py-2 text-sm">§{s.section}</AccordionTrigger>
-                  <AccordionContent className="whitespace-pre-wrap text-xs text-muted-foreground">{s.text}</AccordionContent>
+                  <AccordionContent>
+                    <Markdown className="text-[13px]">{s.text}</Markdown>
+                  </AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>

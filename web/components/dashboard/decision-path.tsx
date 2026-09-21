@@ -9,6 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/client-api";
 import type { AnalysisRecord, DecisionAnswer, DecisionRecord } from "@/lib/pipeline-types";
+import { MetalTag } from "./metal";
+import { Orb } from "./orb";
 
 const stageLabel: Record<DecisionRecord["stage"], string> = {
   extraction_check: "Obligations checked against the circular",
@@ -96,15 +98,21 @@ export function DecisionDetails({ analysis }: { analysis: AnalysisRecord }) {
       <CollapsibleTrigger className="group flex w-full items-center gap-2 py-1 text-left text-sm hover:text-foreground">
         <ChevronRight aria-hidden className="size-4 text-muted-foreground transition-transform group-data-[panel-open]:rotate-90" />
         <span className="font-medium">Decision details</span>
-        <span className="text-xs text-muted-foreground">
-          Powered by {powered || "—"} · {analysis.decision_path.length} stages
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          {providers.includes("typesafe") ? <MetalTag>Jev · System One</MetalTag> : <span>{powered || "—"}</span>}
+          <span>· {analysis.decision_path.length} stages</span>
         </span>
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="mt-2 space-y-3 pl-6">
           <p className="text-xs text-muted-foreground">Typed judgments with calibrated probabilities route each case; a person decides. Probabilities are the model&rsquo;s own and never authorize an action.</p>
           {error ? <p className="text-xs text-destructive">Decision records unavailable: {error}</p> : null}
-          {!records && !error ? <Skeleton className="h-20 w-full" /> : null}
+          {!records && !error ? (
+            <div className="flex items-center gap-3">
+              <Orb state="connecting" size={20} />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+          ) : null}
           {records ? (
             <ol className="space-y-3">
               {groups.map((g, gi) => (

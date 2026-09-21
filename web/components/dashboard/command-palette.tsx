@@ -30,6 +30,7 @@ import type {
   ProcessedDocument,
   ScanRecord,
 } from "@/lib/pipeline-types";
+import { Orb } from "./orb";
 import { useWorkspace } from "./workspace-provider";
 
 /** ⌘K: commands, circulars and policies in one place. Typing a sentence becomes a question for the agent. */
@@ -95,7 +96,7 @@ export function CommandPalette() {
                 value={`ask ${query}`}
                 onSelect={() => ask.start(query)}
               >
-                <MessageSquare />
+                <Orb state="breathing" size={20} />
                 Ask: “{query}”
               </CommandItem>
             </CommandGroup>

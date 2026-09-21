@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "cn";
 import { api } from "@/lib/client-api";
+import { Orb } from "./orb";
 import type { ScanRecord, ScanStep } from "@/lib/pipeline-types";
 
 const StepIcon = ({ status }: { status: ScanStep["status"] }) => {
@@ -134,6 +135,7 @@ export function ScanControl({ initial, disabled, title, description, children }:
         <Collapsible open={open || running} onOpenChange={setOpen}>
           <CollapsibleTrigger className="group flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
             <ChevronDown aria-hidden className="size-3.5 transition-transform group-data-[panel-open]:rotate-180" />
+            {running ? <Orb state="working" size={20} /> : null}
             <span className="font-medium text-foreground">Pipeline</span>
             {running
               ? ` · ${scan.steps.filter((s) => s.status === "done").length} of ${scan.steps.length} steps · processing…`
