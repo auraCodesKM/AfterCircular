@@ -73,15 +73,24 @@ export function ScanControl({ initial, disabled, title, description, children }:
     }
   }, [poll]);
 
+  const autoStarted = useRef(false);
   useEffect(() => {
     alive.current = true;
     const id = initial?.status === "RUNNING" ? initial.id : null;
-    const t = id ? setTimeout(() => poll(id), 0) : params.get("scan") === "1" && !disabled ? setTimeout(() => scanNow(), 0) : null;
+    let t: ReturnType<typeof setTimeout> | null = null;
+    if (id) t = setTimeout(() => poll(id), 0);
+    else if (params.get("scan") === "1" && !disabled && !autoStarted.current) {
+      autoStarted.current = true; // ?scan=1 starts exactly one scan, then leaves the URL
+      t = setTimeout(() => {
+        router.replace("/dashboard");
+        void scanNow();
+      }, 0);
+    }
     return () => {
       alive.current = false;
       if (t) clearTimeout(t);
     };
-  }, [initial, poll, params, scanNow, disabled]);
+  }, [initial, poll, params, scanNow, disabled, router]);
 
   const button = (
     <Button onClick={scanNow} disabled={running || starting || disabled} size="sm">

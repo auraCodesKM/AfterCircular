@@ -79,3 +79,12 @@ export async function getRepo(token: string, fullName: string): Promise<Repo> {
     htmlUrl: r.html_url,
   };
 }
+
+/** True when the repository's default branch carries an aftercircular.yml manifest (what the backend indexes). */
+export async function hasManifest(token: string, fullName: string, branch: string): Promise<boolean> {
+  const res = await fetch(`https://api.github.com/repos/${fullName}/contents/aftercircular.yml?ref=${encodeURIComponent(branch)}`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
+    cache: "no-store",
+  });
+  return res.ok;
+}

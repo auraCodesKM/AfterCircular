@@ -97,7 +97,7 @@ export function AnswerView({ inv, compact, onAsk, stream = true }: { inv: Invest
 
   return (
     <div className="space-y-4">
-      <StreamingResponse status={streaming ? "streaming" : "complete"} copyText={inv.summary} sources={sources.length ? sources : undefined} showActions={!streaming}>
+      <StreamingResponse status={streaming ? "streaming" : "complete"} copyText={inv.summary} sources={compact && sources.length ? sources : undefined} showActions={!streaming && inv.intent !== "other"}>
         <p className="text-sm leading-6">{summaryShown}</p>
       </StreamingResponse>
 

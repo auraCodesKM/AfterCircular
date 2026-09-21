@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { getRepo } from "@/lib/github";
+import { getRepo, hasManifest } from "@/lib/github";
 import { tenantStore, type Tenant } from "@/lib/tenant-store";
 
 export type ConnectState = { error?: string };
@@ -28,6 +28,10 @@ export async function connectRepo(_prev: ConnectState, formData: FormData): Prom
     repo = await getRepo(session.accessToken, fullName); // re-verify access server-side; never trust the form
   } catch {
     return { error: "That repository isn't readable with your GitHub account." };
+  }
+
+  if (!(await hasManifest(session.accessToken, repo.fullName, repo.defaultBranch))) {
+    return { error: `${repo.fullName} has no aftercircular.yml on ${repo.defaultBranch}. AfterCircular only indexes repositories that carry the manifest — for the demo, choose acme-securities-policies.` };
   }
 
   const tenant: Tenant = {
