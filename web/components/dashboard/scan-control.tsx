@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, Circle, Loader2, Minus, RefreshCw, X } from "lucide-react";
+import { Check, ChevronDown, Circle, Loader2, Minus, RefreshCw, TriangleAlert, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -119,8 +119,8 @@ export function ScanControl({ initial, disabled, title, description, children }:
         {children}
       </div>
       {scan?.status === "FAILED" && scan.error ? (
-        <Alert variant="destructive">
-          <X />
+        <Alert variant={scan.error_kind === "repository" || scan.error_kind === "source" ? "warning" : "error"}>
+          {scan.error_kind === "repository" || scan.error_kind === "source" ? <TriangleAlert /> : <X />}
           <AlertTitle>{ERROR_TITLE[scan.error_kind ?? "backend"]}</AlertTitle>
           <AlertDescription>
             <p>{scan.error}</p>

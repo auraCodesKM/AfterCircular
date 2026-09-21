@@ -1,6 +1,6 @@
 {
   "id": "not-applicable-mutual-fund-disclosure",
-  "description": "Fictional circular addressed to asset management companies; Acme is a stock broker.",
+  "description": "Fictional circular addressed to asset management companies; Acme is a stock broker. The memo fixture serves the second demo tenant (Nimbus AMC), where the same circular applies and conflicts.",
   "document_file": "../../data/snapshot/demo-016-mutual-fund-expense-disclosure.json",
   "expected": {
     "applicability": "NO",
@@ -120,6 +120,20 @@
           "confidence": 0.85
         }
       }
+    },
+    "memo": {
+      "regulatory_change": "Fictional SEBI circular DEMO/SEBI/HO/IMD/CIR/2026/016 requires asset management companies to disclose each scheme's total expense ratio daily on their website and the industry association website, and to notify unit holders of any change in the base TER at least three working days in advance by email or SMS. Effective 1 November 2026.",
+      "current_policy": "POL-001 §4.1 publishes TER once a month with the factsheet and states daily publication is not required; §4.2 uploads TER to the industry association monthly; §5.1 gives unit holders at least one working day's notice of a base TER change. SOP-001 §2 schedules the TER disclosure monthly.",
+      "identified_gap": "Disclosure frequency (monthly vs daily, website and association portal) and notice period for base TER changes (one working day vs three working days) both fall short of the circular.",
+      "proposed_amendment": "Replace POL-001 §4.1 with: 'The TER of each scheme is published on the Nimbus website every business day, in the prescribed format, and uploaded to the industry association portal on the same day.' Replace §5.1 with: 'Any change in the Base TER of a scheme is communicated to unit holders at least three working days before the change takes effect, by email where an email address is registered and otherwise by SMS.' Update SOP-001 §2 to schedule TER disclosure daily.",
+      "effective_date": "2026-11-01",
+      "recommended_action": "Head of Compliance to approve this memo, open a compliance review issue, and raise a pull request amending POL-001 §4.1, §4.2, §5.1 and SOP-001 §2 before 1 November 2026.",
+      "evidence": [
+        "SEBI DEMO/SEBI/HO/IMD/CIR/2026/016 §1: \"disclose the total expense ratio of each scheme on a daily basis on their websites and on the website of the Association of Mutual Funds in India\"",
+        "SEBI DEMO/SEBI/HO/IMD/CIR/2026/016 §2: \"communicated to unit holders at least three working days in advance by email or SMS\"",
+        "POL-001 §4.1: \"published on the Nimbus website once a month\"",
+        "POL-001 §5.1: \"at least one working day before the change takes effect\""
+      ]
     }
   }
 }

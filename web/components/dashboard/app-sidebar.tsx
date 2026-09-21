@@ -42,6 +42,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { CornerBadge, CornerBadgeAnchor } from "@/components/xiod/corner-badge";
 import { useWorkspace } from "./workspace-provider";
 
 export const NAV = [
@@ -105,13 +106,22 @@ export function AppSidebar({ pendingReviews, user, companies, activeTenantId, si
                       isActive={active}
                       render={<Link href={item.href} onClick={go} />}
                     >
-                      <item.icon />
+                      {item.label === "Reviews" ? (
+                        <CornerBadgeAnchor render={<span />}>
+                          <item.icon />
+                          <CornerBadge
+                            variant="destructive"
+                            invisible={pendingReviews === 0}
+                            className="h-3.5 min-w-3.5 px-1 text-[9px] font-semibold ring-sidebar"
+                            aria-label={`${pendingReviews} pending reviews`}
+                          >
+                            {pendingReviews}
+                          </CornerBadge>
+                        </CornerBadgeAnchor>
+                      ) : (
+                        <item.icon />
+                      )}
                       <span>{item.label}</span>
-                      {item.label === "Reviews" && pendingReviews > 0 ? (
-                        <span className="ml-auto rounded-sm bg-destructive/10 px-1.5 text-[11px] font-medium text-destructive">
-                          {pendingReviews}
-                        </span>
-                      ) : null}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );

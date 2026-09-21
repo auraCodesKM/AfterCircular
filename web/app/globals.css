@@ -36,6 +36,7 @@
   --destructive: #ad314d;
   --success: #2f7a4f;
   --warning: #b7791f;
+  --info: #2b6cb0;
   --border: rgba(28, 28, 28, 0.1);
   --input: rgba(28, 28, 28, 0.16);
   --ring: #1c1c1c;
@@ -69,6 +70,7 @@
   --destructive: #d9536f;
   --success: #5fb57f;
   --warning: #d9a441;
+  --info: #7cb3e8;
   --border: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.16);
   --ring: #d4d4d4;
@@ -113,6 +115,7 @@
   --color-destructive: var(--destructive);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-info: var(--info);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

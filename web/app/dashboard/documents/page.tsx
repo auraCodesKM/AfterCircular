@@ -14,7 +14,7 @@ export default async function DocumentsPage() {
     <div className="space-y-5">
       <PageHeader title="Documents" description="Every regulatory publication processed for this workspace." />
       {documents.error ? (
-        <Alert variant="destructive">
+        <Alert variant="error">
           <AlertTitle>Could not load documents</AlertTitle>
           <AlertDescription>{documents.error}</AlertDescription>
         </Alert>

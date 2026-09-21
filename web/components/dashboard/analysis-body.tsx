@@ -1,9 +1,10 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, FileDiff, ListChecks, Scale } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
+import { Marker, MarkerContent, MarkerIcon } from "@/components/xiod/marker";
 import type { AnalysisRecord, ProcessedDocument } from "@/lib/pipeline-types";
 import { DecisionDetails } from "./decision-path";
 import { EvidencePair } from "./evidence";
@@ -29,7 +30,10 @@ export function AnalysisBody({ doc, analysis }: { doc: ProcessedDocument; analys
     <div className="space-y-6">
       {ex?.summary ? (
         <section className="space-y-1.5">
-          <h3 className="text-sm font-medium">What changed</h3>
+          <Marker variant="border" render={<h3 />}>
+            <MarkerIcon><FileDiff /></MarkerIcon>
+            <MarkerContent className="font-medium text-foreground">What changed</MarkerContent>
+          </Marker>
           <Markdown>{ex.summary}</Markdown>
           {ex.applies_to?.length ? <p className="text-xs text-muted-foreground">Applies to {ex.applies_to.join(", ")}</p> : null}
         </section>
@@ -37,9 +41,11 @@ export function AnalysisBody({ doc, analysis }: { doc: ProcessedDocument; analys
 
       {impact ? (
         <>
-          <Separator />
           <section className="space-y-2">
-            <h3 className="text-sm font-medium">Impact</h3>
+            <Marker variant="border" render={<h3 />}>
+              <MarkerIcon><Scale /></MarkerIcon>
+              <MarkerContent className="font-medium text-foreground">Impact</MarkerContent>
+            </Marker>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
               <div>
                 <dt className="text-xs text-muted-foreground">Applicability</dt>
@@ -69,9 +75,11 @@ export function AnalysisBody({ doc, analysis }: { doc: ProcessedDocument; analys
           ) : null}
           {impact.recommended_action ? (
             <>
-              <Separator />
               <section className="space-y-1.5">
-                <h3 className="text-sm font-medium">Recommended action</h3>
+                <Marker variant="border" render={<h3 />}>
+                  <MarkerIcon><ListChecks /></MarkerIcon>
+                  <MarkerContent className="font-medium text-foreground">Recommended action</MarkerContent>
+                </Marker>
                 <p className="text-sm leading-6">{impact.recommended_action}</p>
               </section>
             </>

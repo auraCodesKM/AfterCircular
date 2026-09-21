@@ -1,4 +1,4 @@
-import { MessageSquare } from "lucide-react";
+import { FileText, History, MessageSquare, ServerOff } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -9,7 +9,7 @@ import { ScanControl } from "@/components/dashboard/scan-control";
 import { StatusStrip } from "@/components/dashboard/status-strip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Marker, MarkerContent, MarkerIcon } from "@/components/xiod/marker";
 import { load, shellContext } from "@/lib/dashboard-data";
 import type { AuditEvent, ProcessedDocument, ReviewRecord, ScanRecord } from "@/lib/pipeline-types";
 
@@ -38,7 +38,8 @@ export default async function OverviewPage() {
   return (
     <div className="space-y-6">
       {ctx.backendError ? (
-        <Alert variant="destructive">
+        <Alert variant="error">
+          <ServerOff />
           <AlertTitle>Backend unavailable</AlertTitle>
           <AlertDescription>{ctx.backendError}</AlertDescription>
         </Alert>
@@ -59,25 +60,26 @@ export default async function OverviewPage() {
       </dl>
 
       <section className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium">Recent regulatory changes</h2>
-          <Button variant="ghost" size="xs" nativeButton={false} render={<Link href="/dashboard/documents" />}>
+        <Marker variant="border" render={<h2 />}>
+          <MarkerIcon><FileText /></MarkerIcon>
+          <MarkerContent className="font-medium text-foreground">Recent regulatory changes</MarkerContent>
+          <Button variant="ghost" size="xs" className="ml-auto" nativeButton={false} render={<Link href="/dashboard/documents" />}>
             All documents
           </Button>
-        </div>
+        </Marker>
         <DocumentsTable documents={docs.slice(0, 8)} compact />
       </section>
 
       <AskBar />
 
-      <Separator />
       <section className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium">Recent activity</h2>
-          <Button variant="ghost" size="xs" nativeButton={false} render={<Link href="/dashboard/activity" />}>
+        <Marker variant="border" render={<h2 />}>
+          <MarkerIcon><History /></MarkerIcon>
+          <MarkerContent className="font-medium text-foreground">Recent activity</MarkerContent>
+          <Button variant="ghost" size="xs" className="ml-auto" nativeButton={false} render={<Link href="/dashboard/activity" />}>
             All activity
           </Button>
-        </div>
+        </Marker>
         <ActivityFeed events={audit.data} limit={6} quiet />
       </section>
       <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">

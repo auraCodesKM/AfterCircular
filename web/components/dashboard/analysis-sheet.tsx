@@ -76,7 +76,7 @@ function Body({ doc }: { doc: ProcessedDocument }) {
 
       <div className="flex-1 px-6 py-5">
         {error ? (
-          <Alert variant="destructive">
+          <Alert variant="error">
             <AlertTitle>Analysis unavailable</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>

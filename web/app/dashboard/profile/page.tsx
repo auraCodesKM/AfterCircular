@@ -1,4 +1,4 @@
-import { ExternalLink, GitBranch } from "lucide-react";
+import { Building2, ExternalLink, GitBranch, History, KeyRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { signOut } from "@/auth";
@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Marker, MarkerContent, MarkerIcon } from "@/components/xiod/marker";
 import { load, shellContext } from "@/lib/dashboard-data";
 import type { AuditEvent, Investigation } from "@/lib/pipeline-types";
 
@@ -52,7 +53,10 @@ export default async function ProfilePage() {
       </section>
       <Separator />
       <section className="space-y-2">
-        <h2 className="text-sm font-medium">Workspace</h2>
+        <Marker variant="border" render={<h2 />}>
+          <MarkerIcon><Building2 /></MarkerIcon>
+          <MarkerContent className="font-medium text-foreground">Workspace</MarkerContent>
+        </Marker>
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
           <dt className="text-muted-foreground">Company</dt>
           <dd>{ctx.tenant.companyName}</dd>
@@ -74,7 +78,10 @@ export default async function ProfilePage() {
       </section>
       <Separator />
       <section className="space-y-2">
-        <h2 className="text-sm font-medium">Your activity</h2>
+        <Marker variant="border" render={<h2 />}>
+          <MarkerIcon><History /></MarkerIcon>
+          <MarkerContent className="font-medium text-foreground">Your activity</MarkerContent>
+        </Marker>
         <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
           <div className="flex items-baseline gap-2">
             <dt className="text-muted-foreground">Approvals</dt>
@@ -97,7 +104,10 @@ export default async function ProfilePage() {
       </section>
       <Separator />
       <section className="space-y-2">
-        <h2 className="text-sm font-medium">Session</h2>
+        <Marker variant="border" render={<h2 />}>
+          <MarkerIcon><KeyRound /></MarkerIcon>
+          <MarkerContent className="font-medium text-foreground">Session</MarkerContent>
+        </Marker>
         <p className="text-xs text-muted-foreground">Your GitHub token lives only in the encrypted session cookie and is used server-side to read the policy repository and open issues you approve.</p>
         <form action={doSignOut}>
           <Button variant="outline" size="sm" type="submit">
