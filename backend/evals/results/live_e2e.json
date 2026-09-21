@@ -1,0 +1,409 @@
+{
+  "tenant_id": "acme-securities-pvt-ltd-181441765",
+  "repo": "auraCodesKM/acme-securities-policies",
+  "provider": "foundry",
+  "retrieval": "azure-ai-search",
+  "deployments": {
+    "extraction": "gpt-5-mini",
+    "impact": "gpt-5-mini",
+    "memo": "gpt-5-mini",
+    "embedding": "text-embedding-3-small"
+  },
+  "guardrails": {
+    "max_documents_per_scan": 3,
+    "max_llm_calls_per_scan": 10,
+    "max_retries": 2,
+    "max_concurrent_calls": 2,
+    "scan_cost_limit_usd": 0.5,
+    "daily_cost_limit_usd": 5.0
+  },
+  "scans": [
+    {
+      "scan_id": "scan_802484b91f26",
+      "status": "COMPLETED",
+      "source_mode": "DEMO_SNAPSHOT",
+      "new": 3,
+      "skipped": 0,
+      "deferred": 0,
+      "llm_calls": 4,
+      "estimated_cost_usd": 0.024251,
+      "error": null,
+      "error_kind": null,
+      "wall_ms": 120322,
+      "steps": {
+        "connect": "done",
+        "fetch": "done",
+        "detect": "done",
+        "index": "done",
+        "triage": "done",
+        "extract": "skipped",
+        "retrieve": "skipped",
+        "analyze": "skipped",
+        "gate": "done",
+        "memo": "skipped",
+        "review": "skipped"
+      },
+      "step_detail": {
+        "connect": "DEMO SNAPSHOT (fictional, live source unavailable or disabled)",
+        "fetch": "3 publication(s); 1 warning(s)",
+        "detect": "3 new, 0 already processed",
+        "index": "82 chunks from auraCodesKM/acme-securities-policies@1e886eb (azure-ai-search, re-indexed)",
+        "triage": "not applicable \u2014 header addressed to other entity types (P(concerns)=0.00, entity in scope 0.03) (no extraction call)",
+        "extract": "archived at triage",
+        "retrieve": "archived at triage",
+        "analyze": "archived at triage",
+        "gate": "ARCHIVED: not applicable (triage)",
+        "memo": "archived at triage",
+        "review": "archived at triage"
+      }
+    },
+    {
+      "scan_id": "scan_14b92da74952",
+      "status": "COMPLETED",
+      "source_mode": "DEMO_SNAPSHOT",
+      "new": 0,
+      "skipped": 3,
+      "deferred": 0,
+      "llm_calls": 0,
+      "estimated_cost_usd": 0.0,
+      "error": null,
+      "error_kind": null,
+      "wall_ms": 6716,
+      "steps": {
+        "connect": "done",
+        "fetch": "done",
+        "detect": "done",
+        "index": "done",
+        "triage": "skipped",
+        "extract": "skipped",
+        "retrieve": "skipped",
+        "analyze": "skipped",
+        "gate": "skipped",
+        "memo": "skipped",
+        "review": "skipped"
+      },
+      "step_detail": {
+        "connect": "DEMO SNAPSHOT (fictional, live source unavailable or disabled)",
+        "fetch": "3 publication(s); 1 warning(s)",
+        "detect": "0 new, 3 already processed",
+        "index": "82 chunks from auraCodesKM/acme-securities-policies@1e886eb (azure-ai-search, up to date)",
+        "triage": "nothing new",
+        "extract": "nothing new",
+        "retrieve": "nothing new",
+        "analyze": "nothing new",
+        "gate": "nothing new",
+        "memo": "nothing new",
+        "review": "nothing new"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "document_id": "DEMO-2026-014",
+      "case": "4. applicable + conflict",
+      "status": "COMPLETED",
+      "impact": "CONFLICT",
+      "error": null,
+      "expected": {
+        "applicability": "YES",
+        "gate": "CONFLICT",
+        "affected_policies": [
+          "POL-001"
+        ]
+      },
+      "actual": {
+        "applicability": "YES",
+        "alignment": "CONFLICT",
+        "gate": "CONFLICT",
+        "affected_policies": [
+          "POL-001"
+        ],
+        "confidence": 0.91,
+        "severity": "operational"
+      },
+      "match": true,
+      "extraction": {
+        "valid": true,
+        "obligations": 8,
+        "applies_to": [
+          "stock brokers",
+          "clearing members",
+          "recognised stock exchanges",
+          "clearing corporations"
+        ]
+      },
+      "triage": {
+        "stage": "prefilter",
+        "outcome": "skipped",
+        "confidence": 0.0,
+        "addressees": [
+          "stock-broker",
+          "stock-exchange"
+        ],
+        "entity_match": true
+      },
+      "retrieval": {
+        "backend": "azure-ai-search",
+        "count": 10,
+        "vector": true,
+        "embed_ms": 413,
+        "search_ms": 1285
+      },
+      "retrieved_doc_ids": [
+        "POL-001"
+      ],
+      "regulatory_evidence": [
+        {
+          "section": "2.3",
+          "text": "Client-level limits shall be linked to the client's net worth or collateral posted, as certified to the stock broker, and shall not be applied as a fixed cap irrespective of the client's net worth."
+        },
+        {
+          "section": "2.1",
+          "text": "With effect from the effective date in paragraph 5, the client-level gross position limit for index futures and index options shall be the higher of Rs. 1,500 crore notional or 15 percent of the total open interest in the underlying index, in place of the existing Rs. 500 crore notional or 15 percent of open interest."
+        },
+        {
+          "section": "2.2",
+          "text": "The net position limit in near-month index options at the client level shall be Rs. 500 crore notional, in place of Rs. 250 crore."
+        },
+        {
+          "section": "3.1",
+          "text": "Every stock broker and clearing member shall review its internal position limit policy at least once every six months, and in any case within 30 calendar days of any circular issued by SEBI or a recognised stock exchange revising position limits."
+        },
+        {
+          "section": "3.2",
+          "text": "The internal policy shall expressly provide for interim adoption of revised regulatory limits pending approval by the intermediary's board or risk committee."
+        }
+      ],
+      "policy_evidence": [
+        {
+          "doc_id": "POL-001",
+          "section": "4.1",
+          "text": "Client-level position limits for index derivatives are set per the Prior Framework and reviewed annually. The limits are fixed caps and do not vary with the client's margin or net worth: Product \u00b7 Gross limit per client \u00b7 Basis Index futures \u00b7 500 crore notional or 15% of total OI, whichever is higher \u00b7 Prior Framework Index options \u00b7 500 crore notional or 15% of total OI, whichever is higher \u00b7 Prior Framework Near-Month index options (net) \u00b7 250 crore notional \u00b7 Prior Framework Any revision to this table requires Board Risk Committee approval at the annual review."
+        },
+        {
+          "doc_id": "POL-001",
+          "section": "8",
+          "text": "This policy shall be reviewed annually by the Board Risk Committee. Interim changes to \u00a74.1 are not permitted outside the annual review except where an exchange or SEBI direction makes the current limits unlawful, in which case POL-004 \u00a77 applies."
+        }
+      ],
+      "decision_path": [
+        "typesafe:extraction_check",
+        "typesafe:applicability",
+        "typesafe:rerank",
+        "typesafe:alignment",
+        "typesafe:verification"
+      ],
+      "escalation_reason": null,
+      "jev_calls": 23,
+      "jev_stages": [
+        "alignment",
+        "applicability",
+        "extraction_check",
+        "rerank",
+        "verification"
+      ],
+      "memo": true,
+      "review": "APPROVED",
+      "source": "live",
+      "scan_id": "scan_802484b91f26"
+    },
+    {
+      "document_id": "DEMO-2026-015",
+      "case": "3. applicable + aligned",
+      "status": "AWAITING_REVIEW",
+      "impact": "CONFLICT",
+      "error": null,
+      "expected": {
+        "applicability": "YES",
+        "gate": "ALIGNED",
+        "affected_policies": []
+      },
+      "actual": {
+        "applicability": "YES",
+        "alignment": "CONFLICT",
+        "gate": "CONFLICT",
+        "affected_policies": [
+          "POL-001"
+        ],
+        "confidence": 0.79,
+        "severity": null
+      },
+      "match": false,
+      "extraction": {
+        "valid": true,
+        "obligations": 3,
+        "applies_to": [
+          "stock brokers"
+        ]
+      },
+      "triage": {
+        "stage": "prefilter",
+        "outcome": "skipped",
+        "confidence": 0.0,
+        "addressees": [
+          "stock-broker",
+          "stock-exchange"
+        ],
+        "entity_match": true
+      },
+      "retrieval": {
+        "backend": "azure-ai-search",
+        "count": 10,
+        "vector": true,
+        "embed_ms": 528,
+        "search_ms": 301
+      },
+      "retrieved_doc_ids": [
+        "POL-001",
+        "POL-002",
+        "POL-004",
+        "POL-005"
+      ],
+      "regulatory_evidence": [
+        {
+          "section": "2.2",
+          "text": "2.2. Internal policies and procedures affected by a publication shall be reviewed and, where required, amended within 30 calendar days of the publication date, or by the effective date stated in the publication, whichever is earlier."
+        }
+      ],
+      "policy_evidence": [
+        {
+          "doc_id": "POL-001",
+          "section": "8",
+          "text": "This policy shall be reviewed annually by the Board Risk Committee. Interim changes to \u00a74.1 are not permitted outside the annual review except where an exchange or SEBI direction makes the current limits unlawful, in which case POL-004 \u00a77 applies."
+        }
+      ],
+      "decision_path": [
+        "typesafe:extraction_check",
+        "typesafe:applicability",
+        "typesafe:rerank",
+        "typesafe:alignment",
+        "typesafe:verification"
+      ],
+      "escalation_reason": null,
+      "jev_calls": 18,
+      "jev_stages": [
+        "alignment",
+        "applicability",
+        "extraction_check",
+        "rerank",
+        "verification"
+      ],
+      "memo": true,
+      "review": "AWAITING_REVIEW",
+      "source": "live",
+      "scan_id": "scan_802484b91f26"
+    },
+    {
+      "document_id": "DEMO-2026-016",
+      "case": "2. clearly irrelevant (mutual funds / AMCs)",
+      "status": "ARCHIVED",
+      "impact": "NOT_APPLICABLE",
+      "error": null,
+      "expected": {
+        "applicability": "NO",
+        "gate": "ARCHIVED",
+        "affected_policies": []
+      },
+      "actual": {
+        "applicability": "NO",
+        "alignment": null,
+        "gate": "ARCHIVED",
+        "affected_policies": [],
+        "confidence": 1.0,
+        "severity": null
+      },
+      "match": true,
+      "extraction": {
+        "valid": false,
+        "obligations": 0,
+        "applies_to": null
+      },
+      "triage": {
+        "stage": "triage",
+        "outcome": "archive",
+        "confidence": 0.0,
+        "addressees": [
+          "mutual-fund-amc"
+        ],
+        "entity_match": false
+      },
+      "retrieval": null,
+      "retrieved_doc_ids": [],
+      "regulatory_evidence": [
+        {
+          "section": "header",
+          "text": "All Mutual Funds / Asset Management Companies / Trustee Companies."
+        }
+      ],
+      "policy_evidence": [],
+      "decision_path": [
+        "typesafe:triage"
+      ],
+      "escalation_reason": null,
+      "jev_calls": 1,
+      "jev_stages": [
+        "triage"
+      ],
+      "memo": false,
+      "review": null,
+      "source": "live",
+      "scan_id": "scan_802484b91f26"
+    },
+    {
+      "case": "8/9. duplicate document + repeated scan (idempotency)",
+      "source": "live",
+      "scan_id": "scan_14b92da74952",
+      "expected": {
+        "new": 0,
+        "llm_calls": 0
+      },
+      "actual": {
+        "new": 0,
+        "skipped": 3,
+        "llm_calls": 0
+      },
+      "match": true
+    }
+  ],
+  "offline_cases": [
+    {
+      "case": "5. ambiguous applicability",
+      "source": "offline-test",
+      "tests": "tests/test_triage_and_cross_check.py::test_triage_proceeds_whenever_uncertain + tests/test_decisions.py::test_not_applicable_needs_high_confidence_and_low_entity_scope"
+    },
+    {
+      "case": "6. conflicting evidence (Jev vs Foundry)",
+      "source": "offline-test",
+      "tests": "tests/test_triage_and_cross_check.py::test_disagreement_routes_to_a_person_not_to_a_ticket"
+    },
+    {
+      "case": "7. missing policy evidence",
+      "source": "offline-test",
+      "tests": "tests/test_cost_guard_and_safety.py::test_gate_never_accepts_a_conflict_without_two_sided_evidence + tests/test_decisions.py::test_fabricated_evidence_never_becomes_conflict"
+    },
+    {
+      "case": "10. model/provider failure",
+      "source": "offline-test",
+      "tests": "tests/test_cost_guard_and_safety.py::test_foundry_unavailable_fails_the_document_not_the_truth, ::test_search_unavailable_is_a_visible_failure_not_a_guess, tests/test_decisions.py::test_judge_outage_degrades_to_human_not_to_a_guess"
+    }
+  ],
+  "totals": {
+    "foundry_calls": 4,
+    "input_tokens": 4432,
+    "output_tokens": 11571,
+    "cached_tokens": 0,
+    "estimated_cost_usd": 0.024251,
+    "unknown_pricing_calls": 0,
+    "retries": 0,
+    "errors": 0,
+    "jev_calls": 42,
+    "avg_latency_ms": 22845,
+    "live_cases_matched": 3,
+    "live_cases": 4
+  },
+  "search": {
+    "chunks_indexed": 82,
+    "commit": "1e886eb2828a20f0c3f50f6ad262c307b30dd84d",
+    "backend": "azure-ai-search"
+  }
+}

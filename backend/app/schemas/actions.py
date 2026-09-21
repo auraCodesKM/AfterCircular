@@ -44,6 +44,7 @@ AuditEventType = Literal[
     "REJECTED",
     "TICKET_CREATED",
     "PIPELINE_FAILED",
+    "BUDGET_EXCEEDED",
 ]
 
 
@@ -80,6 +81,7 @@ class ScanRecord(BaseModel):
     skipped_documents: int = 0
     deferred_documents: int = 0  # new documents left for the next scan by MAX_DOCUMENTS_PER_SCAN
     llm_calls: int = 0
+    estimated_cost_usd: float = 0.0  # sum of list-price estimates for this scan's generative calls (0 when pricing unknown)
     document_ids: list[str] = []
     error: str | None = Field(default=None, description="Human-readable")
     error_kind: ErrorKind | None = None

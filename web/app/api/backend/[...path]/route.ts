@@ -5,7 +5,7 @@ import { activeTenant } from "@/lib/dashboard-data";
 
 /** Authenticated proxy: browser → this route (session cookie) → FastAPI (API key + tenant headers + user's GitHub token). */
 
-const ALLOWED = new Set(["scan", "scans", "documents", "analyses", "reviews", "audit", "evals", "policies", "ask", "investigations"]);
+const ALLOWED = new Set(["scan", "scans", "documents", "analyses", "reviews", "audit", "evals", "policies", "ask", "investigations", "usage"]);
 
 async function handle(req: Request, params: Promise<{ path: string[] }>, method: "GET" | "POST") {
   const { path } = await params;

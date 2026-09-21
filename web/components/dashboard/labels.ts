@@ -11,7 +11,7 @@ export const eventLabel: Record<string, string> = {
   DOCUMENT_SKIPPED: "Already processed — skipped", DOCUMENT_VERSION_DETECTED: "New version detected", OBLIGATIONS_EXTRACTED: "Obligations extracted",
   POLICIES_INDEXED: "Policies indexed", POLICIES_RETRIEVED: "Policies retrieved", IMPACT_ANALYZED: "Impact analysis completed", ARCHIVED: "Archived",
   CONFLICT_DETECTED: "Conflict identified", NEEDS_INVESTIGATION: "Routed to human — uncertain", MEMO_GENERATED: "Memo drafted",
-  REVIEW_REQUESTED: "Human approval requested", APPROVED: "Human approval granted", REJECTED: "Rejected by reviewer", TICKET_CREATED: "GitHub issue created", PIPELINE_FAILED: "Pipeline failed",
+  REVIEW_REQUESTED: "Human approval requested", APPROVED: "Human approval granted", REJECTED: "Rejected by reviewer", TICKET_CREATED: "GitHub issue created", PIPELINE_FAILED: "Pipeline failed", BUDGET_EXCEEDED: "Stopped at the spend budget",
 };
 
 export type ImpactKind = "conflict" | "aligned" | "na" | "uncertain" | "failed" | "pending";

@@ -1,5 +1,5 @@
 {
-  "_comment": "USD per 1M tokens. Fill in from your Foundry price list; models missing here get estimated_cost = null (never invented).",
+  "_comment": "USD per 1M tokens. List-price snapshot as known to this repository (unverified against the subscription's price sheet \u2014 treat as ESTIMATE; verify on the Azure pricing page for your region). Models missing here get estimated_cost = null (never invented).",
   "gpt-4o": {
     "input": 2.5,
     "output": 10.0
@@ -27,5 +27,20 @@
   "jev-latest": {
     "input": 0.042,
     "output": 0.0
+  },
+  "gpt-5-mini": {
+    "input": 0.25,
+    "cached_input": 0.025,
+    "output": 2.0
+  },
+  "gpt-5": {
+    "input": 1.25,
+    "cached_input": 0.125,
+    "output": 10.0
+  },
+  "gpt-5-nano": {
+    "input": 0.05,
+    "cached_input": 0.005,
+    "output": 0.4
   }
 }

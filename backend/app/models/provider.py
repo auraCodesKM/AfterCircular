@@ -28,7 +28,8 @@ DEFAULT_PRICING: dict[str, tuple[float, float, float]] = {
 }
 
 
-def estimate_cost(model: str, input_tokens: int | None, output_tokens: int | None, cached_tokens: int | None = None) -> float | None:
+def pricing_for(model: str) -> tuple[float, float, float] | None:
+    """(input, cached input, output) USD per 1M tokens for a deployment, or None when the price is unknown."""
     table = dict(DEFAULT_PRICING)
     if settings().model_pricing_json:
         try:
@@ -36,11 +37,22 @@ def estimate_cost(model: str, input_tokens: int | None, output_tokens: int | Non
         except (ValueError, TypeError):
             log.warning("MODEL_PRICING_JSON is not valid JSON; using defaults")
     key = next((k for k in sorted(table, key=len, reverse=True) if model.lower().startswith(k)), None)
-    if key is None or input_tokens is None:
+    return table[key] if key else None
+
+
+def estimate_cost(model: str, input_tokens: int | None, output_tokens: int | None, cached_tokens: int | None = None) -> float | None:
+    """Estimated USD for one call from the list-price table; None (never a guess) when the model has no price or no usage."""
+    price = pricing_for(model)
+    if price is None or input_tokens is None:
         return None
-    p_in, p_cached, p_out = table[key]
+    p_in, p_cached, p_out = price
     cached = cached_tokens or 0
     return round(((input_tokens - cached) * p_in + cached * p_cached + (output_tokens or 0) * p_out) / 1_000_000, 6)
+
+
+def pricing_status(model: str, cost: float | None) -> str:
+    """'estimate' = list-price snapshot (DEFAULT_PRICING / MODEL_PRICING_JSON); 'unknown' = no price → cost is null."""
+    return "estimate" if cost is not None or pricing_for(model) else "unknown"
 
 
 class ProviderError(RuntimeError):
@@ -52,19 +64,43 @@ class StructuredOutputError(ProviderError):
 
 
 class BudgetExceeded(ProviderError):
-    """The scan's model-call budget is spent. Stops the pipeline instead of spending more credits."""
+    """A scan budget (calls or estimated cost) is spent. Stops generative work instead of spending more credits.
+    `reason` is one of BUDGET_EXCEEDED:calls | BUDGET_EXCEEDED:scan_cost | BUDGET_EXCEEDED:daily_cost."""
+
+    def __init__(self, reason: str, detail: str):
+        super().__init__(f"{reason} — {detail}")
+        self.reason = reason
 
 
 class CallBudget:
-    """Per-scan cap on generative model calls (AFTERCIRCULAR_MAX_LLM_CALLS_PER_SCAN). Set via `budget_var`."""
+    """Per-scan circuit breaker: call count + *estimated* cost (application limits, not Azure billing). Set via `budget_var`.
+    Cost is checked before a call from what has already been spent — the call that crosses the line completes and is
+    recorded; the next one is refused. Unknown pricing adds 0 and is counted separately so the gap is visible."""
 
-    def __init__(self, limit: int):
+    def __init__(self, limit: int, cost_limit: float = 0.0, daily_limit: float = 0.0, daily_spent_before: float = 0.0):
         self.limit, self.used = limit, 0
+        self.cost_limit, self.spent = cost_limit, 0.0
+        self.daily_limit, self.daily_spent_before = daily_limit, daily_spent_before
+        self.unknown_pricing_calls = 0
+
+    @property
+    def daily_spent(self) -> float:
+        return self.daily_spent_before + self.spent
 
     def take(self, task: str) -> None:
         if self.used >= self.limit:
-            raise BudgetExceeded(f"model-call budget of {self.limit} per scan reached before task={task}")
+            raise BudgetExceeded("BUDGET_EXCEEDED:calls", f"model-call budget of {self.limit} per scan reached before task={task}")
+        if self.cost_limit and self.spent >= self.cost_limit:
+            raise BudgetExceeded("BUDGET_EXCEEDED:scan_cost", f"estimated scan spend ${self.spent:.4f} reached the ${self.cost_limit:.2f} scan limit before task={task}")
+        if self.daily_limit and self.daily_spent >= self.daily_limit:
+            raise BudgetExceeded("BUDGET_EXCEEDED:daily_cost", f"estimated spend today ${self.daily_spent:.4f} reached the ${self.daily_limit:.2f} daily limit before task={task}")
         self.used += 1
+
+    def add(self, cost: float | None) -> None:
+        if cost is None:
+            self.unknown_pricing_calls += 1
+        else:
+            self.spent += cost
 
 
 budget_var: contextvars.ContextVar[CallBudget | None] = contextvars.ContextVar("llm_budget", default=None)
@@ -81,6 +117,7 @@ class LLMResult(BaseModel):
     cached_tokens: int | None = None
     attempts: int = 1
     estimated_cost_usd: float | None = None
+    pricing_status: str = "unknown"  # "estimate" (list-price table) | "unknown" (no price → cost null, never invented)
     context_format: str | None = None  # "toon" | "json" — how repeated structured context was serialized in the prompt
     structured_mode: str | None = None  # "json_schema" (strict) | "json_object" (schema-in-prompt) | "fixture"
 
@@ -116,15 +153,21 @@ class LLMProvider(ABC):
         if native is not None:
             obj, res = native
             res.context_format = ctx.get("context_format")
+            if budget is not None:
+                budget.add(res.estimated_cost_usd)
             return obj, res
         schema_text = json.dumps(schema.model_json_schema(), indent=None)
         sys_prompt = f"{system}\n\nRespond with a single JSON object that validates against this JSON Schema. No prose.\n{schema_text}"
         last_err = ""
         for attempt in (1, 2):
             prompt = user if attempt == 1 else f"{user}\n\nYour previous answer failed validation:\n{last_err}\nReturn corrected JSON only."
+            if attempt == 2 and budget is not None:
+                budget.take(f"{task}:repair")  # the repair attempt is a second call; it draws from the same budget
             res = await self.generate(task, sys_prompt, prompt, model=model, json_mode=True, context=ctx)
             res.attempts, res.context_format = attempt, ctx.get("context_format")
             res.structured_mode = res.structured_mode or "json_object"
+            if budget is not None:
+                budget.add(res.estimated_cost_usd)
             try:
                 return schema.model_validate(_extract_json(res.text)), res
             except (ValidationError, ValueError) as e:
@@ -187,8 +230,9 @@ class FoundryProvider(LLMProvider):
 
     def _result(self, task: str, m: str, text: str, t0: float, usage: Any, mode: str | None) -> LLMResult:
         inp, out, cached = self._usage(usage)
+        cost = estimate_cost(m, inp, out, cached)
         return LLMResult(task=task, model=m, provider=self.name, text=text, latency_ms=int((time.perf_counter() - t0) * 1000),
-                         input_tokens=inp, output_tokens=out, cached_tokens=cached, estimated_cost_usd=estimate_cost(m, inp, out, cached),
+                         input_tokens=inp, output_tokens=out, cached_tokens=cached, estimated_cost_usd=cost, pricing_status=pricing_status(m, cost),
                          structured_mode=mode)
 
     async def generate_structured(self, task, system, user, schema, *, model=None, context=None):

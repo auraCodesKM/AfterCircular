@@ -5,6 +5,7 @@ reason and draft. Nothing here executes a side effect; approval (services/review
 """
 
 import logging
+import time
 import traceback
 
 import httpx
@@ -57,7 +58,10 @@ def friendly_error(e: BaseException) -> tuple[str, ErrorKind, str]:
     if isinstance(e, GitHubError):
         return "AfterCircular could not access the configured policy repository.", "repository", detail
     if isinstance(e, BudgetExceeded):
-        return "The scan stopped at its model-call budget. Raise AFTERCIRCULAR_MAX_LLM_CALLS_PER_SCAN only after checking the calls it made.", "ai", detail
+        what = {"BUDGET_EXCEEDED:calls": "its model-call budget (AFTERCIRCULAR_MAX_LLM_CALLS_PER_SCAN)",
+                "BUDGET_EXCEEDED:scan_cost": "its estimated-cost budget for one scan (AFTERCIRCULAR_MAX_ESTIMATED_COST_PER_SCAN_USD)",
+                "BUDGET_EXCEEDED:daily_cost": "the estimated daily spend limit (AFTERCIRCULAR_MAX_ESTIMATED_COST_PER_DAY_USD)"}.get(e.reason, "a budget")
+        return f"The scan stopped at {what}. Check the calls it made before raising the limit.", "ai", detail
     if isinstance(e, ProviderError):
         return "The AI provider did not respond. Check the model configuration and try again.", "ai", detail
     if isinstance(e, (httpx.HTTPError, ValueError)):
@@ -83,8 +87,10 @@ class Scan:
         self.db.record_llm_call(tenant_id=self.tenant.tenant_id, scan_id=self.rec.id, task=res.task, model=res.model, provider=res.provider,
                                 latency_ms=res.latency_ms, input_tokens=res.input_tokens, output_tokens=res.output_tokens, cached_tokens=res.cached_tokens,
                                 attempts=res.attempts, estimated_cost_usd=res.estimated_cost_usd, context_format=res.context_format,
-                                structured_mode=res.structured_mode, ok=int(ok), error=error)
+                                structured_mode=res.structured_mode, pricing_status=res.pricing_status, ok=int(ok), error=error)
         self.rec.llm_calls += 1
+        if res.estimated_cost_usd is not None:
+            self.rec.estimated_cost_usd = round(self.rec.estimated_cost_usd + res.estimated_cost_usd, 6)
         log.info("llm_call task=%s model=%s provider=%s latency_ms=%s in=%s out=%s cached=%s cost_usd=%s format=%s mode=%s attempts=%s",
                  res.task, res.model, res.provider, res.latency_ms, res.input_tokens, res.output_tokens, res.cached_tokens, res.estimated_cost_usd,
                  res.context_format, res.structured_mode, res.attempts)
@@ -96,10 +102,16 @@ class Scan:
     async def run(self) -> ScanRecord:
         t = self.tenant
         cfg = settings()
-        budget_var.set(CallBudget(cfg.max_llm_calls_per_scan))  # every generative call in this task tree draws from it
+        day_start = now().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        spent_today = self.db.estimated_cost_since(day_start)  # application-wide: the daily breaker covers every tenant
+        self.budget = CallBudget(cfg.max_llm_calls_per_scan, cfg.max_estimated_cost_per_scan_usd, cfg.max_estimated_cost_per_day_usd, spent_today)
+        budget_var.set(self.budget)  # every generative call in this task tree draws from it
         audit.record(self.db, t.tenant_id, "SCAN_STARTED", actor=t.actor, actor_type="human", scan_id=self.rec.id, force=self.force,
-                     max_documents=cfg.max_documents_per_scan, max_llm_calls=cfg.max_llm_calls_per_scan)
+                     max_documents=cfg.max_documents_per_scan, max_llm_calls=cfg.max_llm_calls_per_scan,
+                     max_scan_cost_usd=cfg.max_estimated_cost_per_scan_usd, max_daily_cost_usd=cfg.max_estimated_cost_per_day_usd, spent_today_usd=round(spent_today, 4))
         try:
+            if cfg.max_estimated_cost_per_day_usd and spent_today >= cfg.max_estimated_cost_per_day_usd:
+                raise BudgetExceeded("BUDGET_EXCEEDED:daily_cost", f"estimated spend today ${spent_today:.4f} reached the ${cfg.max_estimated_cost_per_day_usd:.2f} daily limit; no generative calls made")
             self.step("connect", "running")
             fetched = await SEBIConnector().fetch_documents(settings().sebi_max_documents)
             self.rec.source_mode = fetched.mode
@@ -238,10 +250,13 @@ class Scan:
             db.update_document(doc.id, status="RETRIEVING")
             self.step("retrieve", "running")
             query = " ".join([extraction.summary, *(o.requirement for o in extraction.obligations[:6])])[:2000]
+            t_embed = time.perf_counter()
             vec = await self.llm.embed([query])
+            t_search = time.perf_counter()
             chunks = await self.ret.search(t.tenant_id, query, vec[0] if vec else None, k=10)
             analysis.retrieved_chunks = [c.model_dump() for c in chunks]
-            analysis.metrics["retrieval"] = {"backend": self.ret.name, "count": len(chunks), "vector": bool(vec)}
+            analysis.metrics["retrieval"] = {"backend": self.ret.name, "count": len(chunks), "vector": bool(vec),
+                                             "embed_ms": int((t_search - t_embed) * 1000), "search_ms": int((time.perf_counter() - t_search) * 1000)}
             db.save_analysis(analysis)
             audit.record(db, t.tenant_id, "POLICIES_RETRIEVED", scan_id=self.rec.id, document_pk=doc.id, analysis_id=analysis.id,
                          chunks=[c.chunk_id for c in chunks], backend=self.ret.name)
@@ -295,6 +310,17 @@ class Scan:
             else:
                 db.update_document(doc.id, status="NEEDS_INVESTIGATION", impact="UNCERTAIN")
                 audit.record(db, t.tenant_id, "NEEDS_INVESTIGATION", scan_id=self.rec.id, document_pk=doc.id, analysis_id=analysis.id, reason=reason)
+        except BudgetExceeded as e:
+            # no side effect was executed (memo/review only follow a completed decision); the document is retryable next scan
+            log.warning("document %s stopped: %s", doc.id, e)
+            db.update_document(doc.id, status="FAILED", error=str(e)[:300])
+            db.save_analysis(analysis)
+            audit.record(db, t.tenant_id, "BUDGET_EXCEEDED", scan_id=self.rec.id, document_pk=doc.id, analysis_id=analysis.id, reason=e.reason,
+                         detail=str(e)[:300], calls=self.budget.used, estimated_cost_usd=round(self.budget.spent, 6))
+            for s in self.rec.steps:
+                if s.status == "running":
+                    self.step(s.key, "failed", e.reason)
+            raise
         except Exception as e:  # noqa: BLE001 — one document failing must not stop the others
             log.error("document %s failed: %s\n%s", doc.id, e, traceback.format_exc())
             err = f"{type(e).__name__}: {str(e)[:300]}"

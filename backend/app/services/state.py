@@ -136,8 +136,9 @@ class StateStore:
             "analyses": (("decision_path", "TEXT NOT NULL DEFAULT '[]'"), ("escalation_reason", "TEXT")),
             "policy_index_meta": (("documents", "TEXT NOT NULL DEFAULT '[]'"),),
             "llm_calls": (("cached_tokens", "INTEGER"), ("attempts", "INTEGER NOT NULL DEFAULT 1"), ("estimated_cost_usd", "REAL"),
-                          ("context_format", "TEXT"), ("structured_mode", "TEXT")),
-            "scans": (("error_kind", "TEXT"), ("error_detail", "TEXT"), ("llm_calls", "INTEGER NOT NULL DEFAULT 0"), ("deferred_documents", "INTEGER NOT NULL DEFAULT 0")),
+                          ("context_format", "TEXT"), ("structured_mode", "TEXT"), ("pricing_status", "TEXT")),
+            "scans": (("error_kind", "TEXT"), ("error_detail", "TEXT"), ("llm_calls", "INTEGER NOT NULL DEFAULT 0"), ("deferred_documents", "INTEGER NOT NULL DEFAULT 0"),
+                      ("estimated_cost_usd", "REAL NOT NULL DEFAULT 0")),
         }
         for table, cols in wanted.items():
             have = {r["name"] for r in self.conn.execute(f"PRAGMA table_info({table})").fetchall()}
@@ -184,10 +185,10 @@ class StateStore:
     def save_scan(self, rec: ScanRecord) -> None:
         self.conn.execute(
             """UPDATE scans SET status=?, source_mode=?, finished_at=?, steps=?, new_documents=?, skipped_documents=?, document_ids=?, error=?, error_kind=?, error_detail=?,
-               llm_calls=?, deferred_documents=? WHERE id=?""",
+               llm_calls=?, deferred_documents=?, estimated_cost_usd=? WHERE id=?""",
             (rec.status, rec.source_mode, rec.finished_at.isoformat() if rec.finished_at else None,
              _j([s.model_dump() for s in rec.steps]), rec.new_documents, rec.skipped_documents, _j(rec.document_ids), rec.error, rec.error_kind, rec.error_detail,
-             rec.llm_calls, rec.deferred_documents, rec.id),
+             rec.llm_calls, rec.deferred_documents, rec.estimated_cost_usd, rec.id),
         )
         self.conn.commit()
 
@@ -354,6 +355,44 @@ class StateStore:
 
     def llm_calls_for_scan(self, scan_id: str) -> list[dict[str, Any]]:
         return [dict(r) for r in self.conn.execute("SELECT * FROM llm_calls WHERE scan_id=?", (scan_id,)).fetchall()]
+
+    def estimated_cost_since(self, since_iso: str, tenant_id: str | None = None) -> float:
+        """Sum of estimated_cost_usd for calls at/after `since_iso` (application-wide unless a tenant is given). Unknown-priced calls add 0."""
+        q, args = "SELECT COALESCE(SUM(estimated_cost_usd), 0) FROM llm_calls WHERE created_at >= ?", [since_iso]
+        if tenant_id:
+            q, args = q + " AND tenant_id=?", args + [tenant_id]
+        return float(self.conn.execute(q, args).fetchone()[0] or 0.0)
+
+    def usage(self, since_iso: str | None = None, tenant_id: str | None = None, scan_id: str | None = None) -> dict[str, Any]:
+        """Aggregated model usage from llm_calls: per model + totals. Only what was recorded; nothing derived beyond sums/averages."""
+        where: list[str] = []
+        args: list[Any] = []
+        if since_iso:
+            where.append("created_at >= ?")
+            args.append(since_iso)
+        if tenant_id:
+            where.append("tenant_id=?")
+            args.append(tenant_id)
+        if scan_id:
+            where.append("scan_id=?")
+            args.append(scan_id)
+        w = (" WHERE " + " AND ".join(where)) if where else ""
+        rows = self.conn.execute(
+            f"""SELECT model, provider, COUNT(*) AS requests, SUM(COALESCE(input_tokens,0)) AS input_tokens, SUM(COALESCE(output_tokens,0)) AS output_tokens,
+                       SUM(COALESCE(cached_tokens,0)) AS cached_tokens, SUM(estimated_cost_usd) AS estimated_cost_usd, AVG(latency_ms) AS avg_latency_ms,
+                       SUM(CASE WHEN ok=0 THEN 1 ELSE 0 END) AS errors, SUM(CASE WHEN attempts>1 THEN 1 ELSE 0 END) AS retried,
+                       SUM(CASE WHEN estimated_cost_usd IS NULL THEN 1 ELSE 0 END) AS unknown_pricing_calls,
+                       SUM(CASE WHEN context_format='toon' THEN 1 ELSE 0 END) AS toon_calls
+                FROM llm_calls{w} GROUP BY model, provider ORDER BY requests DESC""", args).fetchall()
+        models = [dict(r) for r in rows]
+        for m in models:
+            m["avg_latency_ms"] = int(m["avg_latency_ms"] or 0)
+            m["estimated_cost_usd"] = round(m["estimated_cost_usd"], 6) if m["estimated_cost_usd"] is not None else None
+        tot: dict[str, Any] = {k: sum(m[k] or 0 for m in models) for k in ("requests", "input_tokens", "output_tokens", "cached_tokens", "errors", "retried", "unknown_pricing_calls", "toon_calls")}
+        costs = [m["estimated_cost_usd"] for m in models if m["estimated_cost_usd"] is not None]
+        tot["estimated_cost_usd"] = round(sum(costs), 6) if costs else None
+        tot["avg_latency_ms"] = int(sum(m["avg_latency_ms"] * (m["requests"] or 0) for m in models) / tot["requests"]) if tot["requests"] else None
+        return {"models": models, **tot}
 
     # ---- local policy index -------------------------------------------------------------
     def replace_policy_chunks(self, tenant_id: str, repo: str, commit_sha: str, chunks: list[dict[str, Any]], documents: list[dict[str, Any]] | None = None) -> None:

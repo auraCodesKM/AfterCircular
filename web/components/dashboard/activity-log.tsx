@@ -13,6 +13,7 @@ import {
   FilePlus2,
   History,
   ListChecks,
+  OctagonAlert,
   OctagonX,
   PenLine,
   Radar,
@@ -53,6 +54,7 @@ const ICON: Record<string, [LucideIcon, ActivityItem["tone"]]> = {
   TICKET_CREATED: [CircleDot, "good"],
   ARCHIVED: [Archive, "default"],
   PIPELINE_FAILED: [Bug, "bad"],
+  BUDGET_EXCEEDED: [OctagonAlert, "warn"],
 };
 
 const ROUTINE = new Set(["DOCUMENT_SKIPPED", "POLICIES_RETRIEVED"]);

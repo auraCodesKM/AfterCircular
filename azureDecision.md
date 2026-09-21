@@ -3,8 +3,9 @@
 Living record: architecture decisions, Azure runbook, cost strategy, TOON measurements, security, AI-103 mapping,
 verification evidence. Every claim here is either **measured in this repository** or marked **NOT VERIFIED**.
 Last reconciled with code + Azure state: **2026-09-21**.
-**STATUS = BLOCKED_ON_AZURE_AUTH** — the Azure inventory is *unknown* (not empty): no MCP, no CLI, no credential on this machine.
-Human runbook to unblock: [`docs/azure-setup-runbook.md`](docs/azure-setup-runbook.md). Discovery starts when you type `DISCOVERY COMPLETE`.
+**STATUS = LIVE (controlled development/demo deployment)** — Foundry `gpt-5-mini` + `text-embedding-3-small`, Azure AI Search
+`policies-dev`, Jev, all reached with Entra ID from this machine; one bounded end-to-end scan verified on 2026-09-21 (§15).
+Not production: single dev resource group, local backend, SQLite, list-price cost estimates, Students subscription.
 
 Status legend: ✅ verified · 🧪 implemented, not yet verified against Azure · ⛔ blocked on a human action · ✗ not done
 
@@ -79,6 +80,13 @@ TOON/JSON boundary (see §7):
 Deliberately **not** used: AKS, Service Bus, Event Grid, Redis, Cosmos DB, PostgreSQL, multi-region (§38 of the brief; §16 ADR-6).
 
 ## 4. Microsoft Foundry
+
+**Current deployment (2026-09-21): `gpt-5-mini`** (Global Standard, Korea Central) for extraction, impact reasoning and memo —
+one deployment, three logical tasks, selected by `EXTRACTION_MODEL` / `IMPACT_MODEL` / `MEMO_MODEL`. Chosen because it is the
+smallest current model with strict structured outputs and quota on this subscription. **GPT-5.6-Luna is planned but not deployed:
+the subscription shows 0 TPM quota for it.** Switching is configuration only (`*_MODEL=<new deployment name>`); the provider
+already omits `temperature` for reasoning-family deployments. Observed: gpt-5-mini spends 2–4× its input in output (reasoning)
+tokens and takes 18–30 s per call; a one-document scan is ~1–2 minutes.
 
 - **API**: Azure OpenAI **v1 API** (GA) at `https://<resource>.openai.azure.com/openai/v1/` (or `.services.ai.azure.com`) with the
   standard `openai` Python SDK (installed: **3.16.2**) — no `api-version`. **Responses API** (`client.responses.parse`) with
@@ -198,6 +206,24 @@ once a Foundry deployment exists, and writes `evals/results/toon_live.json`.
   levers are the ones in §8.
 
 ## 8. Token & Cost Optimization
+
+### Application cost circuit breakers (not Azure billing limits)
+`AFTERCIRCULAR_MAX_ESTIMATED_COST_PER_SCAN_USD=0.50` and `AFTERCIRCULAR_MAX_ESTIMATED_COST_PER_DAY_USD=5.00` (0 disables). `CallBudget`
+checks *before* each generative call: calls ≥ `MAX_LLM_CALLS_PER_SCAN`, or estimated scan spend ≥ scan limit, or spend today
+(all tenants) ≥ daily limit → `BudgetExceeded` with reason `BUDGET_EXCEEDED:calls|scan_cost|daily_cost`; the document is marked
+FAILED (retryable), a `BUDGET_EXCEEDED` audit event is written, no memo/review/ticket follows. A day already at the limit refuses
+the scan before any call. Unknown-priced models add $0 and are counted (`unknown_pricing_calls`). Tested for below/at/above,
+unknown pricing, repair attempts, multiple stages, concurrency, and both pipeline-level paths.
+
+### Usage telemetry
+`GET /api/usage?period=today|all[&scan_id=]` (tenant-scoped, Bearer + tenant headers): per-model requests, input/output/cached
+tokens, estimated cost, avg latency, errors, retried, TOON calls, `pricing_status`; latest-scan spend; budgets and remaining.
+Rendered on the dashboard **Models** page (values only from the backend; "Not available" otherwise).
+
+### Pricing status
+`DEFAULT_PRICING` (and `evals/pricing.json`) hold a **list-price snapshot as known to this repository — unverified against the
+subscription's price sheet**. Every call records `pricing_status = estimate | unknown`; a model without a price gets
+`estimated_cost_usd = null`, never a guess. Override with `MODEL_PRICING_JSON`. gpt-5-mini is mapped (0.25 / 0.025 / 2.00 per 1M).
 
 ### Cost report (2026-09-21, before any provisioning)
 
@@ -422,8 +448,8 @@ Web: set `BACKEND_URL` to the Container App FQDN and deploy `web/` (Vercel or St
 | Foundry smoke / extraction / impact / memo | ✅ 2026-09-21, deployment `gpt-5-mini` (Global Standard, Korea Central), Entra auth, `structured_mode=json_schema` on all four. smoke 63 in / 102 out, 7.5 s; extraction 1236 in / 3969 out, 29.9 s, 8 obligations, est. $0.008; impact (TOON context) 1436 in / 1616 out, 17.7 s, YES/CONFLICT, est. $0.0036; memo (TOON) 869 in / 3647 out, 30.1 s, est. $0.0075. cached_tokens 0 (prefixes < 1024 tokens, as predicted). | ✅ |
 | Azure AI Search hybrid | ✅ 2026-09-21: `policies-dev`, Entra auth, 82 chunks upserted (tenant_id=live-check, 1536-d vectors), hybrid query 271 ms → POL-001 §4.1 first; second run reused readiness | ✅ |
 | Prompt caching effect | measured 0 cached tokens on all four calls — the stable prefixes are below the 1024-token minimum; no saving to claim | ✅ measured |
-| End-to-end + approval + issue (live Foundry) | earlier in the project the same flow ran with the *stub* provider and created issues #2–#4 on `auraCodesKM/acme-securities-policies` behind human approval; not yet with Foundry | 🧪 |
-| Idempotency | unit test `test_scan_defers_documents_beyond_the_limit` + e2e stub tests: second scan skips; needs one live repeat | ✅ stub / ⛔ live |
+| End-to-end (live Foundry + Search + Jev) | ✅ 2026-09-21 `evals/results/live_e2e.{json,md}`: 3 snapshot documents, 1 forced scan (Acme tenant) — 4 Foundry calls, 4,432 in / 11,571 out tokens, 0 cached, est. $0.0243, 42 Jev decision records, 82 chunks in `policies-dev`, avg Foundry latency 22.8 s, 0 retries/errors. DEMO-014 → YES/CONFLICT POL-001 (memo, review already approved → idempotent); DEMO-016 → archived at **triage** with 0 Foundry calls; DEMO-015 → YES/CONFLICT POL-001 §8 (golden label said ALIGNED — a defensible two-sided finding, now AWAITING_REVIEW; reported as a mismatch, label unchanged). Repeat scan: 0 new, 3 skipped, 0 calls. Approval/GitHub not exercised live (mocked in tests; manual step). | ✅ 3/4 live cases |
+| Idempotency | live repeat scan 2026-09-21: `new=0, skipped=3, llm_calls=0`; existing approved review not re-opened | ✅ |
 | App Insights | exporter configured in code only | 🧪 |
 | Scheduled scan | `/api/scheduled-scan` returns 409 when disabled (default) | ✅ code |
 
@@ -469,6 +495,9 @@ Web: set `BACKEND_URL` to the Container App FQDN and deploy `web/` (Vercel or St
 
 - No Azure resource exists yet; every Foundry/Search item is 🧪 until §13 is done. Nothing in this document claims a live Azure result.
 - Prompt-cache savings, live TOON accuracy/latency and live end-to-end cost are unmeasured.
+- Approval → GitHub issue has been exercised live only with the stub provider earlier (issues #2–#4); with Foundry it is
+  verified through mocked tests and remains a manual click on the AWAITING_REVIEW row.
+- Pricing figures are an unverified list-price snapshot; the Azure Cost analysis blade is the source of truth.
 - The live SEBI connector depends on sebi.gov.in being reachable and its HTML stable; the fictional snapshot is the fallback and is labelled.
 - Semantic ranker not evaluated. `MAX_CONTEXT_TOKENS` is a documented budget; only the evidence budget is enforced in code today.
 - Scheduled scans need a server-side `GITHUB_TOKEN` (user OAuth tokens live only in browser sessions).

@@ -74,6 +74,19 @@ export type JudgeSummaryRow = {
   requests_per_case: number | null; input_tokens_per_case: number | null; latency_ms_per_case: number | null; estimated_cost_per_case: number | null;
 };
 export type JudgeReport = { generated_at: string; scenarios: string[]; thresholds: Record<string, number>; summary: JudgeSummaryRow[]; note?: string };
+export type UsageModel = {
+  model: string; provider: string; requests: number; input_tokens: number; output_tokens: number; cached_tokens: number;
+  estimated_cost_usd: number | null; avg_latency_ms: number; errors: number; retried: number; unknown_pricing_calls: number; toon_calls: number;
+  pricing_status: "estimate" | "unknown";
+};
+export type Usage = {
+  period: "today" | "all"; since: string | null; deployments: Record<string, string>; active_model: string | null; pricing: Record<string, "estimate" | "unknown">;
+  models: UsageModel[]; requests: number; input_tokens: number; output_tokens: number; cached_tokens: number; estimated_cost_usd: number | null;
+  avg_latency_ms: number | null; errors: number; retried: number; unknown_pricing_calls: number; toon_calls: number;
+  scan: { id: string; status: string; llm_calls: number; estimated_cost_usd: number; requests?: number } | null;
+  budget: { scan_limit_usd: number; daily_limit_usd: number; max_llm_calls_per_scan: number; spent_today_usd: number; daily_remaining_usd: number | null; scan_remaining_usd: number | null; note: string };
+};
+
 export type EvalReport = { judges: JudgeReport | null } & (
   | { available: false; message: string }
   | { available: true; generated_at: string; provider: string; models: string[]; scenarios: string[]; retrieval: string; warning?: string; summary: EvalSummaryRow[]; recommendation: Record<string, { model: string; quality_score: number }> }
