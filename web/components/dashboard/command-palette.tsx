@@ -31,6 +31,7 @@ import type {
   ScanRecord,
 } from "@/lib/pipeline-types";
 import { Orb } from "./orb";
+import { useSound } from "./sound-effects";
 import { useWorkspace } from "./workspace-provider";
 
 /** ⌘K: commands, circulars and policies in one place. Typing a sentence becomes a question for the agent. */
@@ -40,16 +41,18 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const [docs, setDocs] = useState<ProcessedDocument[]>([]);
   const [policies, setPolicies] = useState<PolicyIndex["documents"]>([]);
+  const sound = useSound();
 
   useEffect(() => {
     if (!palette.open) return;
+    sound("open");
     api<ProcessedDocument[]>("documents")
       .then(setDocs)
       .catch(() => setDocs([]));
     api<PolicyIndex>("policies")
       .then((p) => setPolicies(p.documents))
       .catch(() => setPolicies([]));
-  }, [palette.open]);
+  }, [palette.open, sound]);
 
   const close = () => palette.setOpen(false);
   const nav = (href: string) => {

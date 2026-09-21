@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { AskSheet } from "@/components/dashboard/ask-sheet";
 import { CommandPalette } from "@/components/dashboard/command-palette";
 import { SiteHeader } from "@/components/dashboard/site-header";
+import { SoundEffects } from "@/components/dashboard/sound-effects";
 import { WorkspaceProvider } from "@/components/dashboard/workspace-provider";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
@@ -29,6 +30,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   return (
     <TooltipProvider>
+      <SoundEffects>
         <WorkspaceProvider health={ctx.health} tenant={{ companyName: ctx.tenant.companyName, repo: ctx.tenant.githubRepo, branch: ctx.tenant.defaultBranch }} recent={recent.data}>
           <div className="bg-background text-foreground">
             <SidebarProvider>
@@ -44,6 +46,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             <Toaster position="bottom-right" />
           </div>
         </WorkspaceProvider>
+      </SoundEffects>
       </TooltipProvider>
   );
 }

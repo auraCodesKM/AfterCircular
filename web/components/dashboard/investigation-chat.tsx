@@ -11,6 +11,7 @@ import { api } from "@/lib/client-api";
 import type { Investigation } from "@/lib/pipeline-types";
 import { AnswerView } from "./answer-view";
 import { Orb } from "./orb";
+import { useSound } from "./sound-effects";
 import { useWorkspace } from "./workspace-provider";
 
 type Turn = { id: string; role: "user"; text: string } | { id: string; role: "assistant"; inv: Investigation; stream: boolean };
@@ -23,6 +24,7 @@ export function InvestigationChat({ initialLogin, avatar }: { initialLogin: stri
   const router = useRouter();
   const { recent, addRecent } = useWorkspace();
   const [turns, setTurns] = useState<Turn[]>([]);
+  const sound = useSound();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const opened = useRef<string | null>(null);
@@ -36,8 +38,10 @@ export function InvestigationChat({ initialLogin, avatar }: { initialLogin: stri
     try {
       const inv = await api<Investigation>("ask", { method: "POST", body: JSON.stringify({ question: q }) });
       addRecent(inv);
+      sound(inv.intent === "other" ? "warning" : "chirp");
       setTurns((t) => [...t, { id: inv.id, role: "assistant", inv, stream: true }]);
     } catch (e) {
+      sound("error");
       setError((e as Error).message);
     } finally {
       setBusy(false);

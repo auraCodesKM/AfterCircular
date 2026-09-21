@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NAV } from "./app-sidebar";
+import { SoundToggle } from "./sound-effects";
 import { ThemeToggle } from "./theme-toggle";
 import { useWorkspace } from "./workspace-provider";
 
@@ -35,6 +36,7 @@ export function SiteHeader({ companyName }: { companyName: string }) {
           <span className="hidden sm:inline">Ask AfterCircular…</span>
           <kbd className="ml-auto hidden rounded border border-border px-1 font-mono text-[10px] sm:inline">⌘K</kbd>
         </Button>
+        <SoundToggle />
         <ThemeToggle />
       </div>
     </header>

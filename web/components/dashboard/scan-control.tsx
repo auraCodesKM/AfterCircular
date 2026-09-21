@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { cn } from "cn";
 import { api } from "@/lib/client-api";
 import { Orb } from "./orb";
+import { useSound } from "./sound-effects";
 import type { ScanRecord, ScanStep } from "@/lib/pipeline-types";
 
 const StepIcon = ({ status }: { status: ScanStep["status"] }) => {
@@ -28,6 +29,7 @@ const ERROR_TITLE: Record<string, string> = { repository: "Policy repository una
 export function ScanControl({ initial, disabled, title, description, children }: { initial: ScanRecord | null; disabled?: boolean; title: string; description: string; children?: React.ReactNode }) {
   const router = useRouter();
   const params = useSearchParams();
+  const sound = useSound();
   const [scan, setScan] = useState(initial);
   const [starting, setStarting] = useState(false);
   const [open, setOpen] = useState(initial?.status === "RUNNING");
@@ -44,10 +46,14 @@ export function ScanControl({ initial, disabled, title, description, children }:
           router.refresh();
           if (rec.status !== "RUNNING") {
             if (rec.status === "COMPLETED") {
+              sound(rec.new_documents ? "notification" : "success");
               toast.success("Scan completed", { description: `${rec.new_documents} new · ${rec.skipped_documents} already processed` });
               if (rec.source_mode === "DEMO_SNAPSHOT" && rec.steps.find((s) => s.key === "connect")?.detail?.includes("unavailable"))
                 toast.warning("SEBI source unavailable", { description: "Using the fictional demo snapshot." });
-            } else toast.error(ERROR_TITLE[rec.error_kind ?? "backend"], { description: rec.error ?? undefined });
+            } else {
+              sound("error");
+              toast.error(ERROR_TITLE[rec.error_kind ?? "backend"], { description: rec.error ?? undefined });
+            }
             return;
           }
           await new Promise((r) => setTimeout(r, 1500));
@@ -56,12 +62,13 @@ export function ScanControl({ initial, disabled, title, description, children }:
         toast.error("Lost contact with the backend", { description: (e as Error).message });
       }
     },
-    [router],
+    [router, sound],
   );
 
   const scanNow = useCallback(async () => {
     setStarting(true);
     setOpen(true);
+    sound("command");
     try {
       const rec = await api<ScanRecord>("scan", { method: "POST", body: JSON.stringify({}) });
       setScan(rec);
@@ -71,7 +78,7 @@ export function ScanControl({ initial, disabled, title, description, children }:
     } finally {
       setStarting(false);
     }
-  }, [poll]);
+  }, [poll, sound]);
 
   const autoStarted = useRef(false);
   useEffect(() => {

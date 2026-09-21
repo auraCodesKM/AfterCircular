@@ -18,10 +18,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/client-api";
 import type { ReviewRecord } from "@/lib/pipeline-types";
+import { useSound } from "./sound-effects";
 
 /** The one place a side effect is authorized. Approve confirms in an AlertDialog; the backend enforces the state machine. */
 export function HumanReview({ review, onDecided, compact }: { review: ReviewRecord; onDecided?: (r: ReviewRecord) => void; compact?: boolean }) {
   const router = useRouter();
+  const sound = useSound();
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [result, setResult] = useState<ReviewRecord | null>(null);
@@ -35,10 +37,16 @@ export function HumanReview({ review, onDecided, compact }: { review: ReviewReco
       const r = await api<ReviewRecord>(`reviews/${review.id}/${kind}`, { method: "POST", body: JSON.stringify({ note: note || null }) });
       setResult(r);
       onDecided?.(r);
-      if (kind === "approve") toast.success("Approval recorded", { description: r.ticket_id ? `GitHub issue #${r.ticket_id} created` : undefined });
-      else toast("Rejected", { description: "No action taken. Recorded in the audit log." });
+      if (kind === "approve") {
+        sound("success");
+        toast.success("Approval recorded", { description: r.ticket_id ? `GitHub issue #${r.ticket_id} created` : undefined });
+      } else {
+        sound("warning");
+        toast("Rejected", { description: "No action taken. Recorded in the audit log." });
+      }
       router.refresh();
     } catch (e) {
+      sound("error");
       toast.error(kind === "approve" ? "Approval failed" : "Rejection failed", { description: (e as Error).message });
     } finally {
       setBusy(false);

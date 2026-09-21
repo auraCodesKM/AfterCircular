@@ -25,7 +25,7 @@ function Excerpt({ meta, text, href, hrefLabel }: { meta: React.ReactNode; text:
           </Button>
         ) : null}
         {href ? (
-          <Button variant="ghost" size="xs" className="text-muted-foreground" render={href.startsWith("/") ? <Link href={href} /> : <a href={href} target="_blank" rel="noreferrer" />}>
+          <Button variant="ghost" size="xs" className="text-muted-foreground" nativeButton={false} render={href.startsWith("/") ? <Link href={href} /> : <a href={href} target="_blank" rel="noreferrer" />}>
             {hrefLabel} <ExternalLink />
           </Button>
         ) : null}

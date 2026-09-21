@@ -17,6 +17,7 @@ import { api } from "@/lib/client-api";
 import type { Investigation } from "@/lib/pipeline-types";
 import { AnswerView } from "./answer-view";
 import { Orb } from "./orb";
+import { useSound } from "./sound-effects";
 import { useWorkspace } from "./workspace-provider";
 
 const SUGGESTIONS = [
@@ -43,6 +44,7 @@ export function AskSheet() {
 function AskBody({ initial }: { initial: string }) {
   const { ask, addRecent } = useWorkspace();
   const [q, setQ] = useState(initial);
+  const sound = useSound();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inv, setInv] = useState<Investigation | null>(null);
@@ -71,6 +73,7 @@ function AskBody({ initial }: { initial: string }) {
       setInv(res);
       addRecent(res);
     } catch (e) {
+      sound("error");
       setError((e as Error).message);
     } finally {
       setBusy(false);
@@ -168,6 +171,7 @@ function AskBody({ initial }: { initial: string }) {
             <Button
               variant="outline"
               size="sm"
+              nativeButton={false}
               render={
                 <Link
                   href={`/dashboard/investigations/${inv.id}`}
