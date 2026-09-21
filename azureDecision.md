@@ -2,7 +2,9 @@
 
 Living record: architecture decisions, Azure runbook, cost strategy, TOON measurements, security, AI-103 mapping,
 verification evidence. Every claim here is either **measured in this repository** or marked **NOT VERIFIED**.
-Last reconciled with code + Azure state: **2026-09-21** (Azure state: *no resources exist yet — see §12/§13*).
+Last reconciled with code + Azure state: **2026-09-21**.
+**STATUS = BLOCKED_ON_AZURE_AUTH** — the Azure inventory is *unknown* (not empty): no MCP, no CLI, no credential on this machine.
+Human runbook to unblock: [`docs/azure-setup-runbook.md`](docs/azure-setup-runbook.md). Discovery starts when you type `DISCOVERY COMPLETE`.
 
 Status legend: ✅ verified · 🧪 implemented, not yet verified against Azure · ⛔ blocked on a human action · ✗ not done
 
