@@ -16,6 +16,9 @@ dependencies = [
     "pyyaml>=6.0",
     "python-dotenv>=1.0",
     "typesafe-sdk>=0.7.0",
+    "toon-format==0.9.0b1",
+    "tiktoken>=0.14.0",
+    "azure-monitor-opentelemetry>=1.8.10",
 ]
 
 [dependency-groups]

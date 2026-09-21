@@ -5,6 +5,8 @@ os.environ.setdefault("SEBI_MODE", "snapshot")
 os.environ.setdefault("BACKEND_API_KEY", "test-key")
 os.environ.setdefault("DEFAULT_JUDGE", "stub")
 os.environ["DECISION_ROUTES"] = ""
+# stub provider makes no model calls, so the whole snapshot may be processed in tests
+os.environ.setdefault("AFTERCIRCULAR_MAX_DOCUMENTS_PER_SCAN", "5")
 
 import pytest  # noqa: E402
 

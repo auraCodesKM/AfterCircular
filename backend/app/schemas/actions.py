@@ -78,6 +78,8 @@ class ScanRecord(BaseModel):
     steps: list[ScanStep]
     new_documents: int = 0
     skipped_documents: int = 0
+    deferred_documents: int = 0  # new documents left for the next scan by MAX_DOCUMENTS_PER_SCAN
+    llm_calls: int = 0
     document_ids: list[str] = []
     error: str | None = Field(default=None, description="Human-readable")
     error_kind: ErrorKind | None = None

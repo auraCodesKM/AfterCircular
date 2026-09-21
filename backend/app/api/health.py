@@ -16,4 +16,10 @@ def health() -> dict:
         "models": {"extraction": s.extraction_model, "impact": s.impact_model, "memo": s.memo_model, "embedding": s.embedding_model},
         "judge": {"default": s.default_judge if (s.default_judge != "typesafe" or s.typesafe_api_key) else "stub", "model": s.typesafe_model,
                   "typesafe_configured": bool(s.typesafe_api_key), "routes": s.decision_routes},
+        "environment": s.environment,
+        "foundry": {"configured": s.foundry_configured, "api": s.foundry_api, "auth": "api-key" if s.foundry_api_key else "entra-id"} if s.foundry_configured else None,
+        "guardrails": {"max_documents_per_scan": s.max_documents_per_scan, "max_llm_calls_per_scan": s.max_llm_calls_per_scan,
+                       "max_retries": s.max_retries, "max_concurrent_calls": s.max_concurrent_calls,
+                       "live_scan": s.enable_live_scan, "scheduled_scan": s.enable_scheduled_scan, "toon_context": s.toon_context},
+        "observability": "application-insights" if s.applicationinsights_connection_string else "logs-only",
     }

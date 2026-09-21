@@ -1,4 +1,10 @@
-"""Azure AI Search: one index per tenant (PRD §6), HNSW vector field + BM25 keyword, hybrid query."""
+"""Azure AI Search: one index per tenant (PRD §6), HNSW vector field + BM25 keyword, hybrid query.
+
+Hybrid = BM25 keyword results and HNSW vector results fused server-side with Reciprocal Rank Fusion (the service does
+RRF whenever `search_text` and `vector_queries` are both present). Optional semantic reranking (L2) when
+AZURE_SEARCH_SEMANTIC_CONFIG names a configuration — costs extra per query, so it is opt-in and measured, not default.
+Auth: API key when AZURE_SEARCH_API_KEY is set, else DefaultAzureCredential (Search Index Data Contributor + Search
+Service Contributor for index creation)."""
 
 import asyncio
 import logging
@@ -14,6 +20,10 @@ from azure.search.documents.indexes.models import (
     SearchableField,
     SearchField,
     SearchIndex,
+    SemanticConfiguration,
+    SemanticField,
+    SemanticPrioritizedFields,
+    SemanticSearch,
     SimpleField,
     VectorSearch,
     VectorSearchProfile,
@@ -36,10 +46,15 @@ class AzureSearchRetriever(Retriever):
 
     def __init__(self, dims: int = 1536):
         s = settings()
-        if not s.azure_search_api_key:
-            raise RuntimeError("AZURE_SEARCH_API_KEY required (managed identity for Search: future scope)")
-        self.cred = AzureKeyCredential(s.azure_search_api_key)
+        self.cred: Any
+        if s.azure_search_api_key:
+            self.cred = AzureKeyCredential(s.azure_search_api_key)
+        else:
+            from azure.identity import DefaultAzureCredential
+
+            self.cred = DefaultAzureCredential()
         self.endpoint = s.azure_search_endpoint
+        self.semantic = s.azure_search_semantic_config or None
         self.dims = dims
         self.idx = SearchIndexClient(self.endpoint, self.cred)
 
@@ -59,7 +74,11 @@ class AzureSearchRetriever(Retriever):
                         vector_search_dimensions=self.dims, vector_search_profile_name="hnsw"),
         ]
         vs = VectorSearch(algorithms=[HnswAlgorithmConfiguration(name="hnsw-algo")], profiles=[VectorSearchProfile(name="hnsw", algorithm_configuration_name="hnsw-algo")])
-        self.idx.create_or_update_index(SearchIndex(name=index_name(tenant_id), fields=fields, vector_search=vs))
+        semantic = None
+        if self.semantic:
+            semantic = SemanticSearch(configurations=[SemanticConfiguration(
+                name=self.semantic, prioritized_fields=SemanticPrioritizedFields(title_field=SemanticField(field_name="title"), content_fields=[SemanticField(field_name="text")]))])
+        self.idx.create_or_update_index(SearchIndex(name=index_name(tenant_id), fields=fields, vector_search=vs, semantic_search=semantic))
 
     async def index(self, tenant_id: str, chunks: list[dict[str, Any]]) -> None:
         def _do() -> None:
@@ -85,7 +104,8 @@ class AzureSearchRetriever(Retriever):
     async def search(self, tenant_id: str, query: str, vector: list[float] | None, k: int = 6) -> list[PolicyChunk]:
         def _do() -> list[PolicyChunk]:
             vq: list[VectorQuery] | None = [VectorizedQuery(vector=vector, k_nearest_neighbors=k, fields="vector")] if vector else None
-            res = self._client(tenant_id).search(search_text=query, vector_queries=vq, top=k, select=["id", "doc_id", "title", "path", "version", "section", "text"])
+            extra: dict[str, Any] = {"query_type": "semantic", "semantic_configuration_name": self.semantic} if self.semantic else {}
+            res = self._client(tenant_id).search(search_text=query, vector_queries=vq, top=k, select=["id", "doc_id", "title", "path", "version", "section", "text"], **extra)
             return [PolicyChunk(chunk_id=r["id"], doc_id=r["doc_id"], title=r["title"], path=r["path"], version=r.get("version") or None,
                                 section=r["section"], text=r["text"], score=float(r["@search.score"])) for r in res]
         return await asyncio.to_thread(_do)

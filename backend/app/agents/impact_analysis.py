@@ -1,3 +1,4 @@
+from app.agents.context import budget_chunks, chunk_block, formats, obligation_block
 from app.models.provider import LLMProvider, LLMResult
 from app.schemas.impact import ImpactAnalysis, PolicyChunk
 from app.schemas.obligations import ExtractionResult
@@ -18,20 +19,20 @@ Hard rules:
 - If you cannot cite policy text for a CONFLICT, answer UNCERTAIN instead of guessing.
 - affected_policies lists doc_ids (e.g. "POL-001") that must change; empty when ALIGNED or NO.
 - confidence is your honest probability that the classification is correct.
-- alignment is null when applicability is NO or UNCERTAIN."""
+- alignment is null when applicability is NO or UNCERTAIN.
 
-
-def format_chunks(chunks: list[PolicyChunk]) -> str:
-    return "\n\n".join(f"[{c.doc_id} §{c.section}] (version {c.version or 'n/a'}, {c.path})\n{c.text}" for c in chunks)
+Input format: the obligations and the policy excerpts are given as TOON (Token-Oriented Object Notation) or JSON blocks.
+A TOON block like `obligations[3]{i,area,requirement,...}:` declares the row count and the column names once; each following
+indented line is one row with comma-separated values, quoted when they contain commas."""
 
 
 async def analyze_impact(llm: LLMProvider, extraction: ExtractionResult, chunks: list[PolicyChunk], company_profile: str, *,
                          model: str | None = None, document_id: str | None = None) -> tuple[ImpactAnalysis, LLMResult]:
-    obligations = "\n".join(
-        f"{i + 1}. [{o.affected_area}] {o.requirement} (deadline: {o.deadline or 'none stated'}) — evidence §{o.evidence.section}: \"{o.evidence.text}\""
-        for i, o in enumerate(extraction.obligations)
-    )
+    ob = obligation_block(extraction.obligations)
+    ch = chunk_block(budget_chunks(chunks))
     user = (f"COMPANY PROFILE\n{company_profile}\n\nCIRCULAR\n{extraction.regulator} {extraction.circular_number or ''}\n"
             f"Applies to: {', '.join(extraction.applies_to)}\nEffective: {extraction.effective_date or 'not stated'}\nSummary: {extraction.summary}\n\n"
-            f"OBLIGATIONS\n{obligations or '(none extracted)'}\n\nRETRIEVED INTERNAL POLICY EXCERPTS\n{format_chunks(chunks) or '(none retrieved)'}")
-    return await llm.structured("impact", SYSTEM, user, ImpactAnalysis, model=model, context={"document_id": document_id})
+            f"OBLIGATIONS ({ob.format})\n{ob.text if extraction.obligations else '(none extracted)'}\n\n"
+            f"RETRIEVED INTERNAL POLICY EXCERPTS ({ch.format})\n{ch.text if chunks else '(none retrieved)'}")
+    return await llm.structured("impact", SYSTEM, user, ImpactAnalysis, model=model,
+                                context={"document_id": document_id, "context_format": formats(ob, ch)})

@@ -1,5 +1,7 @@
 """LLM provider abstraction. The rest of the app calls `provider().structured(...)` and never sees a model name."""
 
+import asyncio
+import contextvars
 import json
 import logging
 import time
@@ -15,6 +17,30 @@ T = TypeVar("T", bound=BaseModel)
 
 TASK_MODELS = {"extraction": "extraction_model", "impact": "impact_model", "memo": "memo_model"}
 
+# USD per 1M tokens: (input, cached input, output). Public list-price snapshot (Azure OpenAI, global standard, Sept 2026
+# as known to this code) — an *estimate* for telemetry only. Override with MODEL_PRICING_JSON={"<deployment>":[in,cached,out]}.
+DEFAULT_PRICING: dict[str, tuple[float, float, float]] = {
+    "gpt-4o-mini": (0.15, 0.075, 0.60), "gpt-4o": (2.50, 1.25, 10.00),
+    "gpt-4.1-nano": (0.10, 0.025, 0.40), "gpt-4.1-mini": (0.40, 0.10, 1.60), "gpt-4.1": (2.00, 0.50, 8.00),
+    "gpt-5-nano": (0.05, 0.005, 0.40), "gpt-5-mini": (0.25, 0.025, 2.00), "gpt-5": (1.25, 0.125, 10.00),
+    "text-embedding-3-small": (0.02, 0.02, 0.0), "text-embedding-3-large": (0.13, 0.13, 0.0),
+}
+
+
+def estimate_cost(model: str, input_tokens: int | None, output_tokens: int | None, cached_tokens: int | None = None) -> float | None:
+    table = dict(DEFAULT_PRICING)
+    if settings().model_pricing_json:
+        try:
+            table.update({k: tuple(v) for k, v in json.loads(settings().model_pricing_json).items()})  # type: ignore[misc]
+        except (ValueError, TypeError):
+            log.warning("MODEL_PRICING_JSON is not valid JSON; using defaults")
+    key = next((k for k in sorted(table, key=len, reverse=True) if model.lower().startswith(k)), None)
+    if key is None or input_tokens is None:
+        return None
+    p_in, p_cached, p_out = table[key]
+    cached = cached_tokens or 0
+    return round(((input_tokens - cached) * p_in + cached * p_cached + (output_tokens or 0) * p_out) / 1_000_000, 6)
+
 
 class ProviderError(RuntimeError):
     pass
@@ -22,6 +48,25 @@ class ProviderError(RuntimeError):
 
 class StructuredOutputError(ProviderError):
     pass
+
+
+class BudgetExceeded(ProviderError):
+    """The scan's model-call budget is spent. Stops the pipeline instead of spending more credits."""
+
+
+class CallBudget:
+    """Per-scan cap on generative model calls (AFTERCIRCULAR_MAX_LLM_CALLS_PER_SCAN). Set via `budget_var`."""
+
+    def __init__(self, limit: int):
+        self.limit, self.used = limit, 0
+
+    def take(self, task: str) -> None:
+        if self.used >= self.limit:
+            raise BudgetExceeded(f"model-call budget of {self.limit} per scan reached before task={task}")
+        self.used += 1
+
+
+budget_var: contextvars.ContextVar[CallBudget | None] = contextvars.ContextVar("llm_budget", default=None)
 
 
 class LLMResult(BaseModel):
@@ -32,7 +77,11 @@ class LLMResult(BaseModel):
     latency_ms: int
     input_tokens: int | None = None
     output_tokens: int | None = None
+    cached_tokens: int | None = None
     attempts: int = 1
+    estimated_cost_usd: float | None = None
+    context_format: str | None = None  # "toon" | "json" — how repeated structured context was serialized in the prompt
+    structured_mode: str | None = None  # "json_schema" (strict) | "json_object" (schema-in-prompt) | "fixture"
 
 
 class LLMProvider(ABC):
@@ -49,16 +98,32 @@ class LLMProvider(ABC):
     async def embed(self, texts: list[str]) -> list[list[float]] | None:
         """None when the provider has no embedding model — retrieval degrades to keyword-only."""
 
+    async def generate_structured(self, task: str, system: str, user: str, schema: type[T], *, model: str | None = None,
+                                  context: dict[str, Any] | None = None) -> tuple[T, LLMResult] | None:
+        """Native strict structured output (JSON Schema at the API boundary). None → provider has no native mode."""
+        return None
+
     async def structured(self, task: str, system: str, user: str, schema: type[T], *, model: str | None = None,
                          context: dict[str, Any] | None = None) -> tuple[T, LLMResult]:
-        """JSON-mode call validated against `schema`; one repair retry with the validation errors; then fail."""
+        """Typed call validated against `schema`. Native strict JSON-Schema output when available; otherwise JSON mode
+        with the schema in the prompt and ONE repair attempt carrying the validation errors; then fail safely."""
+        budget = budget_var.get()
+        if budget is not None:
+            budget.take(task)
+        ctx = dict(context or {})
+        native = await self.generate_structured(task, system, user, schema, model=model, context=ctx)
+        if native is not None:
+            obj, res = native
+            res.context_format = ctx.get("context_format")
+            return obj, res
         schema_text = json.dumps(schema.model_json_schema(), indent=None)
         sys_prompt = f"{system}\n\nRespond with a single JSON object that validates against this JSON Schema. No prose.\n{schema_text}"
         last_err = ""
         for attempt in (1, 2):
             prompt = user if attempt == 1 else f"{user}\n\nYour previous answer failed validation:\n{last_err}\nReturn corrected JSON only."
-            res = await self.generate(task, sys_prompt, prompt, model=model, json_mode=True, context=context)
-            res.attempts = attempt
+            res = await self.generate(task, sys_prompt, prompt, model=model, json_mode=True, context=ctx)
+            res.attempts, res.context_format = attempt, ctx.get("context_format")
+            res.structured_mode = res.structured_mode or "json_object"
             try:
                 return schema.model_validate(_extract_json(res.text)), res
             except (ValidationError, ValueError) as e:
@@ -82,48 +147,112 @@ def _extract_json(text: str) -> Any:
 
 
 class FoundryProvider(LLMProvider):
-    """Microsoft Foundry / Azure OpenAI via the OpenAI-compatible API. Models are deployment names."""
+    """Microsoft Foundry / Azure OpenAI through the GA v1 API (`<endpoint>/openai/v1/`, no api-version):
+    Responses API with strict JSON-Schema structured outputs, prompt-cache telemetry, bounded retries, a concurrency cap.
+    Models are deployment names from configuration. Auth: API key locally, DefaultAzureCredential (Entra ID) otherwise."""
 
     name = "foundry"
 
     def __init__(self) -> None:
-        from openai import AsyncAzureOpenAI
+        from openai import AsyncOpenAI
 
         s = settings()
         if not s.foundry_endpoint:
             raise ProviderError("FOUNDRY_ENDPOINT is not set")
-        kwargs: dict[str, Any] = {"azure_endpoint": s.foundry_endpoint, "api_version": s.foundry_api_version, "timeout": 90, "max_retries": 2}
+        base = s.foundry_endpoint.rstrip("/") + "/openai/v1/"
         if s.foundry_api_key:
-            kwargs["api_key"] = s.foundry_api_key
-        else:  # managed identity / az login
+            key: Any = s.foundry_api_key
+        else:  # az login / managed identity; the token provider is called per request
             from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
-            kwargs["azure_ad_token_provider"] = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
-        self.client = AsyncAzureOpenAI(**kwargs)
+            key = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+        self.client = AsyncOpenAI(base_url=base, api_key=key, timeout=90, max_retries=s.max_retries)
+        self.api = s.foundry_api
+        self._sem = asyncio.Semaphore(max(1, s.max_concurrent_calls))
+        self._strict_ok: dict[str, bool] = {}  # schema name → whether the API accepted the strict schema
+
+    @staticmethod
+    def _usage(usage: Any) -> tuple[int | None, int | None, int | None]:
+        if usage is None:
+            return None, None, None
+        inp = getattr(usage, "input_tokens", None) or getattr(usage, "prompt_tokens", None)
+        out = getattr(usage, "output_tokens", None) or getattr(usage, "completion_tokens", None)
+        details = getattr(usage, "input_tokens_details", None) or getattr(usage, "prompt_tokens_details", None)
+        cached = getattr(details, "cached_tokens", None) if details is not None else None
+        return inp, out, cached
+
+    def _result(self, task: str, m: str, text: str, t0: float, usage: Any, mode: str | None) -> LLMResult:
+        inp, out, cached = self._usage(usage)
+        return LLMResult(task=task, model=m, provider=self.name, text=text, latency_ms=int((time.perf_counter() - t0) * 1000),
+                         input_tokens=inp, output_tokens=out, cached_tokens=cached, estimated_cost_usd=estimate_cost(m, inp, out, cached),
+                         structured_mode=mode)
+
+    async def generate_structured(self, task, system, user, schema, *, model=None, context=None):
+        m = self.model_for(task, model)
+        if self._strict_ok.get(schema.__name__) is False:
+            return None  # this schema was rejected by the API once: use JSON mode with the schema in the prompt
+        t0 = time.perf_counter()
+        try:
+            async with self._sem:
+                if self.api == "responses":
+                    # stable instructions first (prompt-cache prefix), dynamic content in the input
+                    resp = await self.client.responses.parse(model=m, instructions=system, input=user, text_format=schema, temperature=0)
+                    parsed, usage, text = resp.output_parsed, resp.usage, resp.output_text  # type: ignore[assignment]
+                else:
+                    cc = await self.client.chat.completions.parse(
+                        model=m, temperature=0, response_format=schema,
+                        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}])
+                    parsed, usage, text = cc.choices[0].message.parsed, cc.usage, cc.choices[0].message.content or ""  # type: ignore[assignment]
+        except Exception as e:  # noqa: BLE001
+            msg = str(e)
+            if _schema_rejected(e):
+                log.warning("Foundry rejected strict schema %s (%s); falling back to JSON mode for this schema", schema.__name__, msg[:160])
+                self._strict_ok[schema.__name__] = False
+                return None
+            raise ProviderError(f"Foundry call failed ({type(e).__name__}): {msg[:200]}") from e
+        self._strict_ok[schema.__name__] = True
+        if parsed is None:  # refusal or empty output: one bounded repair through the JSON-mode path
+            log.warning("Foundry returned no parsed output for %s; falling back to JSON mode once", task)
+            return None
+        return parsed, self._result(task, m, text, t0, usage, "json_schema")
 
     async def generate(self, task, system, user, *, model=None, json_mode=False, context=None) -> LLMResult:
         m = self.model_for(task, model)
         t0 = time.perf_counter()
-        kwargs: dict[str, Any] = {"model": m, "temperature": 0,
-                                  "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
-        if json_mode:
-            kwargs["response_format"] = {"type": "json_object"}
         try:
-            resp = await self.client.chat.completions.create(**kwargs)
+            async with self._sem:
+                if self.api == "responses":
+                    kw: dict[str, Any] = {"model": m, "instructions": system, "input": user, "temperature": 0}
+                    if json_mode:
+                        kw["text"] = {"format": {"type": "json_object"}}
+                    r = await self.client.responses.create(**kw)
+                    return self._result(task, m, r.output_text, t0, r.usage, "json_object" if json_mode else None)
+                kwargs: dict[str, Any] = {"model": m, "temperature": 0,
+                                          "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
+                if json_mode:
+                    kwargs["response_format"] = {"type": "json_object"}
+                resp = await self.client.chat.completions.create(**kwargs)
+                return self._result(task, m, resp.choices[0].message.content or "", t0, resp.usage, "json_object" if json_mode else None)
+        except ProviderError:
+            raise
         except Exception as e:  # noqa: BLE001
             raise ProviderError(f"Foundry call failed ({type(e).__name__}): {str(e)[:200]}") from e
-        usage = resp.usage
-        return LLMResult(task=task, model=m, provider=self.name, text=resp.choices[0].message.content or "",
-                         latency_ms=int((time.perf_counter() - t0) * 1000),
-                         input_tokens=usage.prompt_tokens if usage else None, output_tokens=usage.completion_tokens if usage else None)
 
     async def embed(self, texts):
         try:
-            resp = await self.client.embeddings.create(model=settings().embedding_model, input=texts)
+            async with self._sem:
+                resp = await self.client.embeddings.create(model=settings().embedding_model, input=texts)
         except Exception as e:  # noqa: BLE001
             log.warning("embedding failed (%s); keyword-only retrieval", e)
             return None
         return [d.embedding for d in resp.data]
+
+
+def _schema_rejected(e: Exception) -> bool:
+    """400 from the API about the JSON Schema itself (unsupported keyword etc.) — not a transport/auth failure."""
+    status = getattr(e, "status_code", None)
+    msg = str(e).lower()
+    return status == 400 and ("schema" in msg or "json_schema" in msg or "response_format" in msg or "text.format" in msg)
 
 
 class StubProvider(LLMProvider):
@@ -143,7 +272,7 @@ class StubProvider(LLMProvider):
         raise ProviderError(f"AI provider is 'stub' and no fixture exists for task={task} document={doc_id}. Configure FOUNDRY_ENDPOINT for real analysis.")
 
     async def generate(self, task, system, user, *, model=None, json_mode=False, context=None) -> LLMResult:
-        return LLMResult(task=task, model="stub-fixture", provider=self.name, text=self._fixture(task, context), latency_ms=0)
+        return LLMResult(task=task, model="stub-fixture", provider=self.name, text=self._fixture(task, context), latency_ms=0, structured_mode="fixture")
 
     async def embed(self, texts):
         return None
@@ -155,7 +284,12 @@ _provider: LLMProvider | None = None
 def provider() -> LLMProvider:
     global _provider
     if _provider is None:
-        _provider = FoundryProvider() if settings().foundry_configured else StubProvider()
-        if isinstance(_provider, StubProvider):
-            log.warning("AI_PROVIDER=stub — no model calls will be made; outputs come from evals/scenarios fixtures")
+        s = settings()
+        if s.foundry_configured:
+            _provider = FoundryProvider()
+        elif s.ai_provider == "foundry" and s.environment != "dev":
+            raise ProviderError(f"AI_PROVIDER=foundry but FOUNDRY_ENDPOINT is empty in {s.environment}; refusing to fall back to fixtures")
+        else:
+            _provider = StubProvider()
+            log.warning("AI provider is the STUB — no model calls will be made; outputs come from evals/scenarios fixtures (dev only)")
     return _provider

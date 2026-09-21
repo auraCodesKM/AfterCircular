@@ -14,7 +14,7 @@ from app.agents.memo_generation import generate_memo
 from app.agents.obligation_extraction import extract_obligations
 from app.config import settings
 from app.connectors.sebi import SEBIConnector
-from app.models.provider import LLMProvider, LLMResult, ProviderError, provider
+from app.models.provider import BudgetExceeded, CallBudget, LLMProvider, LLMResult, ProviderError, budget_var, provider
 from app.retrieval.azure_search import retriever as make_retriever
 from app.retrieval.base import Retriever
 from app.schemas.actions import AnalysisRecord, ErrorKind, ProcessedDocument, ReviewRecord, ScanRecord, ScanStep, TenantContext
@@ -53,6 +53,8 @@ def friendly_error(e: BaseException) -> tuple[str, ErrorKind, str]:
         return str(e), "repository", detail
     if isinstance(e, GitHubError):
         return "AfterCircular could not access the configured policy repository.", "repository", detail
+    if isinstance(e, BudgetExceeded):
+        return "The scan stopped at its model-call budget. Raise AFTERCIRCULAR_MAX_LLM_CALLS_PER_SCAN only after checking the calls it made.", "ai", detail
     if isinstance(e, ProviderError):
         return "The AI provider did not respond. Check the model configuration and try again.", "ai", detail
     if isinstance(e, (httpx.HTTPError, ValueError)):
@@ -76,13 +78,24 @@ class Scan:
 
     def _llm(self, res: LLMResult, ok: bool = True, error: str | None = None) -> dict[str, Any]:
         self.db.record_llm_call(tenant_id=self.tenant.tenant_id, scan_id=self.rec.id, task=res.task, model=res.model, provider=res.provider,
-                                latency_ms=res.latency_ms, input_tokens=res.input_tokens, output_tokens=res.output_tokens, ok=int(ok), error=error)
-        return {"model": res.model, "latency_ms": res.latency_ms, "input_tokens": res.input_tokens, "output_tokens": res.output_tokens, "attempts": res.attempts}
+                                latency_ms=res.latency_ms, input_tokens=res.input_tokens, output_tokens=res.output_tokens, cached_tokens=res.cached_tokens,
+                                attempts=res.attempts, estimated_cost_usd=res.estimated_cost_usd, context_format=res.context_format,
+                                structured_mode=res.structured_mode, ok=int(ok), error=error)
+        self.rec.llm_calls += 1
+        log.info("llm_call task=%s model=%s provider=%s latency_ms=%s in=%s out=%s cached=%s cost_usd=%s format=%s mode=%s attempts=%s",
+                 res.task, res.model, res.provider, res.latency_ms, res.input_tokens, res.output_tokens, res.cached_tokens, res.estimated_cost_usd,
+                 res.context_format, res.structured_mode, res.attempts)
+        return {"model": res.model, "latency_ms": res.latency_ms, "input_tokens": res.input_tokens, "output_tokens": res.output_tokens,
+                "cached_tokens": res.cached_tokens, "attempts": res.attempts, "estimated_cost_usd": res.estimated_cost_usd,
+                "context_format": res.context_format, "structured_mode": res.structured_mode}
 
     # ---- run ---------------------------------------------------------------------------
     async def run(self) -> ScanRecord:
         t = self.tenant
-        audit.record(self.db, t.tenant_id, "SCAN_STARTED", actor=t.actor, actor_type="human", scan_id=self.rec.id, force=self.force)
+        cfg = settings()
+        budget_var.set(CallBudget(cfg.max_llm_calls_per_scan))  # every generative call in this task tree draws from it
+        audit.record(self.db, t.tenant_id, "SCAN_STARTED", actor=t.actor, actor_type="human", scan_id=self.rec.id, force=self.force,
+                     max_documents=cfg.max_documents_per_scan, max_llm_calls=cfg.max_llm_calls_per_scan)
         try:
             self.step("connect", "running")
             fetched = await SEBIConnector().fetch_documents(settings().sebi_max_documents)
@@ -91,11 +104,21 @@ class Scan:
             self.step("fetch", "done", f"{len(fetched.documents)} publication(s)" + (f"; {len(fetched.warnings)} warning(s)" if fetched.warnings else ""))
 
             self.step("detect", "running")
-            new_docs = [self.detect(d) for d in fetched.documents]
-            fresh = [d for d in new_docs if d is not None]
-            self.rec.new_documents, self.rec.skipped_documents = len(fresh), len(fetched.documents) - len(fresh)
+            # bounded scan: at most MAX_DOCUMENTS_PER_SCAN new documents are recorded and processed; the rest are not
+            # inserted at all, so the next scan sees them again (no half-processed rows, no wasted model calls)
+            fresh: list[ProcessedDocument] = []
+            deferred = 0
+            for d in fetched.documents:
+                if len(fresh) >= cfg.max_documents_per_scan:
+                    if not self.db.find_document(t.tenant_id, d.source, d.document_id, d.content_hash):
+                        deferred += 1
+                    continue
+                detected = self.detect(d)
+                if detected is not None:
+                    fresh.append(detected)
+            self.rec.new_documents, self.rec.skipped_documents, self.rec.deferred_documents = len(fresh), len(fetched.documents) - len(fresh) - deferred, deferred
             self.rec.document_ids = [d.id for d in fresh]
-            self.step("detect", "done", f"{len(fresh)} new, {self.rec.skipped_documents} already processed")
+            self.step("detect", "done", f"{len(fresh)} new, {self.rec.skipped_documents} already processed" + (f", {deferred} deferred to the next scan (limit {cfg.max_documents_per_scan})" if deferred else ""))
 
             # the policy index tracks the repository head on every scan (PRD §8A), new circulars or not
             self.step("index", "running")
@@ -119,14 +142,15 @@ class Scan:
 
             self.rec.status, self.rec.finished_at = "COMPLETED", now()
             self.db.save_scan(self.rec)
-            audit.record(self.db, t.tenant_id, "SCAN_COMPLETED", scan_id=self.rec.id, new=self.rec.new_documents, skipped=self.rec.skipped_documents, mode=fetched.mode)
+            audit.record(self.db, t.tenant_id, "SCAN_COMPLETED", scan_id=self.rec.id, new=self.rec.new_documents, skipped=self.rec.skipped_documents,
+                         deferred=self.rec.deferred_documents, mode=fetched.mode, llm_calls=self.rec.llm_calls)
         except Exception as e:  # noqa: BLE001 — the scan record must always reach a terminal state
             log.error("scan %s failed: %s\n%s", self.rec.id, e, traceback.format_exc())
             self.rec.status, self.rec.finished_at = "FAILED", now()
             self.rec.error, self.rec.error_kind, self.rec.error_detail = friendly_error(e)
             for pk in self.rec.document_ids:
-                d = self.db.get_document(pk, t.tenant_id)
-                if d and d.status in RETRYABLE:
+                pd = self.db.get_document(pk, t.tenant_id)
+                if pd and pd.status in RETRYABLE:
                     self.db.update_document(pk, status="FAILED", error=self.rec.error)
             for s in self.rec.steps:
                 if s.status == "running":

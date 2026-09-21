@@ -59,7 +59,7 @@ class TypeSafeJudgmentProvider(JudgmentProvider):
             raise JudgmentError("TYPESAFE_API_KEY is not set")
         self.model = s.typesafe_model
         self.client = AsyncTypeSafeClient(api_key=s.typesafe_api_key, model=self.model, timeout=60.0,
-                                          retry=RetryPolicy(max_retries=3))
+                                          retry=RetryPolicy(max_retries=s.max_retries))
 
     async def ask(self, task, state, questions, *, model=None, context=None) -> Judgment:
         t0 = time.perf_counter()
@@ -192,10 +192,18 @@ def judge_for(task: str) -> JudgmentProvider:
     s = settings()
     name = s.decision_routes.get(task, s.default_judge)
     if name == "typesafe" and not s.typesafe_api_key:
-        log.warning("task %s routed to typesafe but TYPESAFE_API_KEY is empty; using stub", task)
-        name = "stub"
+        if s.foundry_configured:  # documented fallback: uncalibrated Foundry emulation, labelled calibrated=False in every record
+            log.warning("task %s routed to typesafe but TYPESAFE_API_KEY is empty; using the Foundry emulation (uncalibrated)", task)
+            name = "foundry"
+        elif s.environment == "dev":
+            log.warning("task %s routed to typesafe but TYPESAFE_API_KEY is empty; using stub (dev only)", task)
+            name = "stub"
+        else:
+            raise JudgmentError(f"task {task}: Jev unavailable (TYPESAFE_API_KEY empty) and no Foundry fallback — refusing to use fixtures in {s.environment}")
     if name == "foundry" and not s.foundry_configured:
-        log.warning("task %s routed to foundry but Foundry is not configured; using stub", task)
+        if s.environment != "dev":
+            raise JudgmentError(f"task {task}: Foundry judge requested but Foundry is not configured in {s.environment}")
+        log.warning("task %s routed to foundry but Foundry is not configured; using stub (dev only)", task)
         name = "stub"
     if name not in _providers:
         factory: dict[str, type[JudgmentProvider]] = {"typesafe": TypeSafeJudgmentProvider, "foundry": FoundryJudgmentProvider, "stub": StubJudgmentProvider}

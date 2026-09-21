@@ -134,8 +134,10 @@ class StateStore:
         """Additive column migrations for existing dev databases (CREATE TABLE IF NOT EXISTS never alters)."""
         wanted = {
             "analyses": (("decision_path", "TEXT NOT NULL DEFAULT '[]'"), ("escalation_reason", "TEXT")),
-            "scans": (("error_kind", "TEXT"), ("error_detail", "TEXT")),
             "policy_index_meta": (("documents", "TEXT NOT NULL DEFAULT '[]'"),),
+            "llm_calls": (("cached_tokens", "INTEGER"), ("attempts", "INTEGER NOT NULL DEFAULT 1"), ("estimated_cost_usd", "REAL"),
+                          ("context_format", "TEXT"), ("structured_mode", "TEXT")),
+            "scans": (("error_kind", "TEXT"), ("error_detail", "TEXT"), ("llm_calls", "INTEGER NOT NULL DEFAULT 0"), ("deferred_documents", "INTEGER NOT NULL DEFAULT 0")),
         }
         for table, cols in wanted.items():
             have = {r["name"] for r in self.conn.execute(f"PRAGMA table_info({table})").fetchall()}
@@ -160,6 +162,10 @@ class StateStore:
     def tenant_by_owner(self, github_id: str) -> dict[str, Any] | None:
         return _row(self.conn.execute("SELECT * FROM tenants WHERE connected_by=? ORDER BY connected_at DESC", (github_id,)).fetchone())
 
+    def all_tenants(self) -> list[dict[str, Any]]:
+        rows = self.conn.execute("SELECT * FROM tenants ORDER BY connected_at").fetchall()
+        return [r for r in (_row(x) for x in rows) if r]
+
     def tenants_by_owner(self, github_id: str) -> list[dict[str, Any]]:
         rows = self.conn.execute("SELECT * FROM tenants WHERE connected_by=? ORDER BY connected_at DESC", (github_id,)).fetchall()
         return [r for r in (_row(x) for x in rows) if r]
@@ -177,9 +183,11 @@ class StateStore:
 
     def save_scan(self, rec: ScanRecord) -> None:
         self.conn.execute(
-            """UPDATE scans SET status=?, source_mode=?, finished_at=?, steps=?, new_documents=?, skipped_documents=?, document_ids=?, error=?, error_kind=?, error_detail=? WHERE id=?""",
+            """UPDATE scans SET status=?, source_mode=?, finished_at=?, steps=?, new_documents=?, skipped_documents=?, document_ids=?, error=?, error_kind=?, error_detail=?,
+               llm_calls=?, deferred_documents=? WHERE id=?""",
             (rec.status, rec.source_mode, rec.finished_at.isoformat() if rec.finished_at else None,
-             _j([s.model_dump() for s in rec.steps]), rec.new_documents, rec.skipped_documents, _j(rec.document_ids), rec.error, rec.error_kind, rec.error_detail, rec.id),
+             _j([s.model_dump() for s in rec.steps]), rec.new_documents, rec.skipped_documents, _j(rec.document_ids), rec.error, rec.error_kind, rec.error_detail,
+             rec.llm_calls, rec.deferred_documents, rec.id),
         )
         self.conn.commit()
 
