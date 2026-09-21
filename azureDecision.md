@@ -189,6 +189,32 @@ once a Foundry deployment exists, and writes `evals/results/toon_live.json`.
 
 ## 8. Token & Cost Optimization
 
+### Cost report (2026-09-21, before any provisioning)
+
+Resource status: every row **UNKNOWN** until discovery (§12). Price classes below use `DEFAULT_PRICING` in
+`backend/app/models/provider.py` — a list-price snapshot **as known to this code, not verified against your subscription's price
+sheet**: treat every $ figure as **ESTIMATE** until checked on the Azure pricing page for your region.
+
+| Item | Class | Basis | Figure |
+|---|---|---|---|
+| One document, extraction (mini model) | ESTIMATE | ~4–6k input (circular + schema), ~1–2k output at gpt-4.1-mini list price | ≈ $0.004–0.006 |
+| One document, Jev judgments (3–8 requests) | MEASURED earlier in project | ~$0.001/case observed on the golden set | ≈ $0.001 |
+| One document, Foundry escalation (only when Jev is uncertain) | ESTIMATE | ~1.5–2.5k input (TOON context) + ~1k output at gpt-4.1 list price | ≈ $0.01–0.015, often $0 |
+| One document, memo (CONFLICT only) | ESTIMATE | ~2k input + ~0.8k output at gpt-4.1-mini | ≈ $0.002 |
+| Embeddings: query + first corpus index (~40 chunks, ~8k tokens) | ESTIMATE | text-embedding-3-small $0.02/1M | < $0.001; re-index only on repo change |
+| **One scan (1 document, dev limits)** | ESTIMATE | sum, ≤ 10 model calls by budget | **≈ $0.01–0.03** |
+| Azure AI Search Free (F) | FREE | if the subscription still offers it | $0 |
+| Azure AI Search Basic | FIXED | always-on hourly billing; exact monthly figure | UNKNOWN — check pricing page for your region |
+| Application Insights | FREE up to 5 GB/mo | demo telemetry is KB | $0 |
+| Container Apps (1 replica, consumption) + Azure Files | ESTIMATE | idle-scaled; only if hosted in Azure | low single-digit $/mo — UNKNOWN exact |
+| Key Vault | FIXED (per operation) | a few hundred reads | cents |
+| Azure Functions Flex Consumption timer | FREE grant | one tick/day | $0 |
+| **One month demo (local backend, Search Free, ~30 bounded scans)** | ESTIMATE | 30 × $0.03 upper bound | **< $1 in model tokens** |
+| **One month demo (hosted, Search Basic)** | ESTIMATE + UNKNOWN | tokens < $1 + Search Basic (UNKNOWN) + Container Apps (UNKNOWN) | dominated by Search Basic |
+
+What to check to remove UNKNOWN: Azure AI Search Basic hourly price and Free-tier availability for the subscription; Container Apps
+consumption price in the chosen region; the model list prices for the deployments you actually have.
+
 | Lever | Mechanism | Status |
 |---|---|---|
 | Idempotency | `document_id + content_hash + status + analysis_id`; processed docs skipped, no model call | ✅ tests |
@@ -243,9 +269,44 @@ once a Foundry deployment exists, and writes `evals/results/toon_live.json`.
 
 ## 12. Azure Resources
 
-**Current Azure state (2026-09-21): none.** No Azure MCP server is configured in this Claude Code session (available MCP servers:
-Canva, Claude Docs, Eraser, Gmail, Google Calendar/Drive, Notion, Figma, shadcn, agentation — none for Azure). The `az` CLI is not
-installed on this machine, and no Azure credentials exist in either `.env` file. Nothing was provisioned; nothing could be inspected.
+### Discovery log
+
+| Date | Method | Result |
+|---|---|---|
+| 2026-09-21 (phase 1) | MCP tool search for "azure / foundry / subscription / resource" | **no Azure MCP** — servers present: Canva, Claude Docs, Eraser, Gmail, Google Calendar/Drive, Notion, Figma, shadcn, agentation |
+| 2026-09-21 (phase 2) | `which az azd`, `~/.azure`, `AZURE_*`/`ARM_*` env, `backend/.env` keys | `az` and `azd` **not installed**; no `~/.azure`; no Azure variables set anywhere |
+| 2026-09-21 (phase 2) | `DefaultAzureCredential(...).get_token(management.azure.com)` — zero-cost probe | `ClientAuthenticationError`: no environment, CLI, PowerShell, azd, or broker credential on this machine |
+
+**Conclusion: discovery is BLOCKED.** Nothing in Azure can be listed or inspected from this machine today, so the inventory below
+is **UNKNOWN**, not "none". No resource was created, changed, or deleted. Zero model calls were made. Not installed: `azure-cli`
+(a large Homebrew package) — needs your approval, then `az login` needs you.
+
+### Inventory (to be filled by read-only discovery after `az login`)
+
+| Resource | Status | Name | Region | SKU | Endpoint | Reusable | Ongoing cost | Needed |
+|---|---|---|---|---|---|---|---|---|
+| Subscription / tenant | UNKNOWN | | | | | | | yes |
+| Resource group | UNKNOWN | | | | | | | yes |
+| Foundry / Azure OpenAI resource | UNKNOWN | | | | | | pay-per-token | yes |
+| Model deployments | UNKNOWN | | | | | | pay-per-token | yes (1 chat + 1 embedding minimum) |
+| Azure AI Search | UNKNOWN | | | | | | Free: none · Basic+: always-on | yes |
+| Storage account | UNKNOWN | | | | | | cents | only for Container Apps volume |
+| Key Vault | UNKNOWN | | | | | | cents | only for Azure hosting |
+| Application Insights | UNKNOWN | | | | | | 5 GB/mo free | optional |
+| Container Apps / App Service / Functions | UNKNOWN | | | | | | consumption | only for Azure hosting |
+
+Read-only discovery commands (no cost, run after login — I will run these, they change nothing):
+```bash
+az account show; az account list -o table
+az group list -o table
+az cognitiveservices account list -o table                                   # Foundry / Azure OpenAI resources
+az cognitiveservices account deployment list -g <rg> -n <name> -o table       # model deployments
+az cognitiveservices usage list -l <region> -o table                          # quota
+az search service list -o table
+az storage account list -o table; az keyvault list -o table
+az monitor app-insights component show --app <name> -g <rg> 2>/dev/null; az resource list --resource-type microsoft.insights/components -o table
+az containerapp list -o table; az functionapp list -o table; az webapp list -o table
+```
 
 Target (minimum) — to be created by the human in §13, all in one resource group `rg-aftercircular`, one region (e.g. `swedencentral`
 or `eastus2`, whichever has quota for the chosen models):
@@ -261,6 +322,14 @@ or `eastus2`, whichever has quota for the chosen models):
 | Function App | `func-aftercircular` | Flex Consumption | only after §14 step 8 |
 
 ## 13. Human Azure Actions
+
+**Next action (unblocks discovery, costs nothing):**
+1. Approve installing the Azure CLI (`brew install azure-cli`, ~500 MB) — or install it yourself.
+2. Run `az login` in a terminal on this machine (interactive browser sign-in; I cannot do it). If you have several subscriptions,
+   `az account set --subscription <the one with credits>`.
+3. Say "discovery" — I will run only the read-only commands in §12 and fill the inventory before proposing anything.
+
+Provisioning steps below are the *proposal* for what is missing; none of it runs without your explicit approval per resource.
 
 These need your Azure account; I cannot and did not run them. Costs: Foundry is per token (the guardrails keep a scan at ≤ 10 calls);
 **Azure AI Search Basic is the one always-on charge** — use the **Free** tier if your subscription still has it.
