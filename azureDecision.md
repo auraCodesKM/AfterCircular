@@ -119,8 +119,11 @@ Deliberately **not** used: AKS, Service Bus, Event Grid, Redis, Cosmos DB, Postg
 ## 6. Jev / System-1
 
 - SDK `typesafe-sdk` 0.7.0, `POST /v1/systemone`, model `jev-latest` (**live: `jev-1.13.0`**).
-- Narrow typed questions only (Noul / Choice / Score): extraction check, applicability, relevance rerank, alignment per (obligation,
-  chunk), citation verification, and intent routing for `/api/ask`. Thresholds live in `app/decisions/policy.py`; the Noul band
+- Narrow typed questions only (Noul / Choice / Score): **triage before extraction** (header + company profile; certain
+  NOT_APPLICABLE archives with no Foundry call, uncertain proceeds; skipped by a free prefilter when the addressee names the
+  company's own entity type), extraction check, applicability (skipped when triage was ≥ 0.90 confident), relevance rerank,
+  alignment per (obligation, chunk), citation verification, **cross-check of the reasoning model's conclusion after escalation**
+  (disagreement → human), and intent routing for `/api/ask`. Thresholds live in `app/decisions/policy.py`; the Noul band
   0.30–0.70 is *uncertain*, never rounded.
 - **State is sent as a JSON dict** — the API accepts `str | dict | list`, and the questions reference paths such as
   `obligations[i].requirement`, so JSON is the correct representation at this boundary. TOON is **not** used for Jev (see §7).

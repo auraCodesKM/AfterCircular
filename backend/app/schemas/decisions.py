@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 Primitive = Literal["noul", "choice", "score"]
 JudgeName = Literal["typesafe", "foundry", "stub"]
-Stage = Literal["extraction_check", "applicability", "rerank", "alignment", "verification", "escalation"]
+Stage = Literal["triage", "extraction_check", "applicability", "rerank", "alignment", "verification", "escalation", "cross_check"]
 
 
 class Answer(BaseModel):

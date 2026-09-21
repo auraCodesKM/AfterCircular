@@ -12,12 +12,14 @@ import type { AnalysisRecord, DecisionAnswer, DecisionRecord } from "@/lib/pipel
 import { Orb } from "./orb";
 
 const stageLabel: Record<DecisionRecord["stage"], string> = {
+  triage: "Relevance triage (before extraction)",
   extraction_check: "Obligations checked against the circular",
   applicability: "Applicability",
   rerank: "Relevant policy text selected",
   alignment: "Policy alignment",
   verification: "Citations verified",
   escalation: "Reasoning model",
+  cross_check: "Reasoning model cross-checked",
 };
 const providerName: Record<string, string> = { typesafe: "Jev · System One", foundry: "Microsoft Foundry", stub: "Stub (fixture, no model)", code: "Code" };
 
@@ -43,6 +45,12 @@ function group(records: DecisionRecord[]): Group[] {
 function plain(g: Group): string {
   const r0 = g.items[0].routing as Record<string, unknown>;
   switch (g.stage) {
+    case "triage":
+      return r0.outcome === "archive"
+        ? `Header addressed to other entity types — archived without an extraction call (confidence ${Number(r0.confidence ?? 0).toFixed(2)}).`
+        : `Header judged ${String(r0.choice ?? "unclear")}${r0.confidence !== undefined ? ` (confidence ${Number(r0.confidence).toFixed(2)})` : ""} — extraction ran.`;
+    case "cross_check":
+      return r0.verdict === "agree" ? "The typed alignment judgment confirmed the reasoning model's conclusion." : `Cross-check ${String(r0.verdict)} — routed to a person.`;
     case "extraction_check": {
       if (r0.skipped) return "Skipped — the check was unavailable.";
       const dropped = (r0.dropped as unknown[] | undefined)?.length ?? 0;

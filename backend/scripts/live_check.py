@@ -74,11 +74,21 @@ async def smoke() -> None:
 
     s = settings()
     _need(s.foundry_configured, "FOUNDRY_ENDPOINT not set in backend/.env")
+    print(f"endpoint={s.foundry_endpoint.rstrip('/')}/openai/v1/ api={s.foundry_api} auth={'api-key' if s.foundry_api_key else 'entra-id'} "
+          f"deployments: extraction={s.extraction_model} impact={s.impact_model} memo={s.memo_model}")
     p = FoundryProvider()
-    obj, res = await p.structured("extraction", "Reply with ok=true and echo the user's word.", "aftercircular", Ping)
+    try:
+        obj, res = await p.structured("extraction", "Reply with ok=true and echo the user's word.", "aftercircular", Ping)
+    finally:
+        await p.aclose()
     print("parsed:", obj.model_dump())
     _print(res)
     _need(obj.ok and "aftercircular" in obj.echo.lower(), "unexpected smoke output")
+    _need(res.structured_mode == "json_schema", f"strict structured output not in effect (mode={res.structured_mode}); the schema was rejected — see log")
+    _need(res.input_tokens is not None and res.output_tokens is not None, "usage/telemetry missing from the response")
+    (ROOT / "evals" / "results").mkdir(exist_ok=True)
+    (ROOT / "evals" / "results" / "live_smoke.json").write_text(res.model_dump_json(indent=2), encoding="utf-8")
+    print("OK: Entra auth, deployment reachable, strict structured output, telemetry recorded → evals/results/live_smoke.json")
 
 
 async def extract() -> None:
@@ -86,7 +96,11 @@ async def extract() -> None:
     from app.models.provider import FoundryProvider
 
     _need(settings().foundry_configured, "FOUNDRY_ENDPOINT not set")
-    ext, res = await extract_obligations(FoundryProvider(), _doc())
+    p = FoundryProvider()
+    try:
+        ext, res = await extract_obligations(p, _doc())
+    finally:
+        await p.aclose()
     print(f"{len(ext.obligations)} obligations; applies_to={ext.applies_to}; effective={ext.effective_date}")
     for o in ext.obligations:
         print(f" - [{o.affected_area}] {o.requirement[:110]} (§{o.evidence.section})")
@@ -243,4 +257,14 @@ if __name__ == "__main__":
     if step not in STEPS:
         print(__doc__)
         sys.exit(1)
-    asyncio.run(STEPS[step]())
+    try:
+        asyncio.run(STEPS[step]())
+    except Exception as e:  # noqa: BLE001 — one line, no traceback wall; the provider already bounded retries
+        msg = str(e)
+        hint = ""
+        if "DeploymentNotFound" in msg:
+            hint = " → deploy the chat model in Foundry and set EXTRACTION_MODEL/IMPACT_MODEL/MEMO_MODEL to its deployment name"
+        elif "401" in msg or "403" in msg or "PermissionDenied" in msg:
+            hint = " → check `az login` and the Cognitive Services OpenAI User role on the Foundry resource"
+        print(f"FAILED ({type(e).__name__}): {msg[:300]}{hint}")
+        sys.exit(1)

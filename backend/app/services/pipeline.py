@@ -18,10 +18,12 @@ from app.models.provider import BudgetExceeded, CallBudget, LLMProvider, LLMResu
 from app.retrieval.azure_search import retriever as make_retriever
 from app.retrieval.base import Retriever
 from app.schemas.actions import AnalysisRecord, ErrorKind, ProcessedDocument, ReviewRecord, ScanRecord, ScanStep, TenantContext
-from app.schemas.impact import ImpactAnalysis
+from app.schemas.impact import ImpactAnalysis, RegulatoryEvidence
+from app.decisions.triage import addressee_block
 from app.schemas.regulatory import RegulatoryDocument
 from app.services import audit
-from app.decisions.impact import decide_impact
+from app.decisions.impact import ImpactDecision, decide_impact
+from app.decisions.triage import prefilter, triage
 from app.services.gate import route
 from app.services.policies import RepositoryError, company_profile, ensure_indexed
 from app.services.state import StateStore, new_id, now
@@ -37,6 +39,7 @@ STEPS = [
     ("fetch", "Fetching publications"),
     ("detect", "Checking processed documents"),
     ("index", "Indexing internal policies"),
+    ("triage", "Triaging relevance"),
     ("extract", "Extracting obligations"),
     ("retrieve", "Searching internal policies"),
     ("analyze", "Analyzing impact"),
@@ -130,13 +133,13 @@ class Scan:
             self.step("index", "done", f"{meta.get('chunk_count', 0)} chunks from {t.github_repo}@{str(meta.get('commit_sha', ''))[:7]} ({self.ret.name}{', re-indexed' if reindexed else ', up to date'})")
 
             if not fresh:
-                for k in ("extract", "retrieve", "analyze", "gate", "memo", "review"):
+                for k in ("triage", "extract", "retrieve", "analyze", "gate", "memo", "review"):
                     self.step(k, "skipped", "nothing new")
             else:
                 profile = company_profile(manifest, t)
                 for doc in fresh:
                     await self.process(doc, profile, manifest)
-                for k in ("extract", "retrieve", "analyze", "gate", "memo", "review"):
+                for k in ("triage", "extract", "retrieve", "analyze", "gate", "memo", "review"):
                     if next(s for s in self.rec.steps if s.key == k).status == "pending":
                         self.step(k, "skipped")
 
@@ -193,8 +196,36 @@ class Scan:
             reg = RegulatoryDocument(source=doc.source, jurisdiction=doc.jurisdiction, document_id=doc.document_id, circular_number=doc.circular_number,
                                      title=doc.title, url=doc.url, content=db.document_content(doc.id), content_hash=doc.content_hash,
                                      published_date=doc.published_date, effective_date=doc.effective_date)  # type: ignore[arg-type]
-            # 1. extract
+            # 0. triage: free prefilter, then one Jev request on the header — no Foundry call for circulars that
+            #    plainly concern other entity types. Uncertain always proceeds (spending extraction is the safe direction).
             db.update_document(doc.id, status="EXTRACTING", analysis_id=analysis.id)
+            self.step("triage", "running", doc.title[:80])
+            pre = prefilter(reg, manifest)
+            tri = pre
+            if pre.outcome == "proceed":
+                tdec = ImpactDecision(analysis.id, t.tenant_id, doc.document_id)
+                tri = await triage(tdec, reg, manifest, t.company_name, pre)
+                db.save_decisions(tdec.records)
+                analysis.decision_path = list(tdec.path)
+            analysis.metrics["triage"] = {"stage": tri.stage, "outcome": tri.outcome, "confidence": tri.confidence, "addressees": tri.addressees, "entity_match": tri.entity_match}
+            if tri.outcome == "archive":
+                impact = ImpactAnalysis(applicability="NO", reason=f"Archived at triage ({tri.stage}): {tri.reason}",
+                                        regulatory_evidence=[RegulatoryEvidence(section="header", text=addressee_block(reg.content)[:300] or reg.title)],
+                                        effective_date=str(doc.effective_date) if doc.effective_date else None, confidence=tri.confidence or 1.0)
+                analysis.impact, analysis.gate_outcome = impact.model_dump(), "ARCHIVED"
+                db.save_analysis(analysis)
+                db.update_document(doc.id, status="ARCHIVED", impact="NOT_APPLICABLE")
+                audit.record(db, t.tenant_id, "IMPACT_ANALYZED", scan_id=self.rec.id, document_pk=doc.id, analysis_id=analysis.id, applicability="NO",
+                             alignment=None, confidence=impact.confidence, path=analysis.decision_path, escalation=None, severity=None, triage=tri.stage)
+                audit.record(db, t.tenant_id, "ARCHIVED", scan_id=self.rec.id, document_pk=doc.id, analysis_id=analysis.id, reason=impact.reason)
+                self.step("triage", "done", f"not applicable — {tri.reason[:90]} (no extraction call)")
+                for k in ("extract", "retrieve", "analyze", "memo", "review"):
+                    self.step(k, "skipped", "archived at triage")
+                self.step("gate", "done", "ARCHIVED: not applicable (triage)")
+                return
+            self.step("triage", "done", tri.reason[:100])
+
+            # 1. extract
             self.step("extract", "running", doc.title[:80])
             extraction, res = await extract_obligations(self.llm, reg)
             analysis.extraction, analysis.models["extraction"], analysis.metrics["extraction"] = extraction.model_dump(), res.model, self._llm(res)
@@ -225,7 +256,9 @@ class Scan:
                 self.step("analyze", "skipped", reason)
             else:
                 decision = await decide_impact(analysis_id=analysis.id, tenant_id=t.tenant_id, document_id=doc.document_id, extraction=extraction,
-                                               circular_text=reg.content, candidates=chunks, manifest=manifest, company_name=t.company_name, profile=profile, llm=self.llm)
+                                               circular_text=reg.content, candidates=chunks, manifest=manifest, company_name=t.company_name, profile=profile, llm=self.llm,
+                                               triage_confidence=tri.confidence if tri.outcome != "skipped" else 0.0,
+                                               path_prefix=analysis.decision_path)
                 impact = decision.impact or ImpactAnalysis(applicability="UNCERTAIN", reason="decision layer returned nothing", confidence=0.0)
                 for res in decision.llm_results:
                     analysis.models["impact"], analysis.metrics["impact"] = res.model, self._llm(res)

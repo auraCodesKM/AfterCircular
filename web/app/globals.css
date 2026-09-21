@@ -157,10 +157,13 @@ body {
   color: var(--paper);
 }
 
-:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-  border-radius: 2px;
+/* In @layer base so Tailwind utilities (outline-none, ring-*) win over it — unlayered it painted a black ring on every focused shadcn control. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
 }
 
 /* ---------- utilities ---------- */

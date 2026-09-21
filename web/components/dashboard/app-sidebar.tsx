@@ -75,7 +75,7 @@ export function AppSidebar({ pendingReviews, user, companies, activeTenantId, si
   return (
     <Sidebar collapsible="offcanvas">
       <SidebarHeader className="gap-3 px-3 pt-3">
-        <Logo href="/dashboard" />
+        <Logo href="/dashboard" animated />
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton

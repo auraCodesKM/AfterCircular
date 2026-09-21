@@ -56,11 +56,13 @@ async def test_decision_records_persist_and_path_is_visible(db, tenant):
     await Scan(db, tenant).run()
     docs = {d.document_id: d for d in db.list_documents(tenant.tenant_id)}
     conflict = db.get_analysis(docs["DEMO-2026-014"].analysis_id, tenant.tenant_id)
+    # DEMO-014 is addressed to stock brokers = Acme's own entity type → the prefilter skips the triage request entirely
     assert conflict.decision_path == ["stub:extraction_check", "stub:applicability", "stub:rerank", "stub:alignment", "stub:verification"]
     recs = db.decisions_for(conflict.id, tenant.tenant_id)
     assert {r.stage for r in recs} >= {"applicability", "rerank", "alignment", "verification"}
     assert all(r.provider == "stub" and r.calibrated is False for r in recs if r.provider != "code")
     na = db.get_analysis(docs["DEMO-2026-016"].analysis_id, tenant.tenant_id)
-    assert na.decision_path == ["stub:extraction_check", "stub:applicability"]  # archived without retrieval or alignment calls
+    # DEMO-016 is addressed to mutual funds → triage ran (stub judge answers neutrally → proceed), then archived without retrieval
+    assert na.decision_path == ["stub:triage", "stub:extraction_check", "stub:applicability"]
     aligned = db.get_analysis(docs["DEMO-2026-015"].analysis_id, tenant.tenant_id)
     assert aligned.impact["alignment"] == "ALIGNED" and aligned.escalation_reason is None

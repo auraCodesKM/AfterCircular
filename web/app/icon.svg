@@ -1,6 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
   <rect width="64" height="64" rx="14" fill="#222222"/>
   <path d="M44 52.78A24 24 0 1 1 55.64 36.17" stroke="#F5F2EC" stroke-width="6" stroke-linecap="round"/>
-  <circle cx="51.66" cy="45.77" r="5" fill="#AD314D"/>
+  <!-- Same trace + pulse as .ac-trace/.ac-node in globals.css, as SMIL so the tab icon animates where the browser allows (Firefox; Chrome/Safari render frame 0). -->
+  <path d="M44 52.78A24 24 0 1 1 55.64 36.17" pathLength="100" stroke="#AD314D" stroke-width="6" stroke-linecap="round" stroke-dasharray="14 100" stroke-dashoffset="14" opacity="0">
+    <animate attributeName="stroke-dashoffset" values="14;-100;-100" keyTimes="0;0.62;1" dur="5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.06;0.62;0.66;1" dur="5s" repeatCount="indefinite"/>
+  </path>
+  <circle cx="51.66" cy="45.77" r="5" fill="#AD314D">
+    <animate attributeName="r" values="5;5;6.5;5;5" keyTimes="0;0.6;0.68;0.78;1" dur="5s" repeatCount="indefinite"/>
+  </circle>
   <path d="M32 17L44 46H20Z" fill="#F5F2EC"/>
 </svg>

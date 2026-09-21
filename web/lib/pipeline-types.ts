@@ -44,7 +44,7 @@ export type AnalysisRecord = {
 
 export type DecisionAnswer = { type: "noul" | "choice" | "score"; noul?: number | null; choice?: string | null; score?: number | null; probabilities?: Record<string, number> | null; confidence?: number | null };
 export type DecisionRecord = {
-  id: string; stage: "extraction_check" | "applicability" | "rerank" | "alignment" | "verification" | "escalation"; provider: "typesafe" | "foundry" | "stub" | "code";
+  id: string; stage: "triage" | "extraction_check" | "applicability" | "rerank" | "alignment" | "verification" | "escalation" | "cross_check"; provider: "typesafe" | "foundry" | "stub" | "code";
   model: string; calibrated: boolean | null; question_ids: string[]; state_digest: string; evidence_ids: string[]; answers: Record<string, DecisionAnswer>;
   routing: Record<string, unknown>; latency_ms: number; input_tokens: number | null; output_tokens: number | null; created_at: string;
 };

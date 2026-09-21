@@ -33,7 +33,7 @@ export function Mark({ size = 32, animated = false, className, title }: MarkProp
           className="ac-trace"
           pathLength={100}
           d={ring}
-          stroke="var(--accent)"
+          stroke="var(--brand)"
           strokeWidth="5"
           strokeLinecap="round"
         />
@@ -43,7 +43,7 @@ export function Mark({ size = 32, animated = false, className, title }: MarkProp
         cx="51.66"
         cy="45.77"
         r="4.25"
-        fill="var(--accent)"
+        fill="var(--brand)"
       />
       <path
         d="M20 52.78L32 14L44 52.78M24.57 38H39.43"

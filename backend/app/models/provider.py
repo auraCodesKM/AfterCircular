@@ -168,6 +168,14 @@ class FoundryProvider(LLMProvider):
         self._strict_ok: dict[str, bool] = {}  # schema name → whether the API accepted the strict schema
 
     @staticmethod
+    def _sampling(model: str) -> dict[str, Any]:
+        """`temperature` is rejected by reasoning-family deployments (gpt-5*, o1/o3/o4*); everything else gets 0 for determinism."""
+        m = model.lower()
+        if m.startswith(("gpt-5", "o1", "o3", "o4")):
+            return {}
+        return {"temperature": 0}
+
+    @staticmethod
     def _usage(usage: Any) -> tuple[int | None, int | None, int | None]:
         if usage is None:
             return None, None, None
@@ -192,11 +200,11 @@ class FoundryProvider(LLMProvider):
             async with self._sem:
                 if self.api == "responses":
                     # stable instructions first (prompt-cache prefix), dynamic content in the input
-                    resp = await self.client.responses.parse(model=m, instructions=system, input=user, text_format=schema, temperature=0)
+                    resp = await self.client.responses.parse(model=m, instructions=system, input=user, text_format=schema, **self._sampling(m))
                     parsed, usage, text = resp.output_parsed, resp.usage, resp.output_text  # type: ignore[assignment]
                 else:
                     cc = await self.client.chat.completions.parse(
-                        model=m, temperature=0, response_format=schema,
+                        model=m, response_format=schema, **self._sampling(m),
                         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}])
                     parsed, usage, text = cc.choices[0].message.parsed, cc.usage, cc.choices[0].message.content or ""  # type: ignore[assignment]
         except Exception as e:  # noqa: BLE001
@@ -218,12 +226,12 @@ class FoundryProvider(LLMProvider):
         try:
             async with self._sem:
                 if self.api == "responses":
-                    kw: dict[str, Any] = {"model": m, "instructions": system, "input": user, "temperature": 0}
+                    kw: dict[str, Any] = {"model": m, "instructions": system, "input": user, **self._sampling(m)}
                     if json_mode:
                         kw["text"] = {"format": {"type": "json_object"}}
                     r = await self.client.responses.create(**kw)
                     return self._result(task, m, r.output_text, t0, r.usage, "json_object" if json_mode else None)
-                kwargs: dict[str, Any] = {"model": m, "temperature": 0,
+                kwargs: dict[str, Any] = {"model": m, **self._sampling(m),
                                           "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
                 if json_mode:
                     kwargs["response_format"] = {"type": "json_object"}

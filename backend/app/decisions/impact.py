@@ -126,9 +126,16 @@ def company_state(manifest: dict[str, Any], company_name: str) -> dict[str, Any]
     }
 
 
-async def decide_applicability(d: ImpactDecision, extraction: ExtractionResult, obs: list[Obligation], company: dict[str, Any]) -> tuple[str, Severity | None, str]:
+TRIAGE_REUSE_MIN = 0.90  # triage said "concerns" at least this confidently → the post-extraction applicability request is skipped
+
+
+async def decide_applicability(d: ImpactDecision, extraction: ExtractionResult, obs: list[Obligation], company: dict[str, Any],
+                               triage_confidence: float = 0.0) -> tuple[str, Severity | None, str]:
     """→ ('YES'|'NO'|'UNCERTAIN', severity, reason). Uncertain means: escalate."""
     t = thresholds()
+    if triage_confidence >= TRIAGE_REUSE_MIN:
+        d.record("applicability", None, routing={"outcome": "YES", "reused": "triage", "triage_confidence": round(triage_confidence, 3), "min": TRIAGE_REUSE_MIN})
+        return "YES", None, f"applies (triage judged the header relevant at {triage_confidence:.2f}; applicability request skipped)"
     judge = judge_for("applicability")
     state = {"company": company, "circular": {"title": extraction.summary[:300], "applies_to": extraction.applies_to, "summary": extraction.summary,
                                               "obligations": [o.requirement for o in obs[:6]]}}
@@ -262,6 +269,43 @@ async def verify_conflicts(d: ImpactDecision, obs: list[Obligation], conflicts: 
 
 
 # ---- escalation (reasoning model) --------------------------------------------------------------------------------
+async def cross_check(d: ImpactDecision, obs: list[Obligation], impact: ImpactAnalysis, chunks: list[PolicyChunk], prior_conflict_p: float) -> ImpactAnalysis:
+    """Independent Jev verdict on the reasoning model's conclusion. Disagreement resolves to a person, never to silence
+    (archive) or to a ticket: a CONFLICT Jev calls 'satisfies' and an ALIGNED where Jev saw a live conflict both become
+    'alignment not settled' → NEEDS_INVESTIGATION at the gate."""
+    t = thresholds()
+    if impact.applicability != "YES" or impact.alignment is None:
+        return impact
+    if impact.alignment == "ALIGNED":
+        if prior_conflict_p >= 0.50:
+            d.record("cross_check", None, routing={"verdict": "disagree", "reason": f"reasoning model ALIGNED but a typed pair had P(conflicts)={prior_conflict_p:.2f}"})
+            return impact.model_copy(update={"alignment": None, "reason": impact.reason + f" | Cross-check: a typed alignment judgment had P(conflicts)={prior_conflict_p:.2f} — routed to a person."})
+        d.record("cross_check", None, routing={"verdict": "agree", "reason": "no typed pair suggested a conflict"})
+        return impact
+    # CONFLICT: re-judge the cited (obligation, chunk) pairs with the same typed question
+    cited = [c for c in chunks if any(e.doc_id == c.doc_id and _section_number(c.section) == _section_number(e.section) for e in impact.policy_evidence)] or chunks[:1]
+    if not cited or not obs:
+        return impact
+    judge = judge_for("alignment")
+    ob_state = [{"index": i, "requirement": o.requirement, "deadline": o.deadline} for i, o in enumerate(obs[: Q.MAX_OBLIGATIONS])]
+    c = cited[0]
+    state = {"obligations": ob_state, "policy_chunk": {"doc_id": c.doc_id, "title": c.title, "section": c.section, "text": c.text}}
+    try:
+        j = await _ask(judge, "cross_check", state, Q.alignment_questions(len(ob_state)), d.document_id)
+    except JudgmentError as e:
+        d.record("cross_check", None, state=state, evidence_ids=[c.chunk_id], routing={"verdict": "unavailable", "reason": str(e)[:120]})
+        return impact.model_copy(update={"alignment": None, "reason": impact.reason + " | Cross-check judge unavailable — routed to a person."})
+    answers = [j.answers[f"ob{i}:relation"] for i in range(len(ob_state))]
+    conflicts = [a for a in answers if a.choice == "conflicts" and (a.confidence or 0) >= t["alignment_min_confidence"]]
+    satisfies = [a for a in answers if a.choice == "satisfies" and (a.confidence or 0) >= t["alignment_min_confidence"]]
+    verdict = "agree" if conflicts else ("disagree" if satisfies else "uncertain")
+    d.record("cross_check", j, state=state, evidence_ids=[c.chunk_id], routing={"verdict": verdict, "conflicts": len(conflicts), "satisfies": len(satisfies)})
+    if verdict == "agree":
+        return impact
+    note = " | Cross-check: the typed alignment judgment did not confirm the conflict — routed to a person."
+    return impact.model_copy(update={"alignment": None, "reason": impact.reason + note})
+
+
 async def escalate(d: ImpactDecision, llm: LLMProvider, extraction: ExtractionResult, chunks: list[PolicyChunk], profile: str, why: str) -> ImpactAnalysis | None:
     from app.agents.impact_analysis import analyze_impact
     from app.config import settings
@@ -288,15 +332,17 @@ async def escalate(d: ImpactDecision, llm: LLMProvider, extraction: ExtractionRe
 
 # ---- orchestration --------------------------------------------------------------------------------------------------
 async def decide_impact(*, analysis_id: str, tenant_id: str, document_id: str, extraction: ExtractionResult, circular_text: str,
-                        candidates: list[PolicyChunk], manifest: dict[str, Any], company_name: str, profile: str, llm: LLMProvider) -> ImpactDecision:
+                        candidates: list[PolicyChunk], manifest: dict[str, Any], company_name: str, profile: str, llm: LLMProvider,
+                        triage_confidence: float = 0.0, path_prefix: list[str] | None = None) -> ImpactDecision:
     d = ImpactDecision(analysis_id, tenant_id, document_id)
+    d.path = list(path_prefix or [])
     obs = await check_extraction(d, extraction, circular_text)
     d.obligations = obs
     if not obs:
         d.impact = ImpactAnalysis(applicability="UNCERTAIN", reason="No obligation survived verification against the circular text", confidence=0.0)
         return d
 
-    applicability, severity, why = await decide_applicability(d, extraction, obs, company_state(manifest, company_name))
+    applicability, severity, why = await decide_applicability(d, extraction, obs, company_state(manifest, company_name), triage_confidence)
     reg_ev = [RegulatoryEvidence(section=o.evidence.section, text=o.evidence.text) for o in obs[:3]]
     if applicability == "NO":
         d.impact = ImpactAnalysis(applicability="NO", reason=why, regulatory_evidence=reg_ev, effective_date=extraction.effective_date,
@@ -307,6 +353,8 @@ async def decide_impact(*, analysis_id: str, tenant_id: str, document_id: str, e
     d.kept_chunks = kept
     if applicability == "UNCERTAIN":
         esc = await escalate(d, llm, extraction, kept, profile, f"applicability uncertain: {why}")
+        if esc is not None:
+            esc = await cross_check(d, obs, esc, kept, 0.0)
         d.impact = esc or ImpactAnalysis(applicability="UNCERTAIN", reason=why, regulatory_evidence=reg_ev, effective_date=extraction.effective_date, confidence=_conf(d, "applicability"), severity=severity)
         d.impact.severity = d.impact.severity or severity
         return d
@@ -342,6 +390,8 @@ async def decide_impact(*, analysis_id: str, tenant_id: str, document_id: str, e
                else "conflict claims failed citation verification")
         esc = await escalate(d, llm, extraction, [c for _, c, _ in al["uncertain"]] or kept, profile, why)
         if esc is not None:
+            prior = max([((a.probabilities if a else None) or {}).get("conflicts", 0.0) for _, _, a in al["uncertain"] + al["conflicts"]] or [0.0])
+            esc = await cross_check(d, obs, esc, [c for _, c, _ in al["uncertain"]] or kept, prior)
             esc.severity = esc.severity or severity
             d.impact = esc
             return d
