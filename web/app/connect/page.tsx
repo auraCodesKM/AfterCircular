@@ -27,7 +27,7 @@ export default async function ConnectPage() {
             await signOut({ redirectTo: "/" });
           }}
         >
-          <button type="submit" className="text-sm text-muted hover:text-ink">
+          <button type="submit" className="text-sm text-ink-3 hover:text-ink">
             Sign out {session.user.login ? `(@${session.user.login})` : ""}
           </button>
         </form>

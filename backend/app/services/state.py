@@ -6,6 +6,7 @@ Azure PostgreSQL by keeping the same method signatures — nothing above this mo
 
 import json
 import sqlite3
+import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -95,15 +96,33 @@ def _row(r: sqlite3.Row | None) -> dict[str, Any] | None:
 
 
 class StateStore:
+    """One sqlite3 connection per thread: FastAPI runs sync endpoints in a threadpool while the scan runs on the
+    event-loop thread, and a shared connection is not safe across threads (cursor state gets interleaved)."""
+
     def __init__(self, path: str | None = None):
-        p = Path(path or settings().database_path)
-        if str(p) != ":memory:":
-            p.parent.mkdir(parents=True, exist_ok=True)
-        self.conn = sqlite3.connect(str(p), check_same_thread=False)
-        self.conn.row_factory = sqlite3.Row
+        self.path = str(Path(path or settings().database_path))
+        if self.path != ":memory:":
+            Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+        self._local = threading.local()
+        self._memory_conn: sqlite3.Connection | None = None
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.executescript(SCHEMA)
         self._migrate()
+
+    @property
+    def conn(self) -> sqlite3.Connection:
+        if self.path == ":memory:":  # tests: a single shared in-memory database
+            if self._memory_conn is None:
+                self._memory_conn = sqlite3.connect(self.path, check_same_thread=False)
+                self._memory_conn.row_factory = sqlite3.Row
+            return self._memory_conn
+        c = getattr(self._local, "conn", None)
+        if c is None:
+            c = sqlite3.connect(self.path, timeout=30)
+            c.row_factory = sqlite3.Row
+            c.execute("PRAGMA busy_timeout=30000")
+            self._local.conn = c
+        return c
 
     def _migrate(self) -> None:
         """Additive column migrations for existing dev databases (CREATE TABLE IF NOT EXISTS never alters)."""

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import "./nav.css";
 import { Logo } from "@/components/brand/aftercircular-logo";
-import { ButtonLink } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/brand-button";
 
 const links = [
   { href: "#product", label: "Product" },

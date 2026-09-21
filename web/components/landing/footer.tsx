@@ -7,7 +7,7 @@ export function Footer() {
       <div className="container-x flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-2">
           <Logo size={22} />
-          <p className="text-sm text-muted">From regulatory change to compliance action.</p>
+          <p className="text-sm text-ink-3">From regulatory change to compliance action.</p>
         </div>
         <nav aria-label="Footer">
           <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-2">
@@ -26,7 +26,7 @@ export function Footer() {
             ))}
           </ul>
         </nav>
-        <p className="text-xs text-muted">© {new Date().getFullYear()} AfterCircular</p>
+        <p className="text-xs text-ink-3">© {new Date().getFullYear()} AfterCircular</p>
       </div>
     </footer>
   );

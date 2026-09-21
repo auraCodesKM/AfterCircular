@@ -37,7 +37,7 @@ export function Evidence() {
             <Pane {...demo.circular} reference={demo.circular.cite} dot="bg-[#ff6796]" />
             <div className="flex items-center justify-center py-2 md:flex-col md:py-0">
               <span aria-hidden className="h-px w-10 bg-white/25 md:h-10 md:w-px" />
-              <span className="chip border-accent/70 bg-accent/30 text-white">Conflict</span>
+              <span className="chip border-brand/70 bg-brand/30 text-white">Conflict</span>
               <span aria-hidden className="h-px w-10 bg-white/25 md:h-10 md:w-px" />
             </div>
             <Pane {...demo.policy} reference={demo.policy.cite} dot="bg-[#c9b5e1]" />
@@ -56,7 +56,7 @@ export function Evidence() {
             ))}
           </div>
         </Glass>
-        <p className="mt-3 text-xs text-muted">Illustrative example. Fictional circular, fictional company. Not legal guidance.</p>
+        <p className="mt-3 text-xs text-ink-3">Illustrative example. Fictional circular, fictional company. Not legal guidance.</p>
       </Reveal>
     </Section>
   );

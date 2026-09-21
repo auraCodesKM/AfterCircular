@@ -1,6 +1,12 @@
 # AfterCircular — web
 
-Landing page, brand system, auth and the operational dashboard for AfterCircular. Next.js 16 (App Router), TypeScript, Tailwind v4, shadcn/ui (badge, dialog, tabs, table) on top of the brand's Glass surfaces.
+Landing page, brand system, auth and the operational dashboard for AfterCircular. Next.js 16 (App Router), TypeScript, Tailwind v4.
+
+Two visual systems, on purpose: the landing/auth/connect pages are editorial (brand tokens `--paper/--ink/--brand`, Glass surfaces);
+the authenticated app under `/dashboard` is an application shell built on shadcn/ui (base-nova preset: sidebar, sheet, dialog,
+alert-dialog, dropdown-menu, tooltip, table, tabs, card, alert, badge, skeleton, sonner) using the semantic tokens
+(`background/foreground/card/muted/accent/border/destructive/success/warning`) with light and dark sets in `app/globals.css`.
+Theme: `next-themes` (`class` attribute, `ac-theme` storage key, system default) — scoped to the dashboard layout.
 
 ```bash
 npm install
@@ -28,8 +34,11 @@ components/
                                  responsible-ai, final-cta, footer, nav
   auth/                          auth shell, form, server-action stubs
   ui/                            button, input, section, reveal (the only client component besides the auth form)
-  dashboard/                     dashboard (Scan now, live steps, review queue, activity, model intelligence), review-dialog
-app/dashboard/page.tsx           server component: loads the snapshot from the backend, renders <Dashboard/>
+  dashboard/                     app-sidebar, site-header (breadcrumb, theme toggle, user menu), system-status, metric-cards,
+                                 scan-panel (Scan now + live pipeline, polls and router.refresh()), documents-table, analysis-sheet
+                                 (evidence, memo, decision path, human approval with AlertDialog), activity-feed, models-view
+app/dashboard/layout.tsx         shell: auth + tenant guard, SidebarProvider, header, ThemeProvider, Toaster
+app/dashboard/{page,documents,reviews,policies,activity,models}/page.tsx   server components; data via lib/dashboard-data.ts
 app/api/backend/[...path]        authenticated proxy → FastAPI (adds API key, tenant headers, user's GitHub token)
 lib/backend.ts                   server-only backend client · lib/pipeline-types.ts mirrors backend schemas
 lib/model-evals.ts               typed slot for Foundry evaluation results; empty until measured

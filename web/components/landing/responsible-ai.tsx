@@ -43,7 +43,7 @@ export function ResponsibleAI() {
         ].map(([k, v]) => (
           <Glass key={k} tone="paper" bodyClassName="p-5">
             <p className="font-medium">{k}</p>
-            <p className="mt-1 text-sm text-muted">{v}</p>
+            <p className="mt-1 text-sm text-ink-3">{v}</p>
           </Glass>
         ))}
       </Reveal>

@@ -31,13 +31,13 @@ export function RepoPicker({ repos, defaultCompany = "" }: { repos: Repo[]; defa
           minLength={2}
           className="h-11 rounded-xl border border-line-strong bg-white/70 px-3.5 text-[0.95rem] focus:border-ink focus:outline-none"
         />
-        <p className="text-xs text-muted">Each company is an isolated tenant: its own index, documents, and audit log.</p>
+        <p className="text-xs text-ink-3">Each company is an isolated tenant: its own index, documents, and audit log.</p>
       </div>
 
       <fieldset className="flex min-w-0 flex-col gap-2">
         <legend className="text-sm font-medium">Policy repository</legend>
         <label className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" aria-hidden />
           <input
             type="search"
             value={q}
@@ -49,7 +49,7 @@ export function RepoPicker({ repos, defaultCompany = "" }: { repos: Repo[]; defa
         </label>
         <ul className="max-h-80 divide-y divide-line overflow-y-auto rounded-xl border border-line-strong bg-white/60" role="list">
           {filtered.length === 0 ? (
-            <li className="px-4 py-6 text-center text-sm text-muted">No repositories match.</li>
+            <li className="px-4 py-6 text-center text-sm text-ink-3">No repositories match.</li>
           ) : (
             filtered.map((r) => (
               <li key={r.id}>
@@ -66,9 +66,9 @@ export function RepoPicker({ repos, defaultCompany = "" }: { repos: Repo[]; defa
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
                       <span className="truncate font-medium">{r.fullName}</span>
-                      {r.private ? <Lock className="h-3.5 w-3.5 shrink-0 text-muted" aria-label="Private" /> : null}
+                      {r.private ? <Lock className="h-3.5 w-3.5 shrink-0 text-ink-3" aria-label="Private" /> : null}
                     </span>
-                    <span className="mt-0.5 block truncate text-xs text-muted">
+                    <span className="mt-0.5 block truncate text-xs text-ink-3">
                       {r.description ?? "No description"} · {r.defaultBranch}
                     </span>
                   </span>
@@ -77,13 +77,13 @@ export function RepoPicker({ repos, defaultCompany = "" }: { repos: Repo[]; defa
             ))
           )}
         </ul>
-        <p className="text-xs text-muted">
+        <p className="text-xs text-ink-3">
           Policy, legal, compliance and SOP documents are read from the default branch. Source code and secrets are never indexed.
         </p>
       </fieldset>
 
       {state.error ? (
-        <p role="alert" className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-ink">
+        <p role="alert" className="rounded-xl border border-brand/40 bg-brand/10 px-4 py-3 text-sm text-ink">
           {state.error}
         </p>
       ) : null}

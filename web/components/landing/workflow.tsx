@@ -85,7 +85,7 @@ export function Workflow() {
           <ol className="mt-5 flex flex-wrap items-center gap-2 font-mono text-[0.7rem] tracking-wide" role="list">
             {machine.map((s, i) => (
               <li key={s} className="flex items-center gap-2">
-                <span className={`rounded-md border px-2 py-1 ${s.includes("|") ? "border-accent/70 bg-accent/20" : "border-white/15 bg-white/[0.06]"}`}>{s}</span>
+                <span className={`rounded-md border px-2 py-1 ${s.includes("|") ? "border-brand/70 bg-brand/20" : "border-white/15 bg-white/[0.06]"}`}>{s}</span>
                 {i < machine.length - 1 ? <span aria-hidden className="text-white/30">→</span> : null}
               </li>
             ))}

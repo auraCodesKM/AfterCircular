@@ -34,7 +34,7 @@ export function Problem() {
             <ol className="mt-6 flex flex-wrap gap-2" role="list">
               {manual.map((step, i) => (
                 <li key={step} className="chip">
-                  <span className="text-accent">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="text-brand">{String(i + 1).padStart(2, "0")}</span>
                   {step}
                 </li>
               ))}

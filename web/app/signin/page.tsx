@@ -28,7 +28,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
       }
     >
       {error ? (
-        <p role="alert" className="mb-4 rounded-xl border border-accent/50 bg-accent/15 px-4 py-3 text-sm">
+        <p role="alert" className="mb-4 rounded-xl border border-brand/50 bg-brand/15 px-4 py-3 text-sm">
           Sign-in didn&rsquo;t complete ({error}). Try again.
         </p>
       ) : null}

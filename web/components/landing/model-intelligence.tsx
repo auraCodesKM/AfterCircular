@@ -61,7 +61,7 @@ export function ModelIntelligence({ results = modelEvalResults }: { results?: Mo
             <pre className="pane mt-4 overflow-x-auto p-4 font-mono text-[0.78rem] leading-relaxed text-ink shadow-none">
               <code>{taskModelConfig}</code>
             </pre>
-            <p className="mt-4 text-sm text-muted">Swapping a model is a config change. The pipeline is untouched.</p>
+            <p className="mt-4 text-sm text-ink-3">Swapping a model is a config change. The pipeline is untouched.</p>
           </Glass>
         </Reveal>
       </div>

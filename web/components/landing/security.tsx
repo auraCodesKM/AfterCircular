@@ -28,7 +28,7 @@ export function Security() {
               <p className="eyebrow">{String(i + 1).padStart(2, "0")}</p>
               <div>
                 <p className="text-lg font-medium tracking-tight">{k}</p>
-                <p className="mt-1 text-sm text-muted">{v}</p>
+                <p className="mt-1 text-sm text-ink-3">{v}</p>
               </div>
             </Glass>
           </Reveal>

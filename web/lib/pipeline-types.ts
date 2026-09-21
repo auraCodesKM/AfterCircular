@@ -78,6 +78,9 @@ export type EvalReport = { judges: JudgeReport | null } & (
   | { available: true; generated_at: string; provider: string; models: string[]; scenarios: string[]; retrieval: string; warning?: string; summary: EvalSummaryRow[]; recommendation: Record<string, { model: string; quality_score: number }> }
 );
 
+export type PolicyDoc = { doc_id: string; title: string; path: string; version: string | null; sections: string[]; embedded: boolean };
+export type PolicyIndex = { index: { repo: string; commit_sha: string; indexed_at: string; chunk_count: number } | null; documents: PolicyDoc[] };
+
 export type DashboardSnapshot = {
   health: Health | null;
   scan: ScanRecord | null;
