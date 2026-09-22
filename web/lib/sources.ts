@@ -34,7 +34,8 @@ export type Source = {
 };
 
 // Site icons declared by the sites themselves (SEBI's <link rel="shortcut icon">, GitHub's /favicon.ico). Nothing generic.
-export const SITE_ICON: Record<string, string> = { "www.sebi.gov.in": "https://www.sebi.gov.in/images/icons/sebi-icon.png", "github.com": "https://github.com/favicon.ico" };
+// GitHub's favicon is a dark mark that vanishes on the dark theme, so GitHub sources keep the branch glyph.
+export const SITE_ICON: Record<string, string> = { "www.sebi.gov.in": "https://www.sebi.gov.in/images/icons/sebi-icon.png" };
 export const faviconFor = (domain: string | null | undefined): string | null => (domain ? (SITE_ICON[domain] ?? null) : null);
 
 export function domainOf(url: string | null | undefined): string | null {

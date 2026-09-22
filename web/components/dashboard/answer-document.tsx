@@ -30,8 +30,8 @@ const md: Components = {
   strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
   em: ({ children }) => <em className="text-muted-foreground not-italic">{children}</em>,
   a: ({ children, href }) =>
-    href?.startsWith("#src-") ? (
-      <a href={href} className="mx-0.5 inline-flex min-w-4 -translate-y-0.5 items-center justify-center rounded bg-muted px-1 py-px font-mono text-[10px] font-semibold leading-none text-muted-foreground no-underline hover:text-foreground">{children}</a>
+    href?.includes("-src-") ? (
+      <a href={href} onClick={(e) => { e.preventDefault(); jumpTo(href.slice(1)); }} className="mx-0.5 inline-flex min-w-4 -translate-y-0.5 items-center justify-center rounded bg-muted px-1 py-px font-mono text-[10px] font-semibold leading-none text-muted-foreground no-underline hover:text-foreground">{children}</a>
     ) : (
       <a href={href} target="_blank" rel="noreferrer" className="underline underline-offset-4">{children}</a>
     ),
@@ -59,24 +59,43 @@ function statusLabel(s: Source) {
   return "sebi.gov.in · discovery";
 }
 
-/** Compact numbered source rows; excerpts on demand. Links are the persisted URLs only. */
+function jumpTo(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/** Compact numbered source rows; excerpts on demand. The circular's title/reference appears once per group, not per row. */
 function Sources({ sources, open, idPrefix }: { sources: Source[]; open: boolean; idPrefix: string }) {
   const [show, setShow] = useState<Record<string, boolean>>({});
   if (!sources.length) return null;
+  const regTitle = sources.find((s) => s.kind === "regulator");
+  const polRepo = sources.find((s) => s.kind === "policy" && s.repository);
   return (
-    <section className="mt-5">
+    <section id={`${idPrefix}-sources`} className="mt-5 scroll-mt-4">
       <h3 className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Sources</h3>
       <ol className="divide-y divide-border rounded-md border border-border">
         {sources.map((s, i) => {
           const n = i + 1;
           const on = open || !!show[s.id];
+          const first = sources.findIndex((x) => x.kind === s.kind) === i;
           return (
-            <li key={s.id} id={`${idPrefix}-src-${n}`} className="px-3 py-2 text-[13px]">
+            <li key={s.id} id={`${idPrefix}-src-${n}`} className="scroll-mt-4 px-3 py-2 text-[13px]">
+              {first && s.kind === "regulator" && regTitle ? (
+                <p className="mb-1.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
+                  <span className={cn("rounded-sm border px-1 text-[10px]", regTitle.status === "LIVE" ? "border-success/40 text-success" : "border-warning/40 text-warning")}>{regTitle.status === "LIVE" ? "LIVE" : "DEMO SNAPSHOT"}</span>
+                  <span>{regTitle.label} · {regTitle.title}{regTitle.reference ? ` · ${regTitle.reference}` : ""}</span>
+                </p>
+              ) : null}
+              {first && s.kind === "policy" ? (
+                <p className="mb-1.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
+                  <span className="rounded-sm border border-border px-1 text-[10px]">INTERNAL</span>
+                  <span>Fictional PoC policy{polRepo?.repository ? ` · ${polRepo.repository}` : ""}</span>
+                </p>
+              ) : null}
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="w-6 shrink-0 font-mono text-[11px] text-muted-foreground">[{n}]</span>
                 <SourceIcon kind={s.kind} favicon={s.favicon_url} />
                 <span className="font-medium">
-                  {s.kind === "regulator" ? `${s.label} ${s.section ? `§${s.section}` : ""}` : s.kind === "policy" || s.kind === "retrieval" ? `${s.document_id} ${s.section ? `§${s.section}` : ""}` : s.title}
+                  {s.kind === "regulator" ? `${s.label} §${s.section ?? "?"}` : s.kind === "policy" || s.kind === "retrieval" ? `${s.document_id} §${s.section ?? "?"}` : s.title}
                 </span>
                 <span className="text-[11px] text-muted-foreground">{statusLabel(s)}</span>
                 <span className="ml-auto flex items-center gap-3 text-[11px]">
@@ -87,7 +106,6 @@ function Sources({ sources, open, idPrefix }: { sources: Source[]; open: boolean
                 </span>
               </div>
               {on && s.excerpt ? <p className="mt-1.5 border-l-2 border-border pl-3 text-[13px] leading-6 text-muted-foreground">“{s.excerpt}”</p> : null}
-              {s.kind === "regulator" && (s.title || s.reference) ? <p className="mt-0.5 pl-8 text-[11px] text-muted-foreground">{s.title}{s.reference ? ` · ${s.reference}` : ""}</p> : null}
             </li>
           );
         })}
@@ -179,7 +197,7 @@ export function AnswerDocument({ inv, compact, onAsk, stream = true, onDone }: {
 
           <div className="mt-4 flex flex-wrap items-center gap-1">
             <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={() => void copy()}>{copied ? <Check /> : <Copy />} {copied ? "Copied" : "Copy"}</Button>
-            {c.sources.length ? <Button variant="ghost" size="xs" className="text-muted-foreground" nativeButton={false} render={<a href={`#${idPrefix}-src-1`} />}><Quote /> Open sources</Button> : null}
+            {c.sources.length ? <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={() => jumpTo(`${idPrefix}-sources`)}><Quote /> Open sources</Button> : null}
             {c.sources.some((s) => s.excerpt) ? <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={() => setEvidenceOpen((o) => !o)}><FileText /> {evidenceOpen ? "Hide evidence" : "View evidence"}</Button> : null}
             {cards[0]?.analysis_id ? <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={() => openAnalysis(cards[0])}><ListTree /> View analysis</Button> : null}
             <Button variant="ghost" size="xs" className="text-muted-foreground" nativeButton={false} render={<Link href={`/dashboard/investigations/${inv.id}`} />}>Open investigation <ArrowUpRight /></Button>

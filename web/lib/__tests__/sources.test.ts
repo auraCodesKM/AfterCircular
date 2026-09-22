@@ -83,7 +83,7 @@ describe("site icons", () => {
     expect(live.favicon_url).toBe("https://www.sebi.gov.in/images/icons/sebi-icon.png");
     expect(live.retrieved_at).toBe(REG.fetched_at);
     const gh = policySources([{ doc_id: "POL-002", section: "4.2", text: "y" }], POL)[0];
-    expect(gh.favicon_url).toBe("https://github.com/favicon.ico");
+    expect(gh.favicon_url).toBeNull(); // GitHub keeps the branch glyph (its favicon is invisible on the dark theme)
     const snap = regulatorySources([{ section: "1", text: "x" }], { ...REG, synthetic: true, source_mode: "DEMO_SNAPSHOT", detail_url: "https://example.invalid/x", pdf_url: null })[0];
     expect(snap.favicon_url).toBeNull();
     expect(policySources([{ doc_id: "POL-009", section: "1", text: "z" }], POL)[0].favicon_url).toBeNull();
