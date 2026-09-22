@@ -83,7 +83,9 @@ export function Hero() {
   const dotWord = "action";
   return (
     <section id="product" className="stage" aria-labelledby="hero-title">
-      <script dangerouslySetInnerHTML={{ __html: entranceScript }} />
+      {/* Pre-paint entrance flag. Emitted as raw HTML so the parser executes it on the server-rendered load; on a client-side
+          navigation innerHTML scripts never run (nor would a React <script>), and React does not warn about it. */}
+      <div hidden dangerouslySetInnerHTML={{ __html: `<script>${entranceScript}</script>` }} />
       <EntranceController />
 
       <video className="stage-motion stage-motion--wide" autoPlay muted loop playsInline preload="auto" aria-hidden poster={stage.wide.poster} src={stage.wide.src} />

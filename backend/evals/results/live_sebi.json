@@ -2,7 +2,7 @@
   "source": "SEBI",
   "listing_url": "https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=1&ssid=7&smid=0",
   "mode": "live",
-  "last_checked_at": "2026-09-22T05:11:04.661144+00:00",
+  "last_checked_at": "2026-09-22T05:43:55.944732+00:00",
   "error": null,
   "status": "LIVE",
   "circulars_discovered": 25,
@@ -11,7 +11,7 @@
     "title": "Review of Position Limits for Clients and Penalty Provisions for Violation / Breach of Position Limits for Commodity Derivatives Segment",
     "url": "https://www.sebi.gov.in/legal/circulars/sep-2026/review-of-position-limits-for-clients-and-penalty-provisions-for-violation-breach-of-position-limits-for-commodity-derivatives-segment_104387.html"
   },
-  "latency_ms": 3160,
+  "latency_ms": 1839,
   "document": {
     "source": "SEBI",
     "jurisdiction": "IN",
@@ -27,7 +27,7 @@
     "synthetic": false,
     "document_url": "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2026/1783077132079.pdf",
     "document_bytes": 394525,
-    "fetched_at": "2026-09-22T05:11:10.990374Z"
+    "fetched_at": "2026-09-22T05:44:00.376482Z"
   },
   "text_preview": "Page 1 of 5 \n \n \nCIRCULAR \nHO/38/11/(9)2026-MIRSD-POD/I/15382/2026                                        July 03, 2026 \n \nTo, \nAll recognized Stock Exchanges  \nAll Depositories \nAll Stock Brokers \n \nMadam / Sir,  \nSub: Handling of Client\u2019s Unpaid Securities by Trading Members \n1. Paragraph 46  of the Master Circular for Stock Brokers dated June 17, 2025  \n(\u201cMaster Circular\u201d)  specifies provisions with respect to Handling of Client\u2019s \nSecurities by Trading Members  (TM)/ Clearing Members (CM). These provisions \nwere introduced vide SEBI Circular Nos. CIR/HO/MIRSD/DOP/CIR/P/2019/75 and \nSEBI/HO"
 }
