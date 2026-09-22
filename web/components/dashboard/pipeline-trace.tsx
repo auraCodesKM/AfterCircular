@@ -1,207 +1,228 @@
 "use client";
 
-import { ChevronRight, Cpu, Database, GitPullRequest, Landmark, Radio, ShieldCheck, Sparkles, UserCheck, Workflow } from "lucide-react";
+import { ChevronRight, Database, GitPullRequest, Landmark, Radio, ShieldCheck, Sparkles, UserCheck, Waypoints, Workflow } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/client-api";
+import type { Trace, TraceStep } from "@/lib/pipeline-types";
 import { cn } from "@/lib/utils";
 import { fmtTime } from "./labels";
 
-export type TraceStep = { n: number; service: string; name: string; ran: boolean; detail: Record<string, unknown>; note: string | null };
-export type Trace = { document_id: string; analysis_id: string | null; foundry_calls: number; jev_records: number; steps: TraceStep[]; audit_events: { at: string; event: string; actor: string; actor_type: string }[] };
-
-const NA = "Not recorded";
+const NA = "not recorded";
 const num = (v: unknown) => (typeof v === "number" ? v.toLocaleString() : NA);
-const secs = (v: unknown) => (typeof v === "number" ? (v >= 1000 ? `${(v / 1000).toFixed(1)} s` : `${v} ms`) : NA);
-const str = (v: unknown) => (typeof v === "string" && v ? v : NA);
-type Chunk = { doc_id: string; section: string; path?: string; score?: number; commit?: string | null };
-type JevStage = { records: number; model: string; latency_ms: number; input_tokens: number; output_tokens: number; outcomes?: unknown[] };
+const dur = (v: unknown) => (typeof v === "number" ? (v >= 1000 ? `${(v / 1000).toFixed(1)} s` : `${v} ms`) : NA);
+const usd = (v: unknown) => (typeof v === "number" ? `$${v.toFixed(4)}` : NA);
 
-/** Icon + accent per service, so Foundry, Search, Jev, code, human and GitHub are never confused for one another. */
-function serviceIcon(service: string) {
-  const s = service.toLowerCase();
-  if (s.startsWith("sebi")) return <Landmark className="size-3.5" />;
-  if (s.startsWith("connector")) return <Radio className="size-3.5" />;
-  if (s.includes("foundry") && s.includes("embedding")) return <Sparkles className="size-3.5" />;
-  if (s.includes("foundry")) return <Sparkles className="size-3.5" />;
-  if (s.includes("search")) return <Database className="size-3.5" />;
-  if (s.startsWith("jev")) return <Workflow className="size-3.5" />;
-  if (s.includes("gate") || s.includes("prefilter")) return <ShieldCheck className="size-3.5" />;
-  if (s.startsWith("human")) return <UserCheck className="size-3.5" />;
-  if (s.startsWith("github")) return <GitPullRequest className="size-3.5" />;
-  return <Cpu className="size-3.5" />;
-}
+const ICON: Record<TraceStep["actor"], ReactNode> = {
+  regulator: <Landmark className="size-3.5" />, connector: <Radio className="size-3.5" />, deterministic: <ShieldCheck className="size-3.5" />, jev: <Workflow className="size-3.5" />,
+  foundry: <Sparkles className="size-3.5" />, embedding: <Waypoints className="size-3.5" />, azure_search: <Database className="size-3.5" />, human: <UserCheck className="size-3.5" />, github: <GitPullRequest className="size-3.5" />,
+};
+const GROUP_LABEL: Record<TraceStep["group"], string> = { source: "Source", reasoning: "Reasoning", decision: "Decision", action: "Action" };
+const MARK: Record<TraceStep["status"], string> = { completed: "✓", skipped: "○", failed: "✗", awaiting_approval: "●", blocked: "○" };
 
-function badge(service: string): string {
-  const s = service.toLowerCase();
-  if (s.includes("foundry")) return "Microsoft Foundry";
-  if (s.includes("search")) return "Azure AI Search";
-  if (s.startsWith("jev")) return "Reasoning support";
-  if (s.includes("gate") || s.includes("prefilter")) return "Deterministic";
-  if (s.startsWith("human")) return "Human decision";
-  if (s.startsWith("github")) return "Side effect";
-  if (s.startsWith("sebi")) return "Live source";
-  return "Code";
-}
+type Jev = { stage: string; records: number; model: string; latency_ms: number; input_tokens: number; output_tokens: number; questions: number; decision?: string; reason?: string; items?: Record<string, unknown>[]; conflicts?: number };
+type Chunk = { rank: number; doc_id: string; section: string; path?: string; score?: number; commit?: string | null };
 
-/** The one-line facts for each step, from its stored detail only. */
-function summary(step: TraceStep): { headline: string; facts: string[] } {
-  const d = step.detail;
-  const s = step.service.toLowerCase();
-  if (s.startsWith("sebi")) return { headline: str(d.reference), facts: [`published ${str(d.published)}`, `${d.source_mode === "LIVE" ? "LIVE · sebi.gov.in" : "DEMO SNAPSHOT · synthetic"}`] };
-  if (s.startsWith("connector")) return { headline: `content hash ${typeof d.content_hash === "string" ? d.content_hash.slice(0, 12) + "…" : NA}`, facts: [`fetched ${d.fetched_at ? fmtTime(String(d.fetched_at)) : NA}`] };
-  if (s.includes("foundry") && !s.includes("embedding")) {
-    return {
-      headline: `${str(d.model)} · ${d.api === "responses" ? "Responses API" : str(d.api)} · ${str(d.structured_mode)}`,
-      facts: [secs(d.latency_ms), `${num(d.input_tokens)} input → ${num(d.output_tokens)} output tokens`, typeof d.cached_tokens === "number" && d.cached_tokens > 0 ? `${num(d.cached_tokens)} cached` : "", typeof d.estimated_cost_usd === "number" ? `est. $${d.estimated_cost_usd.toFixed(4)}` : "", d.ok === false ? "failed" : "successful", d.context_format === "toon" ? "TOON context" : ""].filter(Boolean),
-    };
-  }
-  if (s.includes("embedding")) return { headline: `${str(d.model)} · query embedding · 1536 dimensions`, facts: [secs(d.embed_ms)] };
-  if (s.includes("search")) return { headline: str(d.method), facts: [`k = ${num(d.k)}`, `${num(d.count)} chunks retrieved`, secs(d.search_ms), Array.isArray(d.commits) && d.commits.length ? `corpus @ ${String(d.commits[0]).slice(0, 7)}` : ""].filter(Boolean) };
-  if (s.startsWith("jev")) {
-    const stages = Object.entries(d).filter(([, v]) => v && typeof v === "object" && "records" in (v as object)) as [string, JevStage][];
-    const total = stages.reduce((a, [, v]) => a + (v.records || 0), 0);
-    if (stages.length) return { headline: stages.map(([k]) => k.replace(/_/g, " ")).join(" · "), facts: [`${total} typed judgment${total === 1 ? "" : "s"}`, stages[0][1].model, secs(stages.reduce((a, [, v]) => a + (v.latency_ms || 0), 0))] };
-    return { headline: `${str(d.outcome)}${typeof d.confidence === "number" ? ` · P=${d.confidence.toFixed(2)}` : ""}`, facts: [d.stage ? `stage: ${String(d.stage)}` : ""].filter(Boolean) };
-  }
-  if (s.includes("prefilter")) return { headline: `${str(d.outcome)} · addressee match in code`, facts: [] };
-  if (s.includes("gate")) return { headline: String(d.outcome ?? NA), facts: [`applicability ${str(d.applicability)}`, `alignment ${d.alignment ? String(d.alignment) : "—"}`, typeof d.confidence === "number" ? `confidence ${Math.round(d.confidence * 100)}%` : "", Array.isArray(d.affected_policies) && d.affected_policies.length ? `affects ${(d.affected_policies as string[]).join(", ")}` : ""].filter(Boolean) };
-  if (s.startsWith("human")) return { headline: String(d.status ?? "Approval required"), facts: [d.decided_by ? `by @${String(d.decided_by)} · ${d.decided_at ? fmtTime(String(d.decided_at)) : ""} · actor = ${str(d.actor_type)}` : "No external action has been taken"].filter(Boolean) };
-  if (s.startsWith("github")) return { headline: d.issue ? `Issue #${String(d.issue)} created` : "Waiting for human approval", facts: [d.created_at ? fmtTime(String(d.created_at)) : "", d.url ? "" : "No external action"].filter(Boolean) };
-  return { headline: "", facts: [] };
-}
-
-function Node({ step, last }: { step: TraceStep; last: boolean }) {
-  const [open, setOpen] = useState(false);
-  const { headline, facts } = summary(step);
-  const s = step.service.toLowerCase();
-  const gate = s.includes("gate");
-  const d = step.detail;
-  const chunks = Array.isArray(d.chunks) ? (d.chunks as Chunk[]) : [];
-  const failed = d.ok === false;
-  const expandable = step.ran && (chunks.length > 0 || s.includes("foundry") || s.startsWith("jev") || s.includes("gate"));
+function Row({ k, v, mono = true }: { k: string; v: ReactNode; mono?: boolean }) {
   return (
-    <li className={cn("relative flex gap-3", !last && "pb-4")}>
-      <span
-        className={cn(
-          "relative z-[1] mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border",
-          failed ? "border-destructive/60 bg-destructive/10 text-destructive" : step.ran ? "border-success/50 bg-success/10 text-success" : "border-border bg-card text-muted-foreground",
-        )}
-        aria-hidden
-      >
-        {serviceIcon(step.service)}
-      </span>
-      <div className={cn("min-w-0 flex-1 rounded-lg border px-3 py-2", gate ? "border-foreground/30 bg-muted/40" : "border-border bg-card/60", !step.ran && "border-dashed")}>
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <span className={cn("text-sm font-medium", !step.ran && "text-muted-foreground")}>{failed ? "✗" : step.ran ? "✓" : "○"} {step.service}</span>
-          <span className="text-xs text-muted-foreground">{step.name}</span>
-          <span className="rounded-sm border border-border px-1 text-[10px] uppercase tracking-wide text-muted-foreground">{badge(step.service)}</span>
-        </div>
-        {step.ran ? (
-          <>
-            {headline ? <p className={cn("mt-0.5 text-[13px]", gate && "font-semibold")}>{headline}</p> : null}
-            {facts.length ? <p className="text-[11px] text-muted-foreground">{facts.join(" · ")}</p> : null}
-          </>
-        ) : (
-          <p className="mt-0.5 text-[12px] text-muted-foreground">{s.startsWith("human") || s.startsWith("github") ? (step.note ?? "Waiting") : `Not run${step.note ? ` — ${step.note}` : ""}`}</p>
-        )}
-        {step.ran && step.note ? <p className="text-[11px] text-muted-foreground">{step.note}</p> : null}
-        {expandable ? (
-          <button type="button" onClick={() => setOpen((o) => !o)} className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
-            <ChevronRight className={cn("size-3 transition-transform", open && "rotate-90")} /> {chunks.length ? "View retrieved clauses" : s.startsWith("jev") ? "View judgments" : "View telemetry"}
-          </button>
+    <div className="contents">
+      <dt className="text-muted-foreground">{k}</dt>
+      <dd className={cn("min-w-0 break-words", mono && "font-mono")}>{v}</dd>
+    </div>
+  );
+}
+
+/** Technical drawer for one step — every value is the persisted one; missing values read "not recorded". */
+function Drawer({ step }: { step: TraceStep }) {
+  const t = step.telemetry as Record<string, unknown>;
+  const d = step.details as Record<string, unknown>;
+  if (step.actor === "foundry") {
+    const cc = t.context_comparison as Record<string, unknown> | undefined;
+    return (
+      <div className="space-y-2">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px]">
+          <Row k="provider" v={String(t.provider ?? NA)} mono={false} /><Row k="model" v={String(t.model ?? NA)} /><Row k="API" v={String(t.api ?? NA)} mono={false} />
+          <Row k="structured output" v={t.structured_mode === "json_schema" ? "JSON Schema (strict)" : String(t.structured_mode ?? NA)} mono={false} />
+          <Row k="response id" v={String(t.response_id ?? NA)} /><Row k="latency" v={dur(t.latency_ms)} />
+          <Row k="input tokens" v={num(t.input_tokens)} /><Row k="output tokens" v={num(t.output_tokens)} /><Row k="cached tokens" v={num(t.cached_tokens)} />
+          <Row k="estimated cost" v={`${usd(t.estimated_cost_usd)}${typeof t.estimated_cost_usd === "number" ? " · list-price estimate, not an Azure invoice" : ""}`} />
+          <Row k="attempts" v={num(t.attempts)} /><Row k="timestamp" v={t.at ? fmtTime(String(t.at)) : NA} mono={false} />
+          <Row k="status" v={t.ok === false ? `failed · ${String(t.error ?? "")}` : "successful"} mono={false} />
+          <Row k="context encoding" v={String(t.context_format ?? NA)} />
+        </dl>
+        {cc ? (
+          <div className="rounded-md border border-border bg-muted/30 p-2 text-[11px]" title={String(cc.note)}>
+            <p className="font-medium">Context efficiency · serialization comparison · same payload</p>
+            <p>compact JSON {num(cc.compact_json_tokens)} tokens → {String(cc.as_sent_format).toUpperCase()} {num(cc.as_sent_tokens)} tokens · saved {num(cc.saved_tokens)} ({String(cc.saved_pct)}%)</p>
+            <p className="text-muted-foreground">Structural overhead of the structured context only, counted with the same tokenizer. Not provider billing: the model&rsquo;s billed input tokens are the figure above.</p>
+          </div>
+        ) : t.context_format === "toon" || t.context_format === "mixed" ? (
+          <p className="text-[11px] text-muted-foreground">TOON context used · token savings comparison unavailable for this run.</p>
         ) : null}
-        {open && chunks.length ? (
-          <ol className="mt-2 space-y-1 text-[12px]">
-            {chunks.map((c, i) => (
-              <li key={`${c.doc_id}-${c.section}-${i}`} className="flex flex-wrap items-baseline gap-x-2">
-                <span className="w-4 font-mono text-[10px] text-muted-foreground">{i + 1}.</span>
-                <Link href={`/dashboard/policies?open=${encodeURIComponent(c.doc_id)}`} className="font-mono text-xs underline-offset-4 hover:underline">{c.doc_id} §{c.section}</Link>
-                <span className="text-[11px] text-muted-foreground">{typeof c.score === "number" ? `RRF ${c.score.toFixed(4)}` : ""}{c.path ? ` · ${c.path}` : ""}{c.commit ? ` @ ${c.commit.slice(0, 7)}` : ""}</span>
+        {Array.isArray(d.obligations) && d.obligations.length ? (
+          <ol className="space-y-0.5 text-[11px]">
+            {(d.obligations as { section?: string; requirement?: string }[]).map((o, i) => (
+              <li key={i}><span className="font-mono text-muted-foreground">§{o.section ?? "?"}</span> {o.requirement}</li>
+            ))}
+          </ol>
+        ) : null}
+      </div>
+    );
+  }
+  if (step.actor === "jev") {
+    const stages = Object.values(t).filter((v): v is Jev => !!v && typeof v === "object" && "records" in (v as object));
+    const single = "records" in t ? [t as unknown as Jev] : stages;
+    return (
+      <div className="space-y-2 text-[11px]">
+        {single.map((j) => (
+          <div key={j.stage} className="rounded-md border border-border p-2">
+            <p className="font-medium uppercase tracking-wide">{j.stage.replace(/_/g, " ")}</p>
+            {j.decision ? <p>→ {j.decision}</p> : null}
+            {j.reason ? <p className="text-muted-foreground">{j.reason}</p> : null}
+            <p className="text-muted-foreground">{j.model} · {j.records} record{j.records === 1 ? "" : "s"} · {j.questions} typed judgment{j.questions === 1 ? "" : "s"} · {dur(j.latency_ms)} · {num(j.input_tokens)}→{num(j.output_tokens)} tokens</p>
+            {Array.isArray(j.items) && j.items.length ? (
+              <ul className="mt-1 space-y-0.5 font-mono">
+                {j.items.slice(0, 12).map((it, i) => (
+                  <li key={i}>{Object.entries(it).map(([k, v]) => `${k}=${typeof v === "number" ? v.toFixed(2) : String(v)}`).join(" · ")}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ))}
+        <p className="text-muted-foreground">Model judgments route the case; they do not authorize an action.</p>
+      </div>
+    );
+  }
+  if (step.actor === "azure_search") {
+    const chunks = (d.chunks as Chunk[] | undefined) ?? [];
+    return (
+      <div className="space-y-2 text-[11px]">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+          <Row k="service" v={String(t.backend ?? NA)} /><Row k="method" v={String(t.method ?? NA)} mono={false} /><Row k="k" v={num(t.k)} /><Row k="retrieved" v={num(t.count)} />
+          <Row k="latency" v={dur(t.latency_ms)} /><Row k="tenant filter" v={String(t.tenant_filter ?? NA)} />
+          <Row k="corpus commit" v={Array.isArray(t.corpus_commits) && t.corpus_commits.length ? String(t.corpus_commits[0]) : NA} /><Row k="timestamp" v={t.at ? fmtTime(String(t.at)) : NA} mono={false} />
+        </dl>
+        {chunks.length ? (
+          <ol className="space-y-0.5">
+            {chunks.map((c) => (
+              <li key={`${c.doc_id}-${c.section}-${c.rank}`} className="flex flex-wrap items-baseline gap-x-2">
+                <span className="w-6 font-mono text-muted-foreground">#{c.rank}</span>
+                <Link href={`/dashboard/policies?open=${encodeURIComponent(c.doc_id)}`} className="font-mono underline-offset-4 hover:underline">{c.doc_id} §{c.section}</Link>
+                <span className="text-muted-foreground">{typeof c.score === "number" ? `RRF ${c.score.toFixed(4)}` : ""}{c.path ? ` · ${c.path}` : ""}{c.commit ? ` @ ${String(c.commit).slice(0, 7)}` : ""}</span>
               </li>
             ))}
           </ol>
         ) : null}
-        {open && !chunks.length ? <Telemetry d={d} jev={s.startsWith("jev")} /> : null}
+      </div>
+    );
+  }
+  const rows = Object.entries({ ...t, ...d }).filter(([, v]) => v !== null && v !== undefined && v !== "" && (typeof v !== "object" || Array.isArray(v)));
+  return (
+    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px]">
+      {rows.map(([k, v]) => (
+        <Row key={k} k={k.replace(/_/g, " ")} v={Array.isArray(v) ? v.join(" → ") || "—" : k.endsWith("_at") ? fmtTime(String(v)) : k === "url" || k === "pdf_url" ? <a href={String(v)} target="_blank" rel="noreferrer" className="underline underline-offset-2">{String(v)}</a> : String(v)} />
+      ))}
+    </dl>
+  );
+}
+
+function Node({ step, last, compact }: { step: TraceStep; last: boolean; compact?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const done = step.status === "completed";
+  const gate = step.actor === "deterministic" && step.id === "gate";
+  const tone = step.status === "failed" ? "border-destructive/60 bg-destructive/10 text-destructive" : done ? "border-success/50 bg-success/10 text-success" : step.status === "awaiting_approval" ? "border-warning/60 bg-warning/10 text-warning" : "border-border bg-card text-muted-foreground";
+  const hasDrawer = done || step.status === "failed";
+  const drawerLabel = step.actor === "azure_search" ? "View retrieved clauses" : step.actor === "jev" ? "View judgments" : "View telemetry";
+  return (
+    <li className={cn("relative flex gap-3", !last && "pb-3")}>
+      <span className={cn("relative z-[1] mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border", tone)} aria-hidden>{ICON[step.actor]}</span>
+      <div className={cn("min-w-0 flex-1 rounded-lg border px-3 py-2", gate ? "border-foreground/30 bg-muted/40" : "border-border bg-card/60", (step.status === "skipped" || step.status === "blocked") && "border-dashed")}>
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="font-mono text-[10px] text-muted-foreground">{String(step.order).padStart(2, "0")}</span>
+          <span className={cn("text-sm font-medium", !done && step.status !== "awaiting_approval" && "text-muted-foreground")}>{MARK[step.status]} {step.name}</span>
+          <span className="text-xs text-muted-foreground">{step.operation}</span>
+          <span className="rounded-sm border border-border px-1 text-[10px] uppercase tracking-wide text-muted-foreground">{step.role}</span>
+          {typeof step.latency_ms === "number" && done ? <span className="ml-auto font-mono text-[11px] text-muted-foreground">{dur(step.latency_ms)}</span> : null}
+        </div>
+        <p className={cn("mt-0.5 text-[13px]", gate && done && "font-semibold", !done && "text-muted-foreground")}>{step.summary}</p>
+        {step.reason && !compact ? (
+          <p className="text-[11px] text-muted-foreground"><span className="font-medium">{done ? "Why it ran:" : "Why not:"}</span> {step.reason}</p>
+        ) : null}
+        {hasDrawer && !compact ? (
+          <button type="button" onClick={() => setOpen((o) => !o)} className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
+            <ChevronRight className={cn("size-3 transition-transform", open && "rotate-90")} /> {drawerLabel}
+          </button>
+        ) : null}
+        {open ? <div className="mt-2"><Drawer step={step} /></div> : null}
       </div>
     </li>
   );
 }
 
-function Telemetry({ d, jev }: { d: Record<string, unknown>; jev: boolean }) {
-  if (jev) {
-    const stages = Object.entries(d).filter(([, v]) => v && typeof v === "object" && "records" in (v as object)) as [string, JevStage][];
-    if (stages.length) {
-      return (
-        <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px]">
-          {stages.map(([k, v]) => (
-            <div key={k} className="contents">
-              <dt className="text-muted-foreground">{k.replace(/_/g, " ")}</dt>
-              <dd className="font-mono">{v.records} record{v.records === 1 ? "" : "s"} · {v.model} · {secs(v.latency_ms)} · {num(v.input_tokens)}→{num(v.output_tokens)} tokens{Array.isArray(v.outcomes) && v.outcomes.length ? ` · ${v.outcomes.slice(0, 8).map(String).join(", ")}` : ""}</dd>
-            </div>
-          ))}
-        </dl>
-      );
-    }
-  }
-  const rows = Object.entries(d).filter(([k, v]) => v !== null && v !== undefined && v !== "" && typeof v !== "object" && !["ok"].includes(k));
+function GroupDivider({ label }: { label: string }) {
   return (
-    <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px]">
-      {rows.map(([k, v]) => (
-        <div key={k} className="contents">
-          <dt className="text-muted-foreground">{k.replace(/_/g, " ")}</dt>
-          <dd className="truncate font-mono" title={String(v)}>{k === "estimated_cost_usd" ? `$${Number(v).toFixed(6)}` : String(v)}</dd>
-        </div>
-      ))}
-      {Array.isArray(d.decision_path) ? (
-        <div className="contents">
-          <dt className="text-muted-foreground">decision path</dt>
-          <dd className="font-mono">{(d.decision_path as string[]).join(" → ") || "—"}</dd>
-        </div>
-      ) : null}
-    </dl>
-  );
-}
-
-function Divider({ label }: { label: string }) {
-  return (
-    <li className="relative flex items-center gap-3 py-2" aria-hidden>
+    <li className="relative flex items-center gap-3 py-1.5" aria-hidden>
       <span className="relative z-[1] size-6 shrink-0" />
-      <span className="h-px flex-1 bg-border" />
       <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">{label}</span>
       <span className="h-px flex-1 bg-border" />
     </li>
   );
 }
 
-/** "Used in this analysis" chips: only services with a step that actually ran. */
+/** Execution summary: counts and latency by actor, all from the trace summary the backend computed from stored rows. */
+export function ExecutionSummary({ trace }: { trace: Trace }) {
+  const s = trace.summary;
+  const l = s.latency;
+  const items: [string, string][] = [
+    ["Stages", `${s.stages} · ${s.completed} executed · ${s.skipped} skipped${s.failed ? ` · ${s.failed} failed` : ""}${s.awaiting_approval ? ` · ${s.awaiting_approval} awaiting approval` : ""}${s.blocked ? ` · ${s.blocked} blocked` : ""}`],
+    ["Microsoft Foundry", `${s.foundry_calls} call${s.foundry_calls === 1 ? "" : "s"} · ${num(s.foundry_tokens.input)} → ${num(s.foundry_tokens.output)} tokens${s.foundry_tokens.cached ? ` · ${num(s.foundry_tokens.cached)} cached` : ""} · ${dur(l.foundry_ms)}`],
+    ["Jev", `${s.jev_judgments} typed judgment${s.jev_judgments === 1 ? "" : "s"} in ${s.jev_decision_records} record${s.jev_decision_records === 1 ? "" : "s"} · ${dur(l.jev_ms)}`],
+    ["Azure AI Search", s.azure_search_retrievals ? `${num(s.azure_search_results)} results · ${dur(l.azure_search_ms)} · embedding ${dur(l.embedding_ms)}` : "not run"],
+    ["Impact Gate", s.deterministic_gate ? `${trace.outcome}` : "not reached"],
+    ["Estimated cost", s.estimated_cost_usd !== null ? `${usd(s.estimated_cost_usd)} · ${s.pricing}` : NA],
+  ];
+  if (s.context_comparison) items.push(["Context efficiency", `compact JSON ${num(s.context_comparison.compact_json_tokens)} → sent ${num(s.context_comparison.as_sent_tokens)} tokens · ${num(s.context_comparison.saved_tokens)} saved (${s.context_comparison.saved_pct}%) · same-payload serialization comparison, not billing`]);
+  return (
+    <dl className="grid grid-cols-1 gap-x-6 gap-y-1 rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs sm:grid-cols-[auto_1fr]">
+      {items.map(([k, v]) => (
+        <div key={k} className="contents">
+          <dt className="text-muted-foreground">{k}</dt>
+          <dd className="font-mono text-[11px]">{v}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** "Used in this analysis" chips: lit only when a step with that actor completed. */
 export function UsedServices({ trace }: { trace: Trace }) {
-  const ran = (pred: (s: TraceStep) => boolean) => trace.steps.some((s) => s.ran && pred(s));
+  const used = (a: TraceStep["actor"]) => trace.steps.some((s) => s.actor === a && s.status === "completed");
   const items: [string, boolean, string][] = [
-    ["SEBI", ran((s) => s.service.toLowerCase().startsWith("sebi")), "live source retrieved"],
-    ["Microsoft Foundry", ran((s) => s.service.toLowerCase().includes("foundry") && !s.service.toLowerCase().includes("embedding")), `${trace.foundry_calls} call${trace.foundry_calls === 1 ? "" : "s"} in this analysis`],
-    ["Azure AI Search", ran((s) => s.service.toLowerCase().includes("search")), "hybrid retrieval"],
-    ["Jev", ran((s) => s.service.toLowerCase().startsWith("jev")), `${trace.jev_records} typed judgment${trace.jev_records === 1 ? "" : "s"}`],
-    ["Human", ran((s) => s.service.toLowerCase().startsWith("human")), "decision recorded"],
-    ["GitHub", ran((s) => s.service.toLowerCase().startsWith("github")), "issue created after approval"],
+    ["SEBI", used("regulator"), "live source retrieved"],
+    ["Microsoft Foundry", used("foundry"), `${trace.summary.foundry_calls} call${trace.summary.foundry_calls === 1 ? "" : "s"} in this analysis`],
+    ["Azure AI Search", used("azure_search"), "hybrid retrieval"],
+    ["Jev", used("jev"), `${trace.summary.jev_judgments} typed judgments`],
+    ["Impact Gate", used("deterministic") && trace.summary.deterministic_gate > 0, "deterministic"],
+    ["Human", used("human"), "decision recorded"],
+    ["GitHub", used("github"), "issue created after approval"],
   ];
   return (
     <ul className="flex flex-wrap gap-1.5">
-      {items.map(([name, used, why]) => (
-        <li key={name} className={cn("inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px]", used ? "border-success/40 text-foreground" : "border-border text-muted-foreground")}>
-          <span className={used ? "text-success" : ""}>{used ? "✓" : "○"}</span> {name}
-          <span className="text-muted-foreground">· {used ? why : "not used"}</span>
+      {items.map(([name, on, why]) => (
+        <li key={name} className={cn("inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px]", on ? "border-success/40 text-foreground" : "border-border text-muted-foreground")}>
+          <span className={on ? "text-success" : ""}>{on ? "✓" : "○"}</span> {name}<span className="text-muted-foreground">· {on ? why : "not used"}</span>
         </li>
       ))}
     </ul>
   );
 }
 
-export function useTrace(documentPk: string) {
+export function useTrace(documentPk: string | null) {
   const [trace, setTrace] = useState<Trace | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
+    if (!documentPk) return;
     let cancelled = false;
     api<Trace>(`documents/${documentPk}/trace`)
       .then((t) => !cancelled && setTrace(t))
@@ -213,28 +234,39 @@ export function useTrace(documentPk: string) {
   return { trace, error };
 }
 
-/** The persisted run as a connected timeline. AI analysis above the divider; the human decision and its side effect below it. */
-export function PipelineTrace({ documentPk, header }: { documentPk: string; header?: ReactNode }) {
-  const { trace, error } = useTrace(documentPk);
+/** The persisted run as a grouped, connected timeline: Source → Reasoning → Decision → Action. */
+export function TraceTimeline({ trace, compact }: { trace: Trace; compact?: boolean }) {
+  const groups: TraceStep["group"][] = ["source", "reasoning", "decision", "action"];
+  return (
+    <ol className="relative before:absolute before:top-3 before:bottom-3 before:left-[11px] before:w-px before:bg-border">
+      {groups.map((g) => {
+        const steps = trace.steps.filter((s) => s.group === g);
+        return steps.length ? (
+          <li key={g} className="list-none">
+            <ol>
+              <GroupDivider label={GROUP_LABEL[g]} />
+              {steps.map((s, i) => (
+                <Node key={s.id} step={s} last={i === steps.length - 1} compact={compact} />
+              ))}
+            </ol>
+          </li>
+        ) : null;
+      })}
+    </ol>
+  );
+}
+
+export function PipelineTrace({ documentPk, trace: given, compact }: { documentPk?: string; trace?: Trace; compact?: boolean }) {
+  const { trace: fetched, error } = useTrace(given ? null : (documentPk ?? null));
+  const trace = given ?? fetched;
   if (error) return <p className="text-xs text-destructive">Trace unavailable: {error}</p>;
   if (!trace) return <Skeleton className="h-24 w-full" />;
-  const ai = trace.steps.filter((s) => !s.service.toLowerCase().startsWith("human") && !s.service.toLowerCase().startsWith("github"));
-  const human = trace.steps.filter((s) => s.service.toLowerCase().startsWith("human") || s.service.toLowerCase().startsWith("github"));
   return (
     <div className="space-y-3">
-      {header}
+      {!compact ? <ExecutionSummary trace={trace} /> : null}
       <UsedServices trace={trace} />
-      <ol className="relative before:absolute before:top-3 before:bottom-3 before:left-[11px] before:w-px before:bg-border">
-        <Divider label="AI analysis" />
-        {ai.map((s, i) => (
-          <Node key={s.n} step={s} last={i === ai.length - 1} />
-        ))}
-        <Divider label="Human decision" />
-        {human.map((s, i) => (
-          <Node key={s.n} step={s} last={i === human.length - 1} />
-        ))}
-      </ol>
-      <p className="text-[11px] text-muted-foreground">Every node is read from stored rows (model calls with Foundry response ids, Jev decision records, retrieval metrics, audit events). A dashed node did not run and says why.</p>
+      <TraceTimeline trace={trace} compact={compact} />
+      {!compact ? <p className="text-[11px] text-muted-foreground">Every node is read from stored rows — model calls with Foundry response ids, Jev decision records, retrieval metrics, audit events. A dashed node did not run and says why.</p> : null}
     </div>
   );
 }

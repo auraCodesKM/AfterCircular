@@ -2,18 +2,26 @@
 
 import { ArrowUpRight, Database, FileText, GitBranch, Globe, Landmark } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { sourceCounts, type Source, type SourceKind } from "@/lib/sources";
 import { cn } from "@/lib/utils";
 
-/** One icon per provenance level — never a generic globe for a known source. */
-export function SourceIcon({ kind, className }: { kind: SourceKind; className?: string }) {
+/** The site's own icon when the source has a site and it loads; otherwise the provenance-level glyph — never a generic globe for a known source. */
+export function SourceIcon({ kind, favicon, className }: { kind: SourceKind; favicon?: string | null; className?: string }) {
   const c = cn("size-3.5", className);
+  if (favicon) return <SiteIcon src={favicon} fallback={<SourceIcon kind={kind} className={className} />} />;
   if (kind === "regulator") return <Landmark aria-hidden className={c} />;
   if (kind === "policy") return <GitBranch aria-hidden className={c} />;
   if (kind === "retrieval") return <Database aria-hidden className={c} />;
   return <Globe aria-hidden className={c} />;
+}
+
+function SiteIcon({ src, fallback }: { src: string; fallback: ReactNode }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <>{fallback}</>;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt="" width={14} height={14} referrerPolicy="no-referrer" className="size-3.5 rounded-sm object-contain" onError={() => setFailed(true)} />;
 }
 
 const LEVEL: Record<SourceKind, string> = { regulator: "Live regulator source", policy: "Internal policy", retrieval: "Retrieval result", web: "Web discovery" };
@@ -38,12 +46,12 @@ function ExtLink({ href, children }: { href: string; children: ReactNode }) {
 
 /** Compact provenance card: where it comes from, what it says, exactly where to open it. */
 export function SourceCard({ s, compact }: { s: Source; compact?: boolean }) {
-  const openLabel = s.kind === "regulator" ? (s.status === "LIVE" ? "Open SEBI source" : "Snapshot record") : s.kind === "policy" ? "Open on GitHub" : s.kind === "web" ? "Open on sebi.gov.in" : null;
+  const openLabel = s.kind === "regulator" ? (s.status === "LIVE" ? `Open ${s.label} source` : "Snapshot record") : s.kind === "policy" ? "Open on GitHub" : s.kind === "web" ? "Open on sebi.gov.in" : null;
   return (
     <li className="rounded-lg border border-border bg-card/60 p-3 text-sm">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          <SourceIcon kind={s.kind} /> {LEVEL[s.kind]}
+          <SourceIcon kind={s.kind} favicon={s.favicon_url} /> {LEVEL[s.kind]}
         </span>
         <span className="text-[11px] text-muted-foreground">· {s.label}{s.domain ? ` · ${s.domain}` : ""}</span>
         <StatusBadge s={s} />

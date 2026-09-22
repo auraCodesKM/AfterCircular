@@ -121,6 +121,10 @@ class LLMResult(BaseModel):
     context_format: str | None = None  # "toon" | "json" — how repeated structured context was serialized in the prompt
     structured_mode: str | None = None  # "json_schema" (strict) | "json_object" (schema-in-prompt) | "fixture"
     response_id: str | None = None  # the service's own id for the response (Foundry `resp_…`) — proof the call happened
+    # measured serialization comparison for the *same* structured payload (tiktoken): tokens as sent vs compact JSON.
+    # Not provider billing — the model's input_tokens above are the billed figure; these say what the context encoding cost.
+    context_tokens: int | None = None
+    context_json_tokens: int | None = None
 
 
 class LLMProvider(ABC):
@@ -154,6 +158,7 @@ class LLMProvider(ABC):
         if native is not None:
             obj, res = native
             res.context_format = ctx.get("context_format")
+            res.context_tokens, res.context_json_tokens = ctx.get("context_tokens"), ctx.get("context_json_tokens")
             if budget is not None:
                 budget.add(res.estimated_cost_usd)
             return obj, res
@@ -166,6 +171,7 @@ class LLMProvider(ABC):
                 budget.take(f"{task}:repair")  # the repair attempt is a second call; it draws from the same budget
             res = await self.generate(task, sys_prompt, prompt, model=model, json_mode=True, context=ctx)
             res.attempts, res.context_format = attempt, ctx.get("context_format")
+            res.context_tokens, res.context_json_tokens = ctx.get("context_tokens"), ctx.get("context_json_tokens")
             res.structured_mode = res.structured_mode or "json_object"
             if budget is not None:
                 budget.add(res.estimated_cost_usd)

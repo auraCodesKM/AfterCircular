@@ -48,6 +48,13 @@ DETERMINISTIC = {
     "scan_status": "when the last scan ran, whether the source is live, which source or models are in use",
     "run_scan": "asks to run, trigger or start a new scan now",
     "policy_lookup": "contents, clauses, owner or version of one specific internal policy document",
+    "pipeline": "how the system reached a result for a circular: which stages or services ran (Foundry, Jev, Azure AI Search, embeddings, the gate), why one ran or did not run",
+    "performance": "how many model calls, Jev decisions or tokens an analysis used, how long stages took, latency",
+    "cost": "how much an analysis cost, estimated cost, pricing",
+    "toon": "why or whether TOON is used for context, token or serialization savings of TOON versus JSON",
+    "retrieval": "what Azure AI Search retrieved for a circular, why a policy clause was returned, ranks, hybrid search details",
+    "jev_decisions": "what Jev decided at each stage of an analysis, its typed judgments and probabilities",
+    "next_step": "what happens next or after approval/rejection, whether the policy is changed automatically, what approving does",
 }
 REASONING = {
     "explain": "what one circular says or changed, why it got its result (conflict, aligned, not applicable), the reasoning behind one verdict",
@@ -61,6 +68,7 @@ REASONING = {
     "other_reasoning": "another question that needs reasoning over the workspace records",
 }
 WEB = {"web_lookup": "asks to look something up on sebi.gov.in, or about the latest/newest SEBI publication on a topic that `records` do not contain (not about any record in the workspace)"}
+TRACE_INTENTS = {"pipeline", "performance", "cost", "toon", "retrieval", "jev_decisions", "next_step"}
 INTENTS = {**DETERMINISTIC, **REASONING, **WEB, "action_request": "asks the assistant itself to act now: approve, reject, create a GitHub issue, change a policy — not a question about what the company should do",
            "other": "not about this workspace, or too vague to route"}
 MIN_INTENT_CONFIDENCE = 0.5
@@ -71,7 +79,14 @@ URGENCY = ["none", "low", "medium", "high"]
 def _keyword_intent(q: str) -> str:
     ql = q.lower()
     for intent, words in (
-        ("action_request", ["create an issue", "create a github", "open an issue", "approve", "reject"]),
+        ("action_request", ["create an issue", "create a github", "create the github", "open an issue", "approve it", "reject it"]),
+        ("next_step", ["what happens if", "if i approve", "what happens next", "what happens after"]),
+        ("toon", ["toon"]),
+        ("cost", ["cost", "how much did"]),
+        ("performance", ["how many foundry", "how many jev", "how many tokens", "tokens did", "latency", "how long did"]),
+        ("retrieval", ["azure ai search", "what did azure", "retrieve"]),
+        ("jev_decisions", ["what did jev", "jev decide"]),
+        ("pipeline", ["how did you reach", "how did the system", "why did foundry", "why did microsoft foundry", "why didn't foundry", "why did not foundry", "which stages", "how was this produced"]),
         ("run_scan", ["run a scan", "run scan", "scan now", "trigger", "start a scan"]),
         ("prioritize", ["priorit", "urgent", "first"]),
         ("evidence", ["evidence", "support"]),
@@ -176,9 +191,17 @@ async def route(ctx: dict[str, Any], document_id: str | None) -> tuple[str, list
                 targets.append(r["id"])
         m2 = re.search(r"\b(POL|SOP|PRIV)-\d{3}\b", ctx["question"], re.I)
         pol = m2.group(0).upper() if m2 else None
+    ql = ctx["question"].lower()
+    if intent not in ("action_request",) and j.provider != "stub":
+        # the service named in the question is the surest routing signal for telemetry questions — read straight from the trace
+        for word, forced in (("jev", "jev_decisions"), ("toon", "toon"), ("azure ai search", "retrieval"), ("azure search", "retrieval")):
+            if word in ql and intent not in DETERMINISTIC:
+                meta["note"] = (meta.get("note") or "") + f" question names {word} → {forced} (trace)"
+                intent = forced
+                break
     cf = j.answers.get("company_facts")
     p_facts = (cf.noul or 0.0) if cf is not None else 0.0
-    if j.provider != "stub" and p_facts >= 0.6 and intent not in REASONING and intent != "action_request":
+    if j.provider != "stub" and p_facts >= 0.6 and intent not in REASONING and intent not in TRACE_INTENTS and intent not in ("action_request", "policy_lookup", "scan_status", "run_scan", "web_lookup"):
         # facts about the company itself are never listed from records: reason over them so the answer says what is (not) established
         meta["note"] = (meta.get("note") or "") + f" company-facts question (P={p_facts:.2f}) → reasoning, records decide sufficiency"
         intent = "other_reasoning"
@@ -280,11 +303,12 @@ async def narrate(llm: LLMProvider, ctx: dict[str, Any], records: list[dict[str,
     user = (f"COMPANY: {ctx['workspace']['company']} (fictional PoC tenant)\nINTENT: {intent}\nPREVIOUS TURNS\n{convo}\n\nQUESTION\n{ctx['question']}\n\n"
             f"JUDGMENTS (calibrated, by Jev)\n{format_context(judgments, prefer='json').text}\n\nRECORDS ({block.format})\n{block.text}")
     try:
-        ans, res = await llm.structured("ask", NARRATIVE_SYSTEM, user, AskAnswer, context={"document_id": records[0]["document_id"] if records else None, "context_format": block.format})
+        ans, res = await llm.structured("ask", NARRATIVE_SYSTEM, user, AskAnswer, context={"document_id": records[0]["document_id"] if records else None, "context_format": block.format,
+                                                                                            "context_tokens": block.tokens, "context_json_tokens": block.json_tokens})
     except ProviderError as e:
         log.warning("ask narrative unavailable: %s", e)
         return None, {"error": str(e)[:160]}
-    return ans, {"provider": res.provider, "model": res.model, "latency_ms": res.latency_ms, "input_tokens": res.input_tokens, "output_tokens": res.output_tokens, "response_id": res.response_id,
+    return ans, {"provider": res.provider, "model": res.model, "latency_ms": res.latency_ms, "input_tokens": res.input_tokens, "output_tokens": res.output_tokens, "response_id": res.response_id, "context_tokens": res.context_tokens, "context_json_tokens": res.context_json_tokens,
                  "cached_tokens": res.cached_tokens, "estimated_cost_usd": res.estimated_cost_usd, "structured_mode": res.structured_mode, "context_format": res.context_format, "attempts": res.attempts}
 
 
@@ -345,6 +369,101 @@ def _cards(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+# ---- answers read straight from the persisted trace (no model) ------------------------------------------------------
+def _fmt_ms(v: Any) -> str:
+    return f"{v / 1000:.1f} s" if isinstance(v, (int, float)) and v >= 1000 else f"{v} ms" if isinstance(v, (int, float)) else "not recorded"
+
+
+def trace_answer(intent: str, ctx: dict[str, Any], db: StateStore, tenant: TenantContext) -> tuple[str, dict[str, Any]]:
+    """Pipeline / telemetry questions are answered from the stored trace of one record: the target the judge picked, else
+    the focus record, else the most significant analysed record. Every number is a persisted figure."""
+    from app.services.trace import build_trace
+
+    recs = ctx["records"]
+    tid = targets_of(ctx)[:1] or ([ctx["focus"]["record"]] if ctx.get("focus") else [])
+    rec = next((r for r in recs if r["id"] in tid), None) or next(iter(by_significance([r for r in recs if r.get("analysis_id")])), None)
+    if not rec:
+        return "No analysed publication in this workspace yet — run a scan first.", {}
+    tr = build_trace(db, tenant, rec["document_pk"])
+    if not tr:
+        return "No trace is stored for that publication.", {}
+    sm, steps = tr["summary"], tr["steps"]
+    label = f"{rec['circular_number'] or rec['document_id']} ({rec['title'][:60]})"
+    ran = [s for s in steps if s["status"] == "completed"]
+    out: dict[str, Any] = {"documents": _cards([rec]), "trace": tr}
+    if intent == "pipeline":
+        chain = " → ".join(f"{s['name']}{' (' + s['operation'].split(' (')[0].lower() + ')' if s['actor'] in ('foundry', 'jev') else ''}" for s in ran)
+        skipped = [s for s in steps if s["status"] in ("skipped", "blocked", "awaiting_approval")]
+        text = (f"{label} reached {tr['outcome'] or 'no outcome'} through {len(ran)} executed stages: {chain}. "
+                + " ".join(f"{s['name']} ({s['operation'].lower()}) ran because {s['reason'][0].lower() + s['reason'][1:]}." for s in ran if s["actor"] in ("foundry", "azure_search") and s["reason"])
+                + (" " + " ".join(f"{s['name']} did not run: {s['reason'][0].lower() + s['reason'][1:]}." for s in skipped if s["reason"]) if skipped else ""))
+        return text, out
+    if intent == "performance":
+        f = [s for s in ran if s["actor"] == "foundry"]
+        parts = [f"{s['operation'].split(' (')[0]} {s['telemetry'].get('input_tokens'):,} → {s['telemetry'].get('output_tokens'):,} tokens, {_fmt_ms(s['telemetry'].get('latency_ms'))}" for s in f if s["telemetry"].get("input_tokens") is not None]
+        lat = sm["latency"]
+        text = (f"{label}: {sm['foundry_calls']} Microsoft Foundry call{'s' if sm['foundry_calls'] != 1 else ''} ({'; '.join(parts) or 'no token telemetry'}); "
+                f"total {sm['foundry_tokens']['input']:,} input → {sm['foundry_tokens']['output']:,} output tokens ({sm['foundry_tokens']['cached']:,} cached). "
+                f"Jev: {sm['jev_judgments']} typed judgments in {sm['jev_decision_records']} decision records, {_fmt_ms(lat.get('jev_ms'))}. "
+                f"Azure AI Search: {sm['azure_search_results'] if sm['azure_search_retrievals'] else 'no'} results in {_fmt_ms(lat.get('azure_search_ms'))}; embedding {_fmt_ms(lat.get('embedding_ms'))}. "
+                f"Foundry latency {_fmt_ms(lat.get('foundry_ms'))}.")
+        return text, out
+    if intent == "cost":
+        f = [s for s in ran if s["actor"] == "foundry"]
+        parts = [f"{s['operation'].split(' (')[0].lower()} ${s['telemetry']['estimated_cost_usd']:.4f}" for s in f if s["telemetry"].get("estimated_cost_usd") is not None]
+        text = (f"{label}: estimated ${sm['estimated_cost_usd']:.4f} across {sm['foundry_calls']} Foundry call{'s' if sm['foundry_calls'] != 1 else ''} ({', '.join(parts)}). "
+                f"This is a list-price estimate from recorded token counts, not an Azure invoice; Jev and Azure AI Search calls are not priced here.") if sm["estimated_cost_usd"] is not None else f"{label}: no priced Foundry call is recorded for this analysis."
+        return text, out
+    if intent == "toon":
+        cc = sm.get("context_comparison")
+        used = [s for s in ran if s["actor"] == "foundry" and s["telemetry"].get("context_format") in ("toon", "mixed")]
+        if cc:
+            text = (f"TOON encodes the structured context blocks (obligations, retrieved policy excerpts, evidence) sent to Microsoft Foundry to cut serialization overhead. For {label}, the measured "
+                    f"same-payload comparison over {cc['measured_calls']} call{'s' if cc['measured_calls'] != 1 else ''} is {cc['compact_json_tokens']:,} tokens as compact JSON vs {cc['as_sent_tokens']:,} as sent "
+                    f"({cc['saved_tokens']:,} tokens, {cc['saved_pct']}% less), counted with the same tokenizer. That is structural overhead only — the provider's billed input tokens are a separate, larger figure "
+                    f"({sm['foundry_tokens']['input']:,} input tokens in total), so it does not imply an equivalent reduction in model cost.")
+        elif used:
+            text = f"TOON was used for the Foundry context of {label} ({', '.join(s['operation'].split(' (')[0].lower() for s in used)}), but this run does not contain a measured same-payload JSON comparison."
+        else:
+            text = f"No Foundry call for {label} used TOON context (the run predates the measurement, or the calls carried no structured context)."
+        return text, out
+    if intent == "retrieval":
+        st = next((s for s in steps if s["id"] == "retrieve"), None)
+        if not st or st["status"] != "completed":
+            return f"Azure AI Search did not run for {label}: {(st or {}).get('reason') or 'no retrieval recorded'}.", out
+        chunks = st["details"].get("chunks") or []
+        top = "; ".join(f"#{c['rank']} {c['doc_id']} §{c['section']}" for c in chunks[:6])
+        text = (f"For {label}, Azure AI Search ({st['telemetry'].get('backend')}) ran {st['telemetry'].get('method')} with k={st['telemetry'].get('k')} under the filter {st['telemetry'].get('tenant_filter')} and returned "
+                f"{st['telemetry'].get('count')} candidates in {_fmt_ms(st['telemetry'].get('latency_ms'))} from the corpus at commit {(st['telemetry'].get('corpus_commits') or ['?'])[0][:7]}: {top}. "
+                f"A clause is returned when its BM25 keyword match and its vector similarity to the extracted obligations both rank it highly; RRF fuses the two rankings. Jev then judges each candidate's relevance.")
+        return text, out
+    if intent == "jev_decisions":
+        js = [s for s in steps if s["actor"] == "jev" and s["status"] == "completed"]
+        if not js:
+            return f"No Jev decision record is stored for {label}.", out
+        lines = []
+        for s in js:
+            for k, v in s["telemetry"].items():
+                if isinstance(v, dict) and v.get("decision"):
+                    lines.append(f"{k.replace('_', ' ')}: {v['decision']}")
+            if s["id"] == "triage" and s["telemetry"].get("decision"):
+                lines.append(f"triage: {s['telemetry']['decision']}")
+        text = f"Jev ({js[0]['telemetry'].get('model') or next((v.get('model') for v in js[0]['telemetry'].values() if isinstance(v, dict)), 'jev')}) made {sm['jev_judgments']} typed judgments for {label} — " + "; ".join(lines) + ". These are calibrated model judgments used for routing; the deterministic Impact Gate set the outcome and no judgment authorizes an action."
+        return text, out
+    # next_step
+    rv = rec.get("review") or {}
+    if rv.get("status") == "AWAITING_REVIEW":
+        text = (f"{label} is awaiting your decision. Approving records your decision under your GitHub login and opens one compliance-review issue in {tenant.github_repo} carrying the evidence and the Foundry-drafted memo; "
+                "approving again does not create a second issue. Rejecting records the decision and takes no external action. In neither case is the policy file modified — a person edits it through the repository.")
+    elif rv.get("status") == "APPROVED":
+        text = f"{label} was approved by @{rv.get('decided_by')}; GitHub issue #{rv.get('ticket_id')} exists. Nothing further runs automatically — the policy amendment is a human change in the repository."
+    elif rv.get("status") == "REJECTED":
+        text = f"{label} was rejected by @{rv.get('decided_by')}; no external action was taken and none will be."
+    else:
+        text = f"{label} needs no decision ({rec.get('impact') or rec.get('status')}); a repeat scan skips it by content hash. Only a verified conflict is put to a person."
+    return text, out
+
+
 def targets_of(ctx: dict[str, Any]) -> list[str]:
     return list(ctx.get("_targets") or [])
 
@@ -385,6 +504,8 @@ def deterministic(intent: str, ctx: dict[str, Any], db: StateStore, tenant: Tena
     if intent == "list_not_applicable":
         n = [r for r in recs if r["impact"] == "NOT_APPLICABLE"]
         return (f"{len(n)} of {len(recs)} processed circulars do not apply to {tenant.company_name}: " + ", ".join(r["circular_number"] or r["document_id"] for r in n) + "." if n else "No processed circular was judged not applicable."), {"documents": _cards(n)}
+    if intent in TRACE_INTENTS:
+        return trace_answer(intent, ctx, db, tenant)
     if intent == "list_aligned":
         al = [r for r in recs if r["impact"] == "ALIGNED"]
         return (f"{len(al)} of {len(recs)} processed circulars are already aligned with internal policy: " + ", ".join(r["circular_number"] or r["document_id"] for r in al) + "." if al else "No processed circular has been judged aligned yet."), {"documents": _cards(al)}
@@ -527,7 +648,8 @@ async def investigate(db: StateStore, tenant: TenantContext, question: str, conv
                     db.record_llm_call(tenant_id=tenant.tenant_id, scan_id=None, task="ask", model=nar["model"], provider=nar["provider"], latency_ms=nar["latency_ms"],
                                        input_tokens=nar["input_tokens"], output_tokens=nar["output_tokens"], cached_tokens=nar["cached_tokens"], attempts=nar["attempts"],
                                        estimated_cost_usd=nar["estimated_cost_usd"], context_format=nar["context_format"], structured_mode=nar["structured_mode"],
-                                       pricing_status="estimate" if nar["estimated_cost_usd"] is not None else "unknown", response_id=nar.get("response_id"), ok=1)
+                                       pricing_status="estimate" if nar["estimated_cost_usd"] is not None else "unknown", response_id=nar.get("response_id"),
+                                       context_tokens=nar.get("context_tokens"), context_json_tokens=nar.get("context_json_tokens"), ok=1)
                 reasoning["narrative"] = nar
             else:
                 reasoning["narrative"] = None

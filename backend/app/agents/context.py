@@ -9,6 +9,8 @@ from __future__ import annotations
 from app.config import settings
 from app.schemas.impact import PolicyChunk
 from app.schemas.obligations import Obligation
+from typing import Any
+
 from app.toon import ContextBlock, count_tokens, format_context
 
 
@@ -58,3 +60,8 @@ def formats(*blocks: ContextBlock) -> str:
     """'toon' when every block is TOON, 'json' when every block is JSON, 'mixed' otherwise."""
     kinds = {b.format for b in blocks}
     return kinds.pop() if len(kinds) == 1 else "mixed"
+
+
+def context_meta(*blocks: ContextBlock) -> dict[str, Any]:
+    """What to record with the call: the encoding used and the measured same-payload token counts (as sent vs compact JSON)."""
+    return {"context_format": formats(*blocks), "context_tokens": sum(b.tokens for b in blocks), "context_json_tokens": sum(b.json_tokens for b in blocks)}

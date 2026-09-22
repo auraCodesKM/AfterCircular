@@ -137,7 +137,7 @@ export type Investigation = {
     intent: string; documents?: DocCard[]; document?: DocCard; review?: ReviewRecord | null; policy?: PolicyDetail & { sections: { section: string; text: string }[] };
     policies?: PolicyDoc[]; scan?: ScanRecord | null; actions?: { label: string; kind: string }[]; suggestions?: string[];
     points?: AskPoint[]; insufficient_evidence?: boolean; caveat?: string | null; reasoning?: AskReasoning;
-    web_sources?: { url: string; title: string }[]; web_dropped_off_domain?: number;
+    web_sources?: { url: string; title: string }[]; web_dropped_off_domain?: number; trace?: Trace;
   };
   judge: { provider: string; model: string; calibrated: boolean; intent_confidence?: number; document_confidence?: number; policy_confidence?: number; note?: string; latency_ms?: number };
   actor: string; created_at: string;
@@ -162,4 +162,22 @@ export type SystemStatus = {
   jev: { configured: boolean; connected: boolean; model: string | null; role: string; decisions_total: number; decisions_today: number; last_at: string | null };
   sebi: { mode: string; live: boolean; last_live_scan_at: string | null; last_live_status: string | null; live_documents: number; last_fetch_at: string | null; curated_entry_ids: string[]; latest_scan_status: string | null };
   github: { repo: string; issues_created: number; awaiting_review: number };
+};
+
+export type TraceStep = {
+  id: string; order: number; actor: "regulator" | "connector" | "deterministic" | "jev" | "foundry" | "embedding" | "azure_search" | "human" | "github";
+  name: string; role: string; group: "source" | "reasoning" | "decision" | "action"; operation: string;
+  status: "completed" | "skipped" | "failed" | "awaiting_approval" | "blocked"; summary: string; reason: string | null; latency_ms: number | null; at: string | null;
+  telemetry: Record<string, unknown>; details: Record<string, unknown>;
+};
+export type Trace = {
+  document_pk: string; document_id: string; title: string; tenant_id: string; analysis_id: string | null; outcome: string | null;
+  summary: {
+    stages: number; completed: number; skipped: number; failed: number; awaiting_approval: number; blocked: number; foundry_calls: number; jev_judgments: number; jev_decision_records: number;
+    azure_search_retrievals: number; azure_search_results: number | null; deterministic_gate: number; human_pending: number;
+    latency: { foundry_ms: number | null; jev_ms: number | null; azure_search_ms: number | null; embedding_ms: number | null };
+    foundry_tokens: { input: number; output: number; cached: number }; estimated_cost_usd: number | null; pricing: string;
+    context_comparison: { measured_calls: number; compact_json_tokens: number; as_sent_tokens: number; saved_tokens: number; saved_pct: number | null; note: string } | null;
+  };
+  steps: TraceStep[]; foundry_calls: number; jev_records: number; audit_events: { at: string; event: string; actor: string; actor_type: string }[];
 };

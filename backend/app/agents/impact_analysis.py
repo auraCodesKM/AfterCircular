@@ -1,4 +1,4 @@
-from app.agents.context import budget_chunks, chunk_block, formats, obligation_block
+from app.agents.context import budget_chunks, chunk_block, context_meta, obligation_block
 from app.models.provider import LLMProvider, LLMResult
 from app.schemas.impact import ImpactAnalysis, PolicyChunk
 from app.schemas.obligations import ExtractionResult
@@ -35,4 +35,4 @@ async def analyze_impact(llm: LLMProvider, extraction: ExtractionResult, chunks:
             f"OBLIGATIONS ({ob.format})\n{ob.text if extraction.obligations else '(none extracted)'}\n\n"
             f"RETRIEVED INTERNAL POLICY EXCERPTS ({ch.format})\n{ch.text if chunks else '(none retrieved)'}")
     return await llm.structured("impact", SYSTEM, user, ImpactAnalysis, model=model,
-                                context={"document_id": document_id, "context_format": formats(ob, ch)})
+                                context={"document_id": document_id, **context_meta(ob, ch)})

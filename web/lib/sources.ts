@@ -28,7 +28,14 @@ export type Source = {
   workspace_href?: string | null;
   rank?: number | null;
   score?: number | null;
+  /** the real site icon (declared by the site itself), or null when the source has no site */
+  favicon_url?: string | null;
+  retrieved_at?: string | null;
 };
+
+// Site icons declared by the sites themselves (SEBI's <link rel="shortcut icon">, GitHub's /favicon.ico). Nothing generic.
+export const SITE_ICON: Record<string, string> = { "www.sebi.gov.in": "https://www.sebi.gov.in/images/icons/sebi-icon.png", "github.com": "https://github.com/favicon.ico" };
+export const faviconFor = (domain: string | null | undefined): string | null => (domain ? (SITE_ICON[domain] ?? null) : null);
 
 export function domainOf(url: string | null | undefined): string | null {
   if (!url || url === "#") return null;
@@ -61,6 +68,8 @@ export function regulatorySources(regulatory: Evidence[], reg: RegulatorySource 
     document_id: reg?.document_id ?? null,
     reference: reg?.reference ?? null,
     pdf_url: !synthetic && isReal(reg?.pdf_url) ? reg!.pdf_url : null,
+    favicon_url: faviconFor(domainOf(url)),
+    retrieved_at: reg?.fetched_at ?? null,
   }));
 }
 
@@ -91,6 +100,7 @@ export function policySources(policy: PolicyEvidence[], sources: Record<string, 
         repository: ps?.repo ?? null,
         path: ps?.path ?? null,
         workspace_href: `/dashboard/policies?open=${encodeURIComponent(e.doc_id)}`,
+        favicon_url: faviconFor(domainOf(url)),
       };
     });
 }

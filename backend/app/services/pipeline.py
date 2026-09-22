@@ -108,7 +108,8 @@ class Scan:
         self.db.record_llm_call(tenant_id=self.tenant.tenant_id, scan_id=self.rec.id, analysis_id=analysis_id, task=res.task, model=res.model, provider=res.provider,
                                 latency_ms=res.latency_ms, input_tokens=res.input_tokens, output_tokens=res.output_tokens, cached_tokens=res.cached_tokens,
                                 attempts=res.attempts, estimated_cost_usd=res.estimated_cost_usd, context_format=res.context_format,
-                                structured_mode=res.structured_mode, pricing_status=res.pricing_status, response_id=res.response_id, ok=int(ok), error=error)
+                                structured_mode=res.structured_mode, pricing_status=res.pricing_status, response_id=res.response_id,
+                                context_tokens=res.context_tokens, context_json_tokens=res.context_json_tokens, ok=int(ok), error=error)
         self.rec.llm_calls += 1
         if res.estimated_cost_usd is not None:
             self.rec.estimated_cost_usd = round(self.rec.estimated_cost_usd + res.estimated_cost_usd, 6)
@@ -117,7 +118,8 @@ class Scan:
                  res.context_format, res.structured_mode, res.attempts)
         return {"model": res.model, "latency_ms": res.latency_ms, "input_tokens": res.input_tokens, "output_tokens": res.output_tokens,
                 "cached_tokens": res.cached_tokens, "attempts": res.attempts, "estimated_cost_usd": res.estimated_cost_usd,
-                "context_format": res.context_format, "structured_mode": res.structured_mode, "response_id": res.response_id}
+                "context_format": res.context_format, "structured_mode": res.structured_mode, "response_id": res.response_id,
+                "context_tokens": res.context_tokens, "context_json_tokens": res.context_json_tokens}
 
     # ---- run ---------------------------------------------------------------------------
     async def run(self) -> ScanRecord:

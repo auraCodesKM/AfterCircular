@@ -11,6 +11,7 @@ import { toCitationItems } from "@/lib/citations";
 import type { AskPoint, DocCard, Investigation } from "@/lib/pipeline-types";
 import { cardSources, type Source } from "@/lib/sources";
 import { ExecutionStrip } from "./execution-strip";
+import { PipelineTrace } from "./pipeline-trace";
 import { SourceList } from "./source-card";
 import { useState } from "react";
 import { StreamingText } from "./streaming-text";
@@ -182,6 +183,7 @@ export function AnswerView({ inv, compact, onAsk, stream = true, onDone }: { inv
       {!streaming && a.caveat ? <p className="text-xs text-muted-foreground">{a.caveat}</p> : null}
 
       {!streaming && a.points?.length && citedCards.length === 1 ? <Grounding card={citedCards[0]} points={a.points} /> : null}
+      {!streaming && a.trace ? <PipelineTrace trace={a.trace} compact /> : null}
       {!streaming && allSources.length && (a.points?.length || a.reasoning?.kind === "jev_reasoning") ? <SourceList sources={allSources} compact /> : null}
 
       {streaming ? null : a.document ? (

@@ -16,12 +16,15 @@ from app.services.trace import build_trace  # noqa: E402
 
 
 def markdown(tr: dict) -> str:
-    lines = [f"# Trace — {tr['title']} ({tr['document_id']}) · {tr['tenant_id']}", "", f"Foundry calls: {tr['foundry_calls']} · Jev decision records: {tr['jev_records']} · analysis {tr['analysis_id']}", ""]
+    sm = tr["summary"]
+    lines = [f"# Trace — {tr['title']} ({tr['document_id']}) · {tr['tenant_id']}", "", f"Outcome **{tr['outcome']}** · {sm['stages']} stages: {sm['completed']} completed, {sm['skipped']} skipped, {sm['failed']} failed, "
+             f"{sm['awaiting_approval']} awaiting approval, {sm['blocked']} blocked · Foundry calls {sm['foundry_calls']} · Jev judgments {sm['jev_judgments']} ({sm['jev_decision_records']} records) · "
+             f"Azure AI Search results {sm['azure_search_results']} · est. cost ${sm['estimated_cost_usd']} ({sm['pricing']})", ""]
     for s in tr["steps"]:
-        mark = "✅" if s["ran"] else "—"
-        lines.append(f"**[{s['n']}] {s['service']} · {s['name']}** {mark}" + (f" _{s['note']}_" if s["note"] else ""))
-        if s["detail"]:
-            lines.append("```json\n" + json.dumps(s["detail"], indent=1, default=str) + "\n```")
+        mark = {"completed": "✅", "awaiting_approval": "●", "blocked": "○", "skipped": "○", "failed": "✗"}[s["status"]]
+        lines.append(f"**[{s['order']:02d}] {mark} {s['name']} · {s['operation']}** — {s['summary']}" + (f"  \n_{('Why: ' if s['status'] == 'completed' else 'Why not: ') + s['reason']}_" if s["reason"] else ""))
+        if s["telemetry"]:
+            lines.append("```json\n" + json.dumps(s["telemetry"], indent=1, default=str) + "\n```")
         lines.append("")
     lines += ["## Audit events", "", "| at | event | actor | type |", "|---|---|---|---|"] + [f"| {e['at']} | {e['event']} | {e['actor']} | {e['actor_type']} |" for e in tr["audit_events"]]
     return "\n".join(lines) + "\n"

@@ -1,4 +1,4 @@
-from app.agents.context import budget_chunks, chunk_block, evidence_block, formats
+from app.agents.context import budget_chunks, chunk_block, context_meta, evidence_block
 from app.models.provider import LLMProvider, LLMResult
 from app.schemas.impact import ImpactAnalysis, Memo, PolicyChunk
 from app.schemas.obligations import ExtractionResult
@@ -21,5 +21,5 @@ async def generate_memo(llm: LLMProvider, extraction: ExtractionResult, impact: 
     user = (f"CIRCULAR {extraction.regulator} {extraction.circular_number or ''} — effective {impact.effective_date or extraction.effective_date or 'not stated'}\n"
             f"Summary: {extraction.summary}\n\nIMPACT ANALYSIS\nAlignment: {impact.alignment}\nReason: {impact.reason}\n"
             f"Recommended action: {impact.recommended_action or ''}\n\nEVIDENCE ({ev.format})\n{ev.text}\n\nAFFECTED POLICY TEXT ({ch.format})\n{ch.text}")
-    memo, res = await llm.structured("memo", SYSTEM, user, Memo, model=model, context={"document_id": document_id, "context_format": formats(ev, ch)})
+    memo, res = await llm.structured("memo", SYSTEM, user, Memo, model=model, context={"document_id": document_id, **context_meta(ev, ch)})
     return memo.model_copy(update={"disclaimer": "AI-generated draft — human review required"}), res
