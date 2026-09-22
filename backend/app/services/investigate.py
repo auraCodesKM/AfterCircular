@@ -53,10 +53,11 @@ REASONING = {
     "explain": "what one circular says or changed, why it got its result (conflict, aligned, not applicable), the reasoning behind one verdict",
     "prioritize": "which items matter most, which are urgent, what to do first or next and why (a recommendation, not an action)",
     "evidence": "what evidence supports a conclusion, which excerpts or clauses back a verdict",
-    "affected_policies": "which internal policy documents or sections are affected by a circular or by all conflicts",
+    "affected_policies": "which internal policy documents, sections or exact clauses are affected by / conflict with a circular, or by all conflicts",
     "obligations": "which obligations or requirements a circular imposes, which affect a given area",
     "compare": "what differs or changed between two circulars or between a circular and a policy",
     "summarize_work": "summarize the pending compliance work, the overall situation, what the workspace contains",
+    "gaps": "what is missing, unknown or not established by the workspace records; what further information or evidence would be needed",
     "other_reasoning": "another question that needs reasoning over the workspace records",
 }
 WEB = {"web_lookup": "asks to look something up on sebi.gov.in, or about the latest/newest SEBI publication on a topic that `records` do not contain (not about any record in the workspace)"}
@@ -98,7 +99,7 @@ async def route(ctx: dict[str, Any], document_id: str | None) -> tuple[str, list
     """→ (intent, target record ids, policy id, flags {follow_up, requests_action, answerable}, judge meta)."""
     judge = judge_for("ask")
     recs = ctx["records"]
-    state = {"question": ctx["question"], "conversation": ctx["conversation"], "company": ctx["workspace"]["company"],
+    state = {"question": ctx["question"], "conversation": ctx["conversation"], "company": ctx["workspace"]["company"], "focus": ctx.get("focus"),
              "records": [{"id": r["id"], "title": r["title"], "circular_number": r["circular_number"], "published_date": r["published_date"], "source_mode": r["source_mode"], "impact": r["impact"],
                           "status": r["status"], "review": (r["review"] or {}).get("status")} for r in recs],
              "policies": [{"doc_id": p["doc_id"], "title": p["title"]} for p in ctx["policies"]], "pending_reviews": len(ctx["pending_reviews"])}
@@ -110,10 +111,12 @@ async def route(ctx: dict[str, Any], document_id: str | None) -> tuple[str, list
                           criteria=NoulCriteria(true="it cannot be interpreted without the previous turn", false="it stands on its own")),
         "answerable": Noul(instructions="Can `question` be answered from `records`, `policies` and the scan state of this workspace?",
                            criteria=NoulCriteria(true="the workspace records contain what is needed", false="it asks about things this workspace does not track")),
+        "company_facts": Noul(instructions="Does `question` ask for facts about the company's own people, distributors, employees, certificates, registrations, dates or current compliance status (rather than about circulars, policies or the analyses)?",
+                              criteria=NoulCriteria(true="it asks for company-internal facts", false="it asks about regulation, policies, analyses or the workspace state")),
     }
     if recs:
         crit = {**{r["id"]: f"{r['circular_number'] or r['document_id']}: {r['title'][:80]}" for r in recs}, "none": "no specific publication"}
-        qs["document"] = Choice(instructions="Which record in `records` does `question` refer to first? 'the latest live circular' means the newest record with source_mode LIVE; 'the first conflict' means the first conflict in `conversation`; 'the finding' or 'most relevant' means a record with a result to act on (impact CONFLICT, then UNCERTAIN) — never an archived NOT_APPLICABLE one. Choose none when it refers to no specific publication, or to all of them.", criteria=crit)
+        qs["document"] = Choice(instructions="Which record in `records` does `question` refer to first? When `focus` is set, the person is looking at that record: 'this circular', 'it', 'this conflict' mean `focus.record` unless the question names another. 'the latest live circular' means the newest record with source_mode LIVE; 'the first conflict' means the first conflict in `conversation`; 'the finding' or 'most relevant' means a record with a result to act on (impact CONFLICT, then UNCERTAIN) — never an archived NOT_APPLICABLE one. Choose none when it refers to no specific publication, or to all of them.", criteria=crit)
         qs["document_2"] = Choice(instructions="If `question` refers to a second specific record (comparisons, 'these two'), which one? Otherwise none.", criteria=crit)
     if ctx["policies"]:
         qs["policy"] = Choice(instructions="Which internal policy in `policies` does `question` refer to? Choose none when it refers to no specific policy.",
@@ -140,6 +143,10 @@ async def route(ctx: dict[str, Any], document_id: str | None) -> tuple[str, list
         if doc_conf >= 0.8 and top and all(k in ("explain", "latest_changes", "compare", "evidence", "obligations", "summarize_work") for k, _ in top):
             intent = "explain"
             meta["note"] = f"intent split {', '.join(f'{k} {v:.2f}' for k, v in top)}; target clear ({doc_conf:.2f}) → explaining it"
+        elif ctx["conversation"] and top and top[0][0] in REASONING:
+            # a terse follow-up ("which exact clauses?", "what are we missing?") reads best as its leading reasoning intent over the previous turn's records
+            intent = top[0][0]
+            meta["note"] = f"follow-up, intent split {', '.join(f'{k} {v:.2f}' for k, v in top)} → {intent}"
         elif top and top[0][0] in DETERMINISTIC and top[0][1] >= 0.4:
             # a list-type reading leads (e.g. latest_changes 0.45 vs affected_policies 0.20): answer from records — no model, no guess
             intent = top[0][0]
@@ -169,6 +176,12 @@ async def route(ctx: dict[str, Any], document_id: str | None) -> tuple[str, list
                 targets.append(r["id"])
         m2 = re.search(r"\b(POL|SOP|PRIV)-\d{3}\b", ctx["question"], re.I)
         pol = m2.group(0).upper() if m2 else None
+    cf = j.answers.get("company_facts")
+    p_facts = (cf.noul or 0.0) if cf is not None else 0.0
+    if j.provider != "stub" and p_facts >= 0.6 and intent not in REASONING and intent != "action_request":
+        # facts about the company itself are never listed from records: reason over them so the answer says what is (not) established
+        meta["note"] = (meta.get("note") or "") + f" company-facts question (P={p_facts:.2f}) → reasoning, records decide sufficiency"
+        intent = "other_reasoning"
     if j.provider == "stub":  # neutral 0.5 Nouls must not read as "yes" in tests
         flags = {"follow_up": bool(ctx["conversation"]), "requests_action": intent == "action_request", "answerable": True}
     else:
@@ -253,6 +266,8 @@ Rules — these are absolute:
   is and why it does not apply — say that; it is not insufficient evidence. A record with no obligations was never extracted.
 - `caveat` is only for a specific thing the workspace cannot tell (e.g. "no effective date is recorded"); leave it null otherwise
   and never repeat the answer or the insufficient-evidence sentence there.
+- Company facts that are not in the records (distributor names, certificate numbers, expiry dates, employee records, whether the
+  company is currently compliant) are unknown: write "The workspace records do not establish that." — never invent them.
 - Company and policies are a fictional PoC tenant; records with synthetic=true are fictional demo circulars — say so if asked.
 - Never offer to approve, reject or create issues; a person does that in the review screen.
 - Plain language, no marketing tone, no legal certainty."""
@@ -436,11 +451,16 @@ async def web_lookup(db: StateStore, tenant: TenantContext, question: str) -> tu
 
 
 # ---- orchestration --------------------------------------------------------------------------------------------------------
-async def investigate(db: StateStore, tenant: TenantContext, question: str, conversation_id: str | None = None) -> Investigation:
-    ctx = build_context(db, tenant, question.strip(), conversation_id)
+async def investigate(db: StateStore, tenant: TenantContext, question: str, conversation_id: str | None = None, focus: dict[str, Any] | None = None) -> Investigation:
+    ctx = build_context(db, tenant, question.strip(), conversation_id, focus)
     ids = index_ids(ctx)
     first_doc = ctx["records"][0]["document_id"] if ctx["records"] else None
     intent, targets, pol, flags, judge = await route(ctx, first_doc)
+    if ctx.get("focus") and not targets and intent in REASONING and not ctx["conversation"]:
+        targets = [ctx["focus"]["record"]]  # first turn from an analysis page: an untargeted 'why / what evidence' is about that analysis
+        judge["note"] = (judge.get("note") or "") + f" no explicit target → focus record {targets[0]}"
+    if ctx.get("focus") and not pol and intent == "policy_lookup" and ctx["focus"].get("policy_ids"):
+        pol = ctx["focus"]["policy_ids"][0]
     ctx["_targets"] = targets
     answer: dict[str, Any] = {"intent": intent}
     reasoning: dict[str, Any] = {"kind": "workspace_data", "jev_route": judge, "sources": 0, "cited": []}
@@ -538,6 +558,8 @@ async def investigate(db: StateStore, tenant: TenantContext, question: str, conv
         reasoning["kind"] = "clarify"
 
     reasoning["workspace"] = tenant.company_name
+    if ctx.get("focus"):
+        reasoning["focus"] = ctx["focus"]
     answer["reasoning"] = reasoning
     target_rec = next((r for r in ctx["records"] if r["id"] in (targets[:1] or reasoning.get("cited", [])[:1])), None)
     inv = Investigation(id=new_id("inv"), tenant_id=tenant.tenant_id, question=question.strip()[:500], intent=intent, summary=summary,

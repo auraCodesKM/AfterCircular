@@ -6,5 +6,5 @@ import { useWorkspace } from "./workspace-provider";
 
 export function InvestigationAnswer({ inv }: { inv: Investigation }) {
   const { ask } = useWorkspace();
-  return <AnswerView inv={inv} onAsk={(q) => ask.start(q)} />;
+  return <AnswerView inv={inv} stream={false} onAsk={(q) => ask.start(q)} />; // a stored investigation is shown, not replayed
 }

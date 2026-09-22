@@ -13,6 +13,42 @@ import { Markdown } from "./markdown";
 import { SectionHeader } from "./section-header";
 import { WhyBlock } from "./why-block";
 
+/** Why this result? — the evidence-to-decision chain in six lines, from the stored impact and decision path. */
+function WhyThisResult({ impact, analysis }: { impact: NonNullable<AnalysisRecord["impact"]>; analysis: AnalysisRecord }) {
+  const path = analysis.decision_path;
+  const had = (stage: string) => path.some((p) => p.endsWith(`:${stage}`));
+  const by = (stage: string) => (path.find((p) => p.endsWith(`:${stage}`))?.split(":")[0] === "typesafe" ? "Jev" : path.find((p) => p.endsWith(`:${stage}`))?.split(":")[0] === "foundry" ? "Microsoft Foundry" : "code");
+  const outcome = analysis.gate_outcome ?? "—";
+  const rows: [string, string, boolean][] = [
+    ["Regulatory evidence", impact.regulatory_evidence.length ? impact.regulatory_evidence.map((e) => `§${e.section}`).join(", ") : "none cited", impact.regulatory_evidence.length > 0],
+    ["Internal policy evidence", impact.policy_evidence.length ? Array.from(new Set(impact.policy_evidence.map((e) => `${e.doc_id} §${e.section}`))).join(", ") : "none cited", impact.policy_evidence.length > 0],
+    ["Applicability", `${impact.applicability}${had("applicability") ? ` · ${by("applicability")}` : analysis.metrics.triage ? " · triage" : ""}`, true],
+    ["Alignment", `${impact.alignment ?? "not decided"}${had("alignment") ? ` · ${by("alignment")}` : ""}${had("escalation") ? " · escalated to Microsoft Foundry" : ""}`, !!impact.alignment],
+    ["Verification", had("cross_check") ? `cross-check · ${by("cross_check")}` : had("verification") ? `citation check · ${by("verification")}` : "not needed", had("verification") || had("cross_check")],
+    ["Impact Gate (deterministic)", `${outcome} · confidence ${Math.round((impact.confidence ?? 0) * 100)}%`, true],
+  ];
+  return (
+    <Collapsible>
+      <CollapsibleTrigger className="group flex w-full items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-left text-sm transition-colors hover:bg-muted/40">
+        <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]:rotate-90" />
+        <span className="font-medium">Why this result?</span>
+        <span className="min-w-0 truncate text-xs text-muted-foreground">evidence → applicability → alignment → verification → gate</span>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <ol className="mt-2 divide-y divide-border rounded-xl border border-border bg-card text-sm">
+          {rows.map(([k, v, ok], i) => (
+            <li key={k} className="flex items-baseline gap-3 px-4 py-2">
+              <span className="w-4 shrink-0 font-mono text-[10px] text-muted-foreground">{i + 1}</span>
+              <span className={`w-48 shrink-0 text-xs ${i === rows.length - 1 ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{k}</span>
+              <span className={`min-w-0 text-[13px] ${ok ? "" : "text-muted-foreground"}`}>{v}</span>
+            </li>
+          ))}
+        </ol>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 /** A row in the details group: one collapsible with a uniform trigger. */
 export function DetailRow({ title, hint, children, defaultOpen }: { title: string; hint?: ReactNode; children: ReactNode; defaultOpen?: boolean }) {
   return (
@@ -65,11 +101,11 @@ export function AnalysisBody({ doc, analysis }: { doc: ProcessedDocument; analys
       {impact ? (
         <>
           <section className="space-y-3">
-            <SectionHeader as="h3" icon={<Cpu />} title="How this analysis was produced" description="Every line below is read from the stored run — provider, deployment and counts — never assumed." />
+            <SectionHeader as="h3" icon={<Cpu />} title="How this analysis was produced" description="Built from the stored run: model calls with Foundry response ids, Azure AI Search retrieval metrics, Jev decision records, audit events. Nothing here is assumed." />
             <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm sm:grid-cols-[auto_1fr]">
               <dt className="text-muted-foreground">Regulation</dt>
               <dd>
-                {doc.source} · {impact.regulatory_source?.synthetic || doc.source_mode === "DEMO_SNAPSHOT" ? <span className="text-warning">DEMO SNAPSHOT · synthetic</span> : <span className="text-success">LIVE</span>}
+                {doc.source} · {impact.regulatory_source?.synthetic || doc.source_mode === "DEMO_SNAPSHOT" ? <span className="text-warning">DEMO SNAPSHOT · synthetic</span> : <span className="text-success">LIVE · sebi.gov.in</span>}
                 {impact.regulatory_source?.reference ? <span className="ml-2 font-mono text-xs">{impact.regulatory_source.reference}</span> : null}
                 {impact.regulatory_source?.detail_url && !impact.regulatory_source.synthetic ? (
                   <a href={impact.regulatory_source.detail_url} target="_blank" rel="noreferrer" className="ml-2 underline underline-offset-4">Open SEBI source ↗</a>
@@ -78,20 +114,18 @@ export function AnalysisBody({ doc, analysis }: { doc: ProcessedDocument; analys
                   <a href={impact.regulatory_source.pdf_url} target="_blank" rel="noreferrer" className="ml-2 underline underline-offset-4">PDF ↗</a>
                 ) : null}
               </dd>
-              <dt className="text-muted-foreground">AI extraction</dt>
-              <dd>{analysis.models.extraction ? `Microsoft Foundry · ${analysis.models.extraction}` : analysis.ai_provider === "stub" ? "Stub fixture (no model)" : "Not run (archived before extraction)"}</dd>
-              <dt className="text-muted-foreground">Retrieved policies</dt>
-              <dd>{analysis.metrics.retrieval ? `${analysis.metrics.retrieval.backend === "azure-ai-search" ? "Azure AI Search" : "Local hybrid index"} · ${analysis.metrics.retrieval.count ?? 0} candidate clauses` : "Not run"}</dd>
-              <dt className="text-muted-foreground">Reasoning</dt>
-              <dd>
-                {analysis.decision_path.some((p) => p.startsWith("typesafe:")) ? "Jev typed judgments (reasoning support)" : analysis.decision_path.some((p) => p.startsWith("stub:")) ? "Stub judgments (fixture)" : "—"}
-                {analysis.models.impact ? ` · Microsoft Foundry ${analysis.models.impact} on escalation` : ""}
-                {analysis.models.memo ? ` · memo drafted by Microsoft Foundry ${analysis.models.memo}` : ""}
-              </dd>
               <dt className="text-muted-foreground">Policy source</dt>
-              <dd>Internal policies from GitHub (fictional PoC tenant)</dd>
+              <dd>
+                Internal policies from GitHub (fictional PoC tenant)
+                {Object.values(impact.policy_sources ?? {}).find((p) => p.url) ? (
+                  <a href={Object.values(impact.policy_sources ?? {}).find((p) => p.url)!.url!} target="_blank" rel="noreferrer" className="ml-2 underline underline-offset-4">Open on GitHub ↗</a>
+                ) : null}
+              </dd>
             </dl>
+            <PipelineTrace documentPk={doc.id} />
           </section>
+
+          <WhyThisResult impact={impact} analysis={analysis} />
 
           <section className="space-y-3">
             <SectionHeader as="h3" icon={<Scale />} title="Impact" />
@@ -169,7 +203,6 @@ export function AnalysisBody({ doc, analysis }: { doc: ProcessedDocument; analys
             </DetailRow>
           ) : null}
           <DecisionDetails analysis={analysis} />
-          <PipelineTrace documentPk={doc.id} />
         </div>
       </section>
     </div>

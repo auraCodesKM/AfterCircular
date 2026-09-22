@@ -97,7 +97,8 @@ export function DecisionDetails({ analysis }: { analysis: AnalysisRecord }) {
   }, [open, records, analysis.id]);
 
   const providers = Array.from(new Set(analysis.decision_path.map((p) => p.split(":")[0])));
-  const powered = providers.map((p) => (p === "typesafe" ? "Jev · System One" : p === "foundry" ? "Foundry" : p === "stub" ? "stub" : p)).join(" + ");
+  const chain = [providers.includes("typesafe") ? "Reasoning support (Jev)" : providers.includes("stub") ? "stub judgments" : null, providers.includes("foundry") ? "Microsoft Foundry" : null, "deterministic gate", "human review"].filter(Boolean);
+  const powered = chain.join(" → ");
   const groups = records ? group(records) : [];
 
   return (
@@ -106,7 +107,7 @@ export function DecisionDetails({ analysis }: { analysis: AnalysisRecord }) {
         <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]:rotate-90" />
         <span className="shrink-0 font-medium">Decision details</span>
         <span className="min-w-0 truncate text-xs text-muted-foreground">
-          Powered by {powered || "—"} · {analysis.decision_path.length} stages
+          {powered} · {analysis.decision_path.length} stages
         </span>
       </CollapsibleTrigger>
       <CollapsibleContent>

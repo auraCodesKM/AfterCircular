@@ -3,7 +3,8 @@
 import { Plus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Message, MessageAvatar, MessageContent, MessageTyping } from "@/components/agents/message";
+import { Message, MessageAvatar, MessageContent } from "@/components/agents/message";
+import { AgentSteps } from "@/components/xiod/agent-steps";
 import { MessageScroller } from "@/components/agents/message-scroller";
 import { PromptInput } from "@/components/agents/prompt-input";
 import { Button } from "@/components/ui/button";
@@ -85,7 +86,7 @@ export function InvestigationChat({ initialLogin, avatar }: { initialLogin: stri
       <div className="flex items-center gap-2 border-b border-border px-4 py-2 md:px-6">
         <Orb state={busy ? "weaving" : turns.length ? "composing" : "solving"} px={26} />
         <p className="text-sm font-medium">Ask AfterCircular</p>
-        <p className="hidden text-xs text-muted-foreground sm:block">· routed and judged by Jev · claims written only from workspace records and validated</p>
+        <p className="hidden text-xs text-muted-foreground sm:block">· routed by Jev · grounded in workspace records · no web search unless you ask to look up sebi.gov.in</p>
         {turns.length ? (
           <Button size="xs" variant="ghost" className="ml-auto" onClick={() => { setTurns([]); conversation.current = null; router.replace("/dashboard/ask"); }}>
             <Plus /> New
@@ -139,7 +140,7 @@ export function InvestigationChat({ initialLogin, avatar }: { initialLogin: stri
               <Orb state="weaving" px={26} />
             </MessageAvatar>
             <MessageContent>
-              <MessageTyping label="Routing your question" />
+              <AgentSteps size="sm" interval={2500} steps={[{ label: "Routing with Jev", icon: "thinking" }, { label: "Selecting workspace records", icon: "searching" }, { label: "Assembling evidence", icon: "verify" }, { label: "Writing with Microsoft Foundry", icon: "editing" }]} />
             </MessageContent>
           </Message>
         ) : null}

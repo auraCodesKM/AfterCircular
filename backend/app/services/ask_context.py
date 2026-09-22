@@ -53,10 +53,16 @@ def document_record(db: StateStore, tenant_id: str, d: dict[str, Any], ref: str,
     return rec
 
 
-def build_context(db: StateStore, tenant: TenantContext, question: str, conversation_id: str | None) -> dict[str, Any]:
+def build_context(db: StateStore, tenant: TenantContext, question: str, conversation_id: str | None, focus: dict[str, Any] | None = None) -> dict[str, Any]:
     docs = [d.model_dump(mode="json") for d in db.list_documents(tenant.tenant_id, limit=MAX_DOCS)]
     reviews = {r.document_pk: r for r in db.list_reviews(tenant.tenant_id)}
     records = [document_record(db, tenant.tenant_id, d, f"D{i + 1}", reviews.get(d["id"])) for i, d in enumerate(docs)]
+    # the record the person is looking at (analysis page) — only if it is one of this tenant's records
+    f = focus or {}
+    focus_rec = next((r for r in records if (f.get("document_pk") and r["document_pk"] == f["document_pk"]) or (f.get("analysis_id") and r["analysis_id"] == f["analysis_id"])
+                      or (f.get("document_id") and r["document_id"] == f["document_id"])), None)
+    focus_out = {"record": focus_rec["id"], "document_id": focus_rec["document_id"], "title": focus_rec["title"], "analysis_id": focus_rec["analysis_id"],
+                 "policy_ids": [p for p in (f.get("policy_ids") or []) if isinstance(p, str)][:8] or (focus_rec["affected_policies"] or [])} if focus_rec else None
     meta = db.policy_index_meta(tenant.tenant_id) or {}
     policies = [{"doc_id": p["doc_id"], "title": p.get("title"), "version": p.get("version"), "effective_date": p.get("effective_date"), "category": p.get("category")}
                 for p in (meta.get("documents") or [])]
@@ -67,6 +73,7 @@ def build_context(db: StateStore, tenant: TenantContext, question: str, conversa
     return {
         "workspace": {"company": tenant.company_name, "tenant_id": tenant.tenant_id, "policy_repository": tenant.github_repo, "note": "Company and policies are a fictional PoC tenant; regulatory documents are real only when source_mode is LIVE."},
         "question": question,
+        "focus": focus_out,
         "conversation": [{"question": t.question, "intent": t.intent, "answer_summary": clip(t.summary, 400), "records_cited": (t.answer.get("reasoning") or {}).get("cited", [])} for t in turns],
         "records": records,
         "policies": policies,

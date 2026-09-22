@@ -6,19 +6,23 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PromptInput } from "@/components/agents/prompt-input";
-import { TextShimmer } from "@/components/motion/text-shimmer";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { api } from "@/lib/client-api";
 import { EASE_OUT } from "@/lib/ease";
 import type { Investigation } from "@/lib/pipeline-types";
 import { AnswerView } from "./answer-view";
+import { AgentSteps } from "@/components/xiod/agent-steps";
 import { questionsFor } from "./ask-questions";
 import { Orb } from "./orb";
 import { useSound } from "./sound-effects";
 import { useWorkspace } from "./workspace-provider";
 
 type Turn = { id: string; question: string; inv?: Investigation; error?: string; streamed?: boolean };
+
+// What may be happening while an answer is prepared (the exact steps that ran are shown afterwards, from telemetry).
+const BUSY_STEPS = [{ label: "Routing with Jev", icon: "thinking" as const }, { label: "Selecting workspace records", icon: "searching" as const }, { label: "Assembling evidence", icon: "verify" as const }, { label: "Writing with Microsoft Foundry", icon: "editing" as const }];
+const BUSY_STEPS_KEYWORD = [{ label: "Matching intent", icon: "thinking" as const }, { label: "Assembling the answer from records", icon: "searching" as const }];
 
 /**
  * The agent surface: a right-hand sheet built like a small conversation. Header says what it is and
@@ -34,8 +38,13 @@ export function AskSheet() {
 }
 
 function AskBody({ initial }: { initial: string }) {
-  const { ask, addRecent, health } = useWorkspace();
+  const { ask, addRecent, health, analysis } = useWorkspace();
   const pathname = usePathname();
+  // what the person is looking at: the open analysis sheet, else the analysis page in the URL. Sent to the backend as
+  // `context`; it resolves the id against this tenant's records only and ignores anything else.
+  const routePk = /^\/dashboard\/documents\/([^/?#]+)/.exec(pathname)?.[1] ?? null;
+  const focusDoc = analysis.doc ?? null;
+  const context = focusDoc ? { document_pk: focusDoc.id, analysis_id: focusDoc.analysis_id ?? null } : routePk ? { document_pk: decodeURIComponent(routePk) } : null;
   const sound = useSound();
   const reduce = useReducedMotion() ?? false;
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -49,7 +58,7 @@ function AskBody({ initial }: { initial: string }) {
     setTurns((t) => [...t, { id, question }]);
     setBusy(true);
     try {
-      const inv = await api<Investigation>("ask", { method: "POST", body: JSON.stringify({ question, conversation_id: conversation.current }) });
+      const inv = await api<Investigation>("ask", { method: "POST", body: JSON.stringify({ question, conversation_id: conversation.current, context }) });
       conversation.current = inv.conversation_id ?? conversation.current;
       addRecent(inv);
       sound(inv.intent === "other" ? "warning" : "chirp");
@@ -88,7 +97,8 @@ function AskBody({ initial }: { initial: string }) {
         <div className="min-w-0">
           <SheetTitle className="text-sm font-semibold tracking-tight">Ask AfterCircular</SheetTitle>
           <SheetDescription className="truncate text-xs">
-            Routed and judged by {judge} · answers built only from this workspace&rsquo;s records; every claim is checked against them
+            Routed by {judge} · grounded in workspace records · no web search unless you ask to look up sebi.gov.in
+            {context ? ` · context: ${focusDoc?.title ?? "this analysis"}` : ""}
           </SheetDescription>
         </div>
       </SheetHeader>
@@ -142,10 +152,8 @@ function AskBody({ initial }: { initial: string }) {
                   <div className="flex items-center gap-3" aria-busy aria-live="polite">
                     <Orb state="weaving" px={40} />
                     <div>
-                      <TextShimmer className="text-sm font-medium" duration={1.8}>
-                        Routing your question…
-                      </TextShimmer>
-                      <p className="text-xs text-muted-foreground">{judge === "Jev" ? "Jev picks the intent, document and policy; code assembles the answer." : "Matching intent, then assembling the answer from records."}</p>
+                      <AgentSteps size="sm" interval={2500} steps={judge === "Jev" ? BUSY_STEPS : BUSY_STEPS_KEYWORD} />
+                      <p className="text-xs text-muted-foreground">{judge === "Jev" ? "Jev picks the intent, document and policy; evidence comes from stored analyses; Foundry writes only from those records." : "Matching intent, then assembling the answer from records."}</p>
                     </div>
                   </div>
                 )}

@@ -5,11 +5,13 @@ import Link from "next/link";
 import { CitationStack } from "@/components/agents/citations";
 import { StreamingResponse } from "@/components/agents/streaming-response";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { evidenceCitations } from "@/lib/citations";
-import type { DocCard, Investigation } from "@/lib/pipeline-types";
+import { toCitationItems } from "@/lib/citations";
+import type { AskPoint, DocCard, Investigation } from "@/lib/pipeline-types";
+import { cardSources, type Source } from "@/lib/sources";
+import { ExecutionStrip } from "./execution-strip";
+import { SourceList } from "./source-card";
 import { useState } from "react";
 import { StreamingText } from "./streaming-text";
 import { EvidencePair } from "./evidence";
@@ -68,7 +70,7 @@ export function DocCardView({ card, expanded, onOpenAnalysis }: { card: DocCard;
           {card.reason ? <p className="line-clamp-2 px-3 pb-2.5 text-xs leading-5 text-muted-foreground">{card.reason.split(/(?<=\.)\s|:\s/)[0]}</p> : null}
           {card.regulatory_evidence.length || card.policy_evidence.length ? (
             <div className="px-3 pb-2.5">
-              <CitationStack citations={evidenceCitations(card.regulatory_evidence, card.policy_evidence, { label: `${card.source} circular` })} />
+              <CitationStack citations={toCitationItems(cardSources(card))} />
             </div>
           ) : null}
         </>
@@ -105,7 +107,10 @@ export function AnswerView({ inv, compact, onAsk, stream = true, onDone }: { inv
   const [done, setDone] = useState(!stream);
   const streaming = stream && !done;
   const primary = a.document ?? (a.documents?.length === 1 ? a.documents[0] : null);
-  const sources = primary ? evidenceCitations(primary.regulatory_evidence, primary.policy_evidence, { label: `${primary.source} circular` }) : [];
+  // canonical sources for everything this answer cites: the cited records' persisted provenance, in citation order
+  const citedCards = (a.points?.length ? Array.from(new Set(a.points.map((p) => p.record_id))).map((id) => a.documents?.find((d) => d.id === id)).filter(Boolean) : primary ? [primary] : []) as DocCard[];
+  const allSources: Source[] = citedCards.flatMap((c) => citedSources(c, a.points ?? []));
+  const sources = toCitationItems(allSources);
   const openAnalysis = (c: DocCard) =>
     analysis.open({
       id: c.document_pk, source: c.source, jurisdiction: "IN", document_id: c.circular_number ?? c.document_pk, circular_number: c.circular_number, title: c.title,
@@ -175,6 +180,9 @@ export function AnswerView({ inv, compact, onAsk, stream = true, onDone }: { inv
         </ol>
       ) : null}
       {!streaming && a.caveat ? <p className="text-xs text-muted-foreground">{a.caveat}</p> : null}
+
+      {!streaming && a.points?.length && citedCards.length === 1 ? <Grounding card={citedCards[0]} points={a.points} /> : null}
+      {!streaming && allSources.length && (a.points?.length || a.reasoning?.kind === "jev_reasoning") ? <SourceList sources={allSources} compact /> : null}
 
       {streaming ? null : a.document ? (
         <DocCardView card={a.document} expanded onOpenAnalysis={openAnalysis} />
@@ -254,64 +262,57 @@ export function AnswerView({ inv, compact, onAsk, stream = true, onDone }: { inv
         </div>
       ) : null}
 
-      {!streaming ? <Provenance inv={inv} /> : null}
+      {!streaming ? <ExecutionStrip inv={inv} /> : null}
     </div>
   );
 }
 
 
-/** Says exactly what produced the answer — every value comes from the recorded call telemetry, never a placeholder. */
-function Provenance({ inv }: { inv: Investigation }) {
-  const r = inv.answer.reasoning;
-  const jevOk = inv.judge.provider === "typesafe";
-  const ms = (v?: number | null) => (v === undefined || v === null ? "not recorded" : `${v} ms`);
-  const tok = (i?: number | null, o?: number | null) => (i === undefined || i === null ? "tokens not recorded" : `${i}→${o ?? 0} tokens`);
-  if (!r) {
-    return <p className="text-[11px] text-muted-foreground">{jevOk ? "Routed by Jev · System One" : "Routed by keywords (no model)"} · assembled from workspace records</p>;
-  }
-  const route = r.jev_route;
-  const routeLine = jevOk && route ? `Routed by Jev (${route.model ?? "jev"}, ${ms(route.latency_ms)}, ${tok(route.input_tokens, route.output_tokens)})` : `Routed by keywords (Jev unavailable${route?.error ? `: ${route.error}` : ""})`;
-  if (r.kind === "jev_reasoning") {
-    const j = r.jev_judgments;
-    const n = r.narrative;
-    return (
-      <div className="space-y-0.5 text-[11px] text-muted-foreground">
-        <p>
-          <span className="font-medium text-foreground/80">Reasoned by Jev</span>
-          {j && !j.error ? ` · ${j.questions ?? "?"} typed judgments (${j.model ?? "jev"}, calibrated, ${ms(j.latency_ms)}, ${tok(j.input_tokens, j.output_tokens)})` : j?.error ? ` · judgments unavailable: ${j.error}` : ""}
-        </p>
-        <p>
-          {n && !n.error
-            ? `Written by ${n.provider === "foundry" ? "Foundry" : n.provider} ${n.model ?? ""} (${n.structured_mode ?? "?"}, ${ms(n.latency_ms)}, ${tok(n.input_tokens, n.output_tokens)}${n.estimated_cost_usd !== undefined && n.estimated_cost_usd !== null ? `, est. $${n.estimated_cost_usd.toFixed(4)}` : ""}) — every claim validated against the records`
-            : r.composed
-              ? `Sentences composed from the judgments and records (no narrative model${n?.error ? `: ${n.error}` : ""})`
-              : ""}
-          {r.dropped_uncited?.length ? ` · ${r.dropped_uncited.length} uncited claim(s) dropped` : ""}
-        </p>
-        <p>
-          Sources: {r.sources} workspace record{r.sources === 1 ? "" : "s"}
-          {r.evidence ? ` · Evidence: ${r.evidence.regulatory} regulatory excerpt${r.evidence.regulatory === 1 ? "" : "s"}, ${r.evidence.policy} policy section${r.evidence.policy === 1 ? "" : "s"}${r.evidence.obligations ? `, ${r.evidence.obligations} obligations` : ""}` : ""}
-          {r.workspace ? ` · Workspace: ${r.workspace}` : ""} · {routeLine}
-        </p>
-      </div>
-    );
-  }
-  if (r.kind === "web_search") {
-    const n = r.narrative;
-    return (
-      <p className="text-[11px] text-muted-foreground">
-        <span className="font-medium text-foreground/80">Microsoft Foundry Web Search</span>
-        {n && !n.error ? ` · ${n.model ?? ""} (${n.tool ?? "web_search"}, domains ${(n.allowed_domains ?? []).join(", ") || "—"}, ${ms(n.latency_ms)}, ${tok(n.input_tokens, n.output_tokens)}${n.estimated_cost_usd !== undefined && n.estimated_cost_usd !== null ? `, est. $${n.estimated_cost_usd.toFixed(4)}` : ""})` : ""}
-        {" "}· discovery, not compliance evidence · {routeLine}
-      </p>
-    );
-  }
+/** Sources actually cited by the answer's points (falls back to everything the card holds when there are no points). */
+function citedSources(card: DocCard, points: AskPoint[]): Source[] {
+  const all = cardSources(card);
+  const cited = new Set(points.filter((p) => p.record_id === card.id).flatMap((p) => p.evidence.map((e) => (e.id.includes(".R") ? `reg:${e.section}` : e.id.includes(".P") ? `pol:${e.doc_id}:${e.section}` : ""))));
+  if (!cited.size) return all;
+  const picked = all.filter((s) => cited.has(s.kind === "regulator" ? `reg:${s.section}` : `pol:${s.document_id}:${s.section}`));
+  return picked.length ? picked : all;
+}
+
+/** Regulator says · Internal policy says · System conclusion — the audit shape, built from the record's own evidence, not from prose. */
+function Grounding({ card, points }: { card: DocCard; points: AskPoint[] }) {
+  const ev = points.filter((p) => p.record_id === card.id).flatMap((p) => p.evidence);
+  const reg = ev.filter((e) => e.id.includes(".R") && e.text);
+  const pol = ev.filter((e) => e.id.includes(".P") && e.text);
+  if (!reg.length && !pol.length) return null;
+  const regSrc = card.regulatory_source;
+  const outcome = card.gate ?? card.impact ?? card.alignment ?? "—";
   return (
-    <p className="text-[11px] text-muted-foreground">
-      <span className="font-medium text-foreground/80">{r.kind === "refused" ? "Refused — actions need human approval" : r.kind === "clarify" ? "Needs clarification" : "Workspace data"}</span>
-      {r.kind === "workspace_data" ? ` · Sources: ${r.sources} record${r.sources === 1 ? "" : "s"} · no reasoning model, no generated text` : ""}
-      {r.workspace ? ` · Workspace: ${r.workspace}` : ""} · {routeLine}
-      {!jevOk ? <Badge variant="outline" className="ml-1 border-warning/40 text-[10px] text-warning">no model</Badge> : null}
-    </p>
+    <div className="grid gap-2 rounded-lg border border-border md:grid-cols-3 md:divide-x md:divide-border">
+      <div className="space-y-1 p-3">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Regulator says</p>
+        {reg.length ? reg.slice(0, 3).map((e) => (
+          <p key={e.id} className="text-[13px] leading-6">
+            <span className="font-mono text-[11px] text-muted-foreground">{card.source} §{e.section}</span> “{e.text}”
+          </p>
+        )) : <p className="text-[13px] text-muted-foreground">No regulatory excerpt cited.</p>}
+      </div>
+      <div className="space-y-1 p-3">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Internal policy says</p>
+        {pol.length ? pol.slice(0, 3).map((e) => (
+          <p key={e.id} className="text-[13px] leading-6">
+            <span className="font-mono text-[11px] text-muted-foreground">{e.doc_id} §{e.section}</span> “{e.text}”
+          </p>
+        )) : <p className="text-[13px] text-muted-foreground">No policy excerpt cited.</p>}
+      </div>
+      <div className="space-y-1 p-3">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">System conclusion</p>
+        <p className="text-[13px] leading-6">
+          Stored analysis: <span className={`font-medium ${outcome === "CONFLICT" ? "text-destructive" : outcome === "ALIGNED" ? "text-success" : ""}`}>{outcome}</span>
+          {card.confidence !== undefined && card.confidence !== null ? ` · confidence ${Math.round(card.confidence * 100)}%` : ""}
+          {card.affected_policies.length ? ` · ${card.affected_policies.join(", ")}` : ""}
+        </p>
+        {card.reason ? <p className="line-clamp-3 text-[13px] leading-6 text-muted-foreground">{card.reason}</p> : null}
+        <p className="text-[11px] text-muted-foreground">Deterministic gate over Jev judgments{card.decision_path.some((p) => p.startsWith("foundry:")) ? " and Microsoft Foundry escalation" : ""}; {regSrc?.synthetic ? "snapshot record" : "live SEBI source"}.</p>
+      </div>
+    </div>
   );
 }

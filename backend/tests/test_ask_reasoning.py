@@ -21,8 +21,8 @@ class FakeJev(JudgmentProvider):
     name = "typesafe"
     calibrated = True
 
-    def __init__(self, intent="prioritize", sufficient=0.9, urgency=None, fail_reason=False):
-        self.intent, self.sufficient, self.urgency, self.fail_reason = intent, sufficient, urgency or {}, fail_reason
+    def __init__(self, intent="prioritize", sufficient=0.9, urgency=None, fail_reason=False, company_facts=0.05):
+        self.intent, self.sufficient, self.urgency, self.fail_reason, self.company_facts = intent, sufficient, urgency or {}, fail_reason, company_facts
         self.calls: list[dict[str, Any]] = []
 
     async def ask(self, task, state, questions, *, model=None, context=None) -> Judgment:
@@ -41,6 +41,8 @@ class FakeJev(JudgmentProvider):
                 out[qid] = Answer(type="noul", noul=0.9 if state.get("conversation") else 0.05)
             elif qid == "answerable":
                 out[qid] = Answer(type="noul", noul=0.9)
+            elif qid == "company_facts":
+                out[qid] = Answer(type="noul", noul=self.company_facts)
             elif qid == "sufficient":
                 out[qid] = Answer(type="noul", noul=self.sufficient)
             elif qid.endswith(":urgency"):
@@ -230,3 +232,47 @@ async def test_new_list_intents_answer_from_records_without_a_model(workspace, t
 def test_by_significance_puts_conflicts_before_archived():
     recs = [{"impact": "NOT_APPLICABLE", "confidence": 1.0}, {"impact": "ALIGNED", "confidence": 0.7}, {"impact": "CONFLICT", "confidence": 0.8}, {"impact": "UNCERTAIN", "confidence": 0.5}]
     assert [r["impact"] for r in I.by_significance(recs)] == ["CONFLICT", "UNCERTAIN", "ALIGNED", "NOT_APPLICABLE"]
+
+
+# ---- answer-quality matrix (routing + grounding, no model prose) ------------------------------------------------------
+async def test_ask_quality_matrix_answers_from_records_and_never_acts(workspace, tenant, monkeypatch):
+    conflict = next(r for r in build_context(workspace, tenant, "q", None)["records"] if r["impact"] == "CONFLICT")
+    focus = {"document_pk": conflict["document_pk"]}
+    cases = [  # (question, intent the judge returns, expected kind, must cite the conflict record)
+        ("Why is the latest conflict a conflict?", "explain", "jev_reasoning", True),
+        ("Which policy does it affect?", "affected_policies", "jev_reasoning", True),
+        ("What does SEBI require?", "obligations", "jev_reasoning", True),
+        ("What happens to Series XIII?", "explain", "jev_reasoning", True),
+        ("What should we do next?", "prioritize", "jev_reasoning", True),
+    ]
+    for q, intent, kind, cites in cases:
+        jev = FakeJev(intent=intent)
+        monkeypatch.setattr(I, "judge_for", lambda task, jev=jev: jev)
+        inv = await I.investigate(workspace, tenant, q, focus=focus)
+        r = inv.answer["reasoning"]
+        assert r["kind"] == kind, (q, r["kind"])
+        assert r["focus"]["record"] == conflict["id"] and (not cites or conflict["id"] in r["cited"]), (q, r.get("cited"))
+        assert all(e["record"] in {c["id"] for c in inv.answer["documents"]} for p in inv.answer.get("points", []) for e in p["evidence"])  # every cited evidence exists
+    # 5. facts the workspace does not hold → explicit insufficiency, nothing invented
+    jev = FakeJev(intent="list_applicable", sufficient=0.2, company_facts=0.9)  # even when the intent reads as a list, company facts go to reasoning
+    monkeypatch.setattr(I, "judge_for", lambda task: jev)
+    inv = await I.investigate(workspace, tenant, "Does Nimbus have any affected distributors?", focus=focus)
+    assert inv.intent == "other_reasoning" and "company-facts" in inv.judge["note"]
+    assert inv.answer["insufficient_evidence"] is True and "don't have enough evidence" in inv.summary and not inv.answer.get("points")
+    # 7. never a side effect from Ask
+    jev = FakeJev(intent="action_request")
+    monkeypatch.setattr(I, "judge_for", lambda task: jev)
+    before = [r.status for r in workspace.list_reviews(tenant.tenant_id)]
+    inv = await I.investigate(workspace, tenant, "Create a GitHub issue.", focus=focus)
+    assert inv.answer["reasoning"]["kind"] == "refused" and "human approval" in inv.summary and [r.status for r in workspace.list_reviews(tenant.tenant_id)] == before
+    assert all(r.ticket_id is None for r in workspace.list_reviews(tenant.tenant_id))
+
+
+async def test_focus_makes_a_first_turn_why_question_about_the_open_analysis(workspace, tenant, monkeypatch):
+    recs = build_context(workspace, tenant, "q", None)["records"]
+    aligned = next(r for r in recs if r["impact"] == "ALIGNED")
+    jev = FakeJev(intent="explain")
+    monkeypatch.setattr(I, "judge_for", lambda task: jev)
+    inv = await I.investigate(workspace, tenant, "Why did this get its result?", focus={"analysis_id": aligned["analysis_id"]})
+    assert inv.answer["reasoning"]["cited"] == [aligned["id"]] and inv.document_pk == aligned["document_pk"]
+    assert "focus record" in inv.judge["note"]

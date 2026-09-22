@@ -18,8 +18,8 @@ def _llm_step(calls: list[dict[str, Any]], task: str, metrics: dict[str, Any]) -
     c = next((c for c in calls if c["task"] == task), None)
     if not c:  # rows written before llm_calls carried analysis_id: the same telemetry lives in analysis.metrics[task]
         m = metrics.get(task)
-        return {**m, "provider": "foundry", "at": None, "ok": True} if isinstance(m, dict) and m.get("model") else None
-    return {"model": c["model"], "provider": c["provider"], "response_id": c.get("response_id"), "latency_ms": c["latency_ms"], "input_tokens": c["input_tokens"],
+        return {**m, "provider": "foundry", "api": "responses", "at": None, "ok": True} if isinstance(m, dict) and m.get("model") else None
+    return {"model": c["model"], "provider": c["provider"], "api": "responses", "response_id": c.get("response_id"), "latency_ms": c["latency_ms"], "input_tokens": c["input_tokens"],
             "output_tokens": c["output_tokens"], "cached_tokens": c.get("cached_tokens"), "estimated_cost_usd": c.get("estimated_cost_usd"), "structured_mode": c.get("structured_mode"),
             "context_format": c.get("context_format"), "at": c["created_at"], "ok": bool(c["ok"])}
 
@@ -74,10 +74,12 @@ def build_trace(db: StateStore, t: TenantContext, pk: str) -> dict[str, Any] | N
         step(10, "Impact Gate", "deterministic gate", bool(gate), {"outcome": gate, "applicability": imp.get("applicability"), "alignment": imp.get("alignment"), "confidence": imp.get("confidence"),
                                                                   "affected_policies": imp.get("affected_policies"), "decision_path": a.decision_path if a else [], "escalation_reason": a.escalation_reason if a else None}),
         step(11, "Microsoft Foundry", "memo drafting", bool(memo_call), memo_call, None if memo_call else "not needed — memos are drafted only for a verified CONFLICT"),
-        step(12, "Human", "review", review is not None, {"review_id": review.id, "status": review.status, "decided_by": review.decided_by, "decided_at": review.decided_at.isoformat() if review.decided_at else None,
-                                                        "actor_type": ev["APPROVED"].actor_type if "APPROVED" in ev else None} if review else None, None if review else "no review needed"),
+        step(12, "Human", "review", review is not None and review.status in ("APPROVED", "REJECTED"),
+             {"review_id": review.id, "status": review.status, "decided_by": review.decided_by, "decided_at": review.decided_at.isoformat() if review.decided_at else None,
+              "actor_type": ev["APPROVED"].actor_type if "APPROVED" in ev else ev["REJECTED"].actor_type if "REJECTED" in ev else None} if review else None,
+             None if review and review.status in ("APPROVED", "REJECTED") else "approval required — no external action has been taken" if review else "no review needed"),
         step(13, "GitHub", "issue", bool(review and review.ticket_url), {"issue": review.ticket_id, "url": review.ticket_url, "created_at": ev["TICKET_CREATED"].timestamp.isoformat() if "TICKET_CREATED" in ev else None} if review and review.ticket_url else None,
-             None if review and review.ticket_url else "no side effect (awaiting or rejected)" if review else "no side effect"),
+             None if review and review.ticket_url else ("waiting for human approval — no external action" if review.status == "AWAITING_REVIEW" else "rejected — no external action") if review else "no side effect (no review was needed)"),
     ]
     return {"document_pk": pk, "document_id": doc.document_id, "title": doc.title, "tenant_id": t.tenant_id, "analysis_id": a.id if a else None,
             "foundry_calls": len(calls) or sum(1 for k in ("extraction", "impact", "memo") if isinstance(metrics.get(k), dict) and metrics[k].get("model")), "jev_records": len(decs), "audit_events": [{"at": e.timestamp.isoformat(), "event": e.event_type, "actor": e.actor, "actor_type": e.actor_type} for e in audit],

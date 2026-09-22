@@ -4,8 +4,8 @@ import { ExternalLink, Quote } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Citations } from "@/components/agents/citations";
-import { evidenceCitations } from "@/lib/citations";
+import { policySources, regulatorySources } from "@/lib/sources";
+import { SourceList } from "./source-card";
 import type { Evidence, PolicyEvidence, PolicySource, RegulatorySource } from "@/lib/pipeline-types";
 import { fmtDate } from "./labels";
 import { SectionHeader } from "./section-header";
@@ -115,7 +115,10 @@ export function EvidencePair({ regulatory, policy, source }: { regulatory: Evide
           </ul>
         </div>
       </div>
-      <Citations citations={evidenceCitations(regulatory, policy, { label: reg?.reference ? `SEBI ${reg.reference}` : source?.label, url: reg?.detail_url ?? source?.url, policies: source?.policies })} title="Sources" />
+      <details className="group">
+        <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">Sources · exact links</summary>
+        <SourceList className="mt-2" compact sources={[...regulatorySources(regulatory, reg, { label: source?.label, url: source?.url }), ...policySources(policy, source?.policies)]} />
+      </details>
     </section>
   );
 }

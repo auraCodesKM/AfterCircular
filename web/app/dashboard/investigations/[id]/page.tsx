@@ -35,11 +35,13 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
         </p>
         <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-balance">{inv.data.question}</h1>
       </div>
+      <InvestigationAnswer inv={inv.data} />
       {doc.data ? (
-        <AnalysisWorkspace doc={doc.data} analysis={analysis.data} review={reviews.data.find((r) => r.document_pk === doc.data!.id) ?? null} />
-      ) : (
-        <InvestigationAnswer inv={inv.data} />
-      )}
+        <section className="space-y-3 border-t border-border pt-6">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">The analysis this answer is grounded in</p>
+          <AnalysisWorkspace doc={doc.data} analysis={analysis.data} review={reviews.data.find((r) => r.document_pk === doc.data!.id) ?? null} />
+        </section>
+      ) : null}
     </div>
   );
 }

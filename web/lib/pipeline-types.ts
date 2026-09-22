@@ -35,7 +35,7 @@ export type PolicySource = { path: string | null; url: string | null; repo: stri
 export type AnalysisRecord = {
   id: string; document_pk: string; scan_id: string | null;
   extraction: { regulator?: string; circular_number?: string | null; effective_date?: string | null; applies_to?: string[]; summary?: string; obligations?: Obligation[] };
-  retrieved_chunks: { chunk_id: string; doc_id: string; title: string; section: string; text: string; score: number }[];
+  retrieved_chunks: { chunk_id: string; doc_id: string; title: string; path: string; version?: string | null; section: string; text: string; score: number; commit_sha?: string | null; chunk_hash?: string | null }[];
   impact: {
     applicability: "YES" | "NO" | "UNCERTAIN"; alignment: "ALIGNED" | "CONFLICT" | null; affected_policies: string[]; reason: string;
     regulatory_evidence: Evidence[]; policy_evidence: PolicyEvidence[]; effective_date: string | null; recommended_action: string | null; confidence: number;
@@ -129,6 +129,7 @@ export type AskReasoning = {
   jev_judgments?: { provider?: string; model?: string; calibrated?: boolean; questions?: number; latency_ms?: number; input_tokens?: number | null; output_tokens?: number | null; error?: string };
   narrative?: { provider?: string; model?: string; latency_ms?: number; input_tokens?: number | null; output_tokens?: number | null; cached_tokens?: number | null; estimated_cost_usd?: number | null; structured_mode?: string | null; context_format?: string | null; response_id?: string | null; tool?: string; allowed_domains?: string[]; error?: string } | null;
   composed?: boolean; dropped_uncited?: string[]; evidence?: { regulatory: number; policy: number; obligations: number };
+  focus?: { record: string; document_id: string; title: string; analysis_id: string | null; policy_ids: string[] } | null;
 };
 export type Investigation = {
   id: string; question: string; intent: string; summary: string; document_pk: string | null; analysis_id: string | null; policy_id: string | null; conversation_id?: string | null;

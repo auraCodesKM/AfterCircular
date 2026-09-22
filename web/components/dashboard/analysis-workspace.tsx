@@ -23,7 +23,8 @@ export function AnalysisWorkspace({ doc, analysis, review }: { doc: ProcessedDoc
   const impact = analysis?.impact ?? null;
   const kind = analysisKind(doc, impact);
   const path = analysis?.decision_path.map((p) => p.split(":")[0]) ?? [];
-  const providers = Array.from(new Set(path.map((p) => (p === "typesafe" ? "Jev" : p === "foundry" ? "Foundry" : p))));
+  // the full chain, not a compressed "Jev → Foundry → Human": reasoning support routes, Foundry reasons on escalation, the gate decides, a person acts
+  const providers = [path.includes("typesafe") ? "Reasoning support · Jev" : path.includes("stub") ? "Stub judgments" : null, path.includes("foundry") ? "Microsoft Foundry" : null, analysis?.gate_outcome ? "Impact Gate · deterministic" : null].filter((x): x is string => !!x);
   const verdict = impact ? (impact.applicability === "YES" ? (impact.alignment === "CONFLICT" ? "Conflict" : impact.alignment === "ALIGNED" ? "Aligned" : "Uncertain") : impact.applicability === "NO" ? "Not applicable" : "Uncertain") : null;
 
   return (
@@ -58,9 +59,9 @@ export function AnalysisWorkspace({ doc, analysis, review }: { doc: ProcessedDoc
             <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Decision</p>
             <p className={cn("mt-1 text-3xl font-semibold tracking-tight", verdictTone[kind])}>{verdict}</p>
             <p className="mt-2 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-              {[...providers, ...(review ? ["Human"] : [])].map((p, i, arr) => (
+              {[...providers, ...(review ? ["Human review"] : [])].map((p, i, arr) => (
                 <span key={`${p}-${i}`} className="inline-flex items-center gap-1">
-                  <span className={cn("rounded-md px-1.5 py-0.5", p === "Human" ? "bg-foreground/10 font-medium text-foreground" : "bg-muted text-foreground/80")}>{p}</span>
+                  <span className={cn("rounded-md px-1.5 py-0.5", p === "Human review" ? "bg-foreground/10 font-medium text-foreground" : p.startsWith("Impact Gate") ? "border border-foreground/30 font-medium text-foreground" : "bg-muted text-foreground/80")}>{p}</span>
                   {i < arr.length - 1 ? <ArrowRight aria-hidden className="size-3" /> : null}
                 </span>
               ))}
