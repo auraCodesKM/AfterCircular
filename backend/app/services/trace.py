@@ -57,30 +57,36 @@ def _jev_stage(decs: list[DecisionRecord], stage: str) -> dict[str, Any] | None:
                            "latency_ms": sum(d.latency_ms for d in rows), "input_tokens": sum(d.input_tokens or 0 for d in rows), "output_tokens": sum(d.output_tokens or 0 for d in rows),
                            "questions": sum(len(d.question_ids) for d in rows)}
     rt = r0.routing
+    out["outcome"], out["confidence"] = rt.get("outcome"), rt.get("confidence")
     if stage == "triage":
         out["decision"] = f"{rt.get('outcome')} · {rt.get('choice')} · P={rt.get('confidence')}"
         out["entity_in_scope"], out["depends_on_unstated_fact"] = rt.get("entity_in_scope"), rt.get("depends_on_unstated_fact")
     elif stage == "extraction_check":
         out["decision"] = f"{rt.get('kept')} obligation(s) confirmed, {len(rt.get('dropped') or [])} dropped, {len(rt.get('flagged_uncertain') or [])} flagged uncertain"
+        out["kept"], out["dropped"], out["uncertain"] = rt.get("kept"), len(rt.get("dropped") or []), len(rt.get("flagged_uncertain") or [])
     elif stage == "applicability":
         out["decision"] = f"{rt.get('outcome')} · {rt.get('choice')} · P={rt.get('confidence')}"
         out["reason"] = rt.get("reason")
     elif stage == "rerank":
         kept = sum(1 for d in rows if d.routing.get("kept"))
         out["decision"] = f"{kept} / {len(rows)} policy sections judged relevant"
+        out["kept"], out["total"] = kept, len(rows)
         out["items"] = [{"chunk": (d.evidence_ids or [""])[0].split("_", 1)[-1], "relevant": d.routing.get("relevant"), "kept": d.routing.get("kept")} for d in rows]
     elif stage == "alignment":
         pairs = [(k, v) for d in rows for k, v in (d.routing.get("pairs") or {}).items()]
         cnt = Counter(v.get("bucket") or v.get("choice") for _, v in pairs)
         out["decision"] = ", ".join(f"{n} {k}" for k, n in cnt.most_common()) or "no pairs"
+        out["counts"] = dict(cnt)
         out["items"] = [{"obligation": k, "choice": v.get("choice"), "confidence": v.get("confidence"), "p_conflicts": v.get("p_conflicts")} for k, v in pairs][:24]
         out["conflicts"] = sum(1 for _, v in pairs if v.get("choice") == "conflicts")
     elif stage == "verification":
         v = Counter(d.routing.get("verdict") for d in rows)
         label = {"verified": "excerpt(s) verified verbatim against the stored text", "fabricated": "excerpt(s) rejected — not verbatim in the source, dropped before the gate"}
         out["decision"] = ", ".join(f"{n} {label.get(str(k), str(k))}" for k, n in v.most_common())
+        out["counts"] = dict(v)
     elif stage == "cross_check":
         out["decision"] = f"{rt.get('verdict')} with the Foundry conclusion ({rt.get('conflicts')} conflict pair(s), {rt.get('satisfies')} satisfied)"
+        out["verdict"], out["conflict_pairs"], out["satisfied_pairs"] = rt.get("verdict"), rt.get("conflicts"), rt.get("satisfies")
     return out
 
 

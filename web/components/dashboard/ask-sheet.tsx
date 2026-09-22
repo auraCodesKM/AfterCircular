@@ -13,6 +13,8 @@ import { EASE_OUT } from "@/lib/ease";
 import type { Investigation } from "@/lib/pipeline-types";
 import { AnswerView } from "./answer-view";
 import { AgentSteps } from "@/components/xiod/agent-steps";
+import { Badge } from "@/components/ui/badge";
+import { composeAnswer } from "@/lib/answer-compose";
 import { questionsFor } from "./ask-questions";
 import { Orb } from "./orb";
 import { useSound } from "./sound-effects";
@@ -87,6 +89,8 @@ function AskBody({ initial }: { initial: string }) {
   }, [turns, busy, reduce]);
 
   const judge = health?.judge?.default === "typesafe" ? "Jev" : health?.judge?.default === "stub" ? "keywords" : "Foundry";
+  const last = [...turns].reverse().find((t) => t.inv)?.inv;
+  const lastSources = last ? composeAnswer(last).sources.length : 0;
   const suggestions = questionsFor(pathname);
   const conversation = useRef<string | null>(null);
 
@@ -94,12 +98,14 @@ function AskBody({ initial }: { initial: string }) {
     <>
       <SheetHeader className="flex-row items-center gap-3 border-b border-border/80 bg-background/90 px-5 py-3 pr-14 backdrop-blur">
         <Orb state={busy ? "weaving" : turns.length ? "composing" : "solving"} px={30} />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <SheetTitle className="text-sm font-semibold tracking-tight">Ask AfterCircular</SheetTitle>
-          <SheetDescription className="truncate text-xs">
-            Routed by {judge} · grounded in workspace records · no web search unless you ask to look up sebi.gov.in
-            {context ? ` · context: ${focusDoc?.title ?? "this analysis"}` : ""}
-          </SheetDescription>
+          <SheetDescription className="truncate text-xs">Grounded in your regulatory sources and policy workspace{context ? ` · ${focusDoc?.title ?? "this analysis"}` : ""}</SheetDescription>
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            <Badge variant="outline" className={health?.sebi_mode === "live" ? "border-success/40 text-[10px] text-success" : "text-[10px]"}>{health?.sebi_mode === "live" ? "SEBI · live mode" : "SEBI · snapshot"}</Badge>
+            <Badge variant="outline" className="text-[10px]">Policy corpus</Badge>
+            {lastSources ? <Badge variant="outline" className="text-[10px]">{lastSources} source{lastSources === 1 ? "" : "s"}</Badge> : null}
+          </div>
         </div>
       </SheetHeader>
 

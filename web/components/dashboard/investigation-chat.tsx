@@ -86,7 +86,7 @@ export function InvestigationChat({ initialLogin, avatar }: { initialLogin: stri
       <div className="flex items-center gap-2 border-b border-border px-4 py-2 md:px-6">
         <Orb state={busy ? "weaving" : turns.length ? "composing" : "solving"} px={26} />
         <p className="text-sm font-medium">Ask AfterCircular</p>
-        <p className="hidden text-xs text-muted-foreground sm:block">· routed by Jev · grounded in workspace records · no web search unless you ask to look up sebi.gov.in</p>
+        <p className="hidden text-xs text-muted-foreground sm:block">· grounded in your regulatory sources and policy workspace</p>
         {turns.length ? (
           <Button size="xs" variant="ghost" className="ml-auto" onClick={() => { setTurns([]); conversation.current = null; router.replace("/dashboard/ask"); }}>
             <Plus /> New
@@ -99,7 +99,7 @@ export function InvestigationChat({ initialLogin, avatar }: { initialLogin: stri
             <Orb state="solving" px={72} />
             <div>
               <p className="text-base font-medium">Investigate this workspace</p>
-              <p className="mt-1 max-w-md text-sm text-muted-foreground">Ask about circulars, conflicts, reviews or a policy. Questions are routed by typed judgments; answers come from records.</p>
+              <p className="mt-1 max-w-md text-sm text-muted-foreground">Ask about circulars, conflicts, evidence, reviews, a policy — or how an analysis was produced. Answers come from stored records and cite their sources.</p>
             </div>
             <div className="flex flex-wrap justify-center gap-1.5">
               {STARTERS.map((s) => (

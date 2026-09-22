@@ -390,7 +390,9 @@ def trace_answer(intent: str, ctx: dict[str, Any], db: StateStore, tenant: Tenan
     sm, steps = tr["summary"], tr["steps"]
     label = f"{rec['circular_number'] or rec['document_id']} ({rec['title'][:60]})"
     ran = [s for s in steps if s["status"] == "completed"]
-    out: dict[str, Any] = {"documents": _cards([rec]), "trace": tr}
+    out: dict[str, Any] = {"documents": _cards([rec]), "trace": tr,
+                           "headline": {"pipeline": "How this result happened", "performance": "Execution telemetry", "cost": "Estimated cost", "toon": "Context efficiency (TOON)",
+                                        "retrieval": "Azure AI Search retrieval", "jev_decisions": "Jev assessment", "next_step": "What happens next"}[intent]}
     if intent == "pipeline":
         chain = " → ".join(f"{s['name']}{' (' + s['operation'].split(' (')[0].lower() + ')' if s['actor'] in ('foundry', 'jev') else ''}" for s in ran)
         skipped = [s for s in steps if s["status"] in ("skipped", "blocked", "awaiting_approval")]
