@@ -9,7 +9,9 @@ import "@/components/ui/glass.css";
 export const metadata: Metadata = { title: "Sign in" };
 
 export default async function SignInPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  if (await auth()) redirect("/dashboard");
+  const session = await auth();
+  // a session whose GitHub grant can no longer be refreshed must land here to sign in again — bouncing it to /dashboard loops
+  if (session && session.error !== "RefreshTokenError" && session.error !== "RefreshTokenMissing") redirect("/dashboard");
   const { error } = await searchParams;
   return (
     <AuthShell
