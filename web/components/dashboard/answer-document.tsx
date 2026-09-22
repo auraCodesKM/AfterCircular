@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, Check, ChevronRight, Copy, FileText, ListTree, Quote } from "lucide-react";
+import { ArrowUpRight, Check, ChevronRight, Copy, FileText, ListTree } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useMemo, useState } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
@@ -31,7 +31,7 @@ const md: Components = {
   em: ({ children }) => <em className="text-muted-foreground not-italic">{children}</em>,
   a: ({ children, href }) =>
     href?.includes("-src-") ? (
-      <a href={href} onClick={(e) => { e.preventDefault(); jumpTo(href.slice(1)); }} className="mx-0.5 inline-flex min-w-4 -translate-y-0.5 items-center justify-center rounded bg-muted px-1 py-px font-mono text-[10px] font-semibold leading-none text-muted-foreground no-underline hover:text-foreground">{children}</a>
+      <a href={href} onClick={(e) => { e.preventDefault(); jumpTo(href.slice(1)); }} className="mx-0.5 inline-flex min-w-4 -translate-y-0.5 items-center justify-center rounded border border-border bg-muted px-1 py-px font-mono text-[10px] font-semibold leading-none text-muted-foreground no-underline hover:text-foreground">[{children}]</a>
     ) : (
       <a href={href} target="_blank" rel="noreferrer" className="underline underline-offset-4">{children}</a>
     ),
@@ -197,7 +197,6 @@ export function AnswerDocument({ inv, compact, onAsk, stream = true, onDone }: {
 
           <div className="mt-4 flex flex-wrap items-center gap-1">
             <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={() => void copy()}>{copied ? <Check /> : <Copy />} {copied ? "Copied" : "Copy"}</Button>
-            {c.sources.length ? <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={() => jumpTo(`${idPrefix}-sources`)}><Quote /> Open sources</Button> : null}
             {c.sources.some((s) => s.excerpt) ? <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={() => setEvidenceOpen((o) => !o)}><FileText /> {evidenceOpen ? "Hide evidence" : "View evidence"}</Button> : null}
             {cards[0]?.analysis_id ? <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={() => openAnalysis(cards[0])}><ListTree /> View analysis</Button> : null}
             <Button variant="ghost" size="xs" className="text-muted-foreground" nativeButton={false} render={<Link href={`/dashboard/investigations/${inv.id}`} />}>Open investigation <ArrowUpRight /></Button>

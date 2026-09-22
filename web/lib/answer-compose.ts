@@ -42,7 +42,7 @@ function numberSources(cards: DocCard[], points: AskPoint[]): { sources: Source[
   return { sources, byEvidence };
 }
 
-const marks = (ids: string[], by: Map<string, number>) => Array.from(new Set(ids.map((i) => by.get(i)).filter((n): n is number => !!n))).map((n) => `[${n}]`).join("");
+const marks = (ids: string[], by: Map<string, number>) => Array.from(new Set(ids.map((i) => by.get(i)).filter((n): n is number => !!n))).sort((a, b) => a - b).map((n) => `[${n}]`).join(" ");
 
 function narrative(inv: Investigation, cards: DocCard[]): Composed {
   const a = inv.answer;
@@ -99,33 +99,54 @@ function narrative(inv: Investigation, cards: DocCard[]): Composed {
   return { headline: "", markdown: lines.join("\n"), sources, followUps, mode: "narrative" };
 }
 
+type JevStage = Record<string, unknown> & { decision?: string; items?: Record<string, unknown>[] };
+
+/** Structured fields when the trace carries them; otherwise the same facts parsed from the stage's own decision line (never invented). */
+function jevFacts(st: JevStage | null) {
+  if (!st) return null;
+  const d = String(st.decision ?? "");
+  const outcome = typeof st.outcome === "string" ? st.outcome : /^(YES|NO|UNCERTAIN|archive|proceed)\b/i.exec(d)?.[1] ?? null;
+  const confidence = typeof st.confidence === "number" ? st.confidence : (() => { const m = /P=([0-9.]+)/.exec(d); return m ? Number(m[1]) : null; })();
+  const kept = typeof st.kept === "number" ? st.kept : Array.isArray(st.items) && st.items.length && "kept" in st.items[0] ? st.items.filter((i) => i.kept).length : (() => { const m = /^(\d+) \/ (\d+)/.exec(d); return m ? Number(m[1]) : null; })();
+  const total = typeof st.total === "number" ? st.total : Array.isArray(st.items) && st.items.length && "kept" in st.items[0] ? st.items.length : (() => { const m = /^(\d+) \/ (\d+)/.exec(d); return m ? Number(m[2]) : null; })();
+  const counts: Record<string, number> = st.counts && typeof st.counts === "object" ? (st.counts as Record<string, number>) : Object.fromEntries(Array.from(d.matchAll(/(\d+) ([a-z_]+)/g)).map((m) => [m[2], Number(m[1])]));
+  const verdict = typeof st.verdict === "string" ? st.verdict : /^(agree|disagree)\b/i.exec(d)?.[1] ?? null;
+  const conflictPairs = typeof st.conflict_pairs === "number" ? st.conflict_pairs : (() => { const m = /(\d+) conflict pair/.exec(d); return m ? Number(m[1]) : null; })();
+  const rejected = typeof st.counts === "object" && st.counts && "fabricated" in (st.counts as object) ? Number((st.counts as Record<string, number>).fabricated) : (() => { const m = /(\d+) excerpt\(s\) rejected/.exec(d); return m ? Number(m[1]) : null; })();
+  const verified = typeof st.counts === "object" && st.counts && "verified" in (st.counts as object) ? Number((st.counts as Record<string, number>).verified) : (() => { const m = /(\d+) excerpt\(s\) verified/.exec(d); return m ? Number(m[1]) : null; })();
+  const ex = { kept: typeof st.kept === "number" ? st.kept : (() => { const m = /^(\d+) obligation/.exec(d); return m ? Number(m[1]) : null; })(), uncertain: typeof st.uncertain === "number" ? st.uncertain : (() => { const m = /(\d+) flagged uncertain/.exec(d); return m ? Number(m[1]) : null; })(), dropped: typeof st.dropped === "number" ? st.dropped : (() => { const m = /(\d+) dropped/.exec(d); return m ? Number(m[1]) : null; })() };
+  return { outcome, confidence, kept, total, counts, verdict, conflictPairs, rejected, verified, ex, reason: typeof st.reason === "string" ? st.reason : null, model: typeof st.model === "string" ? st.model : null };
+}
+
 function jevAssessment(tr: Trace, card: DocCard | null): string {
   const jev = tr.steps.filter((s) => s.actor === "jev" && s.status === "completed");
-  const stage = (name: string) => {
+  const stage = (name: string): JevStage | null => {
     for (const s of jev) {
-      const t = s.telemetry as Record<string, Record<string, unknown>>;
-      if (s.id === "triage" && name === "triage") return s.telemetry as Record<string, unknown>;
-      if (t[name] && typeof t[name] === "object") return t[name];
+      const t = s.telemetry as Record<string, unknown>;
+      if (name === "triage" && s.id === "triage") return t as JevStage;
+      const v = t[name];
+      if (v && typeof v === "object" && "records" in (v as object)) return v as JevStage;
     }
     return null;
   };
+  const pct = (v: number | null) => (v === null ? "not recorded" : `${Math.round(v * 100)}%`);
   const L: string[] = ["## Jev assessment", ""];
-  const tri = stage("triage"), ex = stage("extraction_check"), ap = stage("applicability"), rr = stage("rerank"), al = stage("alignment"), ve = stage("verification"), cc = stage("cross_check");
-  if (tri) L.push(`**Triage**  \n${String(tri.outcome ?? "").toUpperCase() === "ARCHIVE" ? "Outside scope — archived" : "In scope"}${typeof tri.confidence === "number" ? ` · ${Math.round(Number(tri.confidence) * 100)}% confidence` : ""}`, "");
-  if (ex) L.push(`**Extraction check**  \n${num(ex.kept)} obligations confirmed${Number(ex.uncertain) ? ` · ${num(ex.uncertain)} flagged uncertain` : ""}${Number(ex.dropped) ? ` · ${num(ex.dropped)} dropped` : ""}`, "");
-  if (ap) L.push(`**Applicability**  \n${String(ap.outcome ?? "—")}${typeof ap.confidence === "number" ? ` · ${Math.round(Number(ap.confidence) * 100)}% confidence` : ""}${ap.reason ? `  \n_${String(ap.reason)}_` : ""}`, "");
+  const tri = jevFacts(stage("triage")), ex = jevFacts(stage("extraction_check")), ap = jevFacts(stage("applicability")), rr = jevFacts(stage("rerank")), al = jevFacts(stage("alignment")), ve = jevFacts(stage("verification")), cc = jevFacts(stage("cross_check"));
+  if (tri) L.push(`**Triage**  \n${String(tri.outcome ?? "").toLowerCase() === "archive" ? "Outside scope — archived" : "In scope"} · ${pct(tri.confidence)} confidence`, "");
+  if (ex) L.push(`**Extraction check**  \n${num(ex.ex.kept)} obligations confirmed${ex.ex.uncertain ? ` · ${ex.ex.uncertain} flagged uncertain` : ""}${ex.ex.dropped ? ` · ${ex.ex.dropped} dropped` : ""}`, "");
+  if (ap) L.push(`**Applicability**  \n${ap.outcome ?? "not recorded"} · ${pct(ap.confidence)} confidence${ap.reason ? `  \n_${ap.reason}_` : ""}`, "");
   if (rr) L.push(`**Policy relevance**  \n${num(rr.kept)} / ${num(rr.total)} retrieved sections considered relevant`, "");
-  if (al && al.counts && typeof al.counts === "object") {
-    const c = al.counts as Record<string, number>;
+  if (al && Object.keys(al.counts).length) {
     const label: Record<string, string> = { conflicts: "Conflict", uncertain: "Uncertain", harmless_uncertain: "Uncertain (harmless)", satisfies: "Satisfied", not_addressed: "Not addressed" };
+    const order = ["conflicts", "uncertain", "satisfies", "not_addressed", "harmless_uncertain"];
     L.push("### Alignment", "", "| Finding | Pairs |", "|---|---:|");
-    for (const [k, v] of Object.entries(c).sort((x, y) => y[1] - x[1])) L.push(`| ${label[k] ?? k} | ${v} |`);
+    for (const k of [...order.filter((k) => k in al.counts), ...Object.keys(al.counts).filter((k) => !order.includes(k))]) L.push(`| ${label[k] ?? k} | ${al.counts[k]} |`);
     L.push("");
   }
-  if (ve) L.push("### Verification", "", String(ve.decision ?? "—"), "");
-  if (cc) L.push("### Cross-check", "", `**${String(cc.verdict ?? "").toLowerCase() === "agree" ? "Agreed with Microsoft Foundry" : `Verdict: ${String(cc.verdict)}`}**  \n${num(cc.conflict_pairs)} conflict pair${Number(cc.conflict_pairs) === 1 ? "" : "s"} remained after verification.`, "");
-  const model = jev.map((s) => { const t = s.telemetry as Record<string, Record<string, unknown>>; return (s.telemetry as Record<string, unknown>).model ?? Object.values(t).find((v) => v && typeof v === "object" && "model" in v)?.model; }).find(Boolean);
-  L.push(`\`Jev ${String(model ?? "")} · ${tr.summary.jev_judgments} typed judgments\` — model judgments route the case; the deterministic Impact Gate set the outcome${card ? ` (${card.gate ?? card.impact})` : ""}; nothing here authorizes an action.`);
+  if (ve) L.push("### Verification", "", ve.rejected !== null || ve.verified !== null ? `${ve.rejected ? `${ve.rejected} excerpt${ve.rejected === 1 ? "" : "s"} rejected — not verbatim in the source, dropped before the gate.` : ""}${ve.verified ? ` ${ve.verified} excerpt${ve.verified === 1 ? "" : "s"} verified verbatim.` : ""}`.trim() : String((stage("verification") as JevStage).decision ?? "not recorded"), "");
+  if (cc) L.push("### Cross-check", "", `**${cc.verdict ? (cc.verdict.toLowerCase() === "agree" ? "Agreed with Microsoft Foundry" : `Disagreed with Microsoft Foundry (${cc.verdict})`) : "Verdict not recorded"}** · ${cc.conflictPairs === null ? "conflict pairs not recorded" : `${cc.conflictPairs} conflict pair${cc.conflictPairs === 1 ? "" : "s"} remained after verification`}.`, "");
+  const model = [tri, ex, ap, rr, al, ve, cc].find((x) => x?.model)?.model ?? "";
+  L.push(`\`Jev ${model.replace(/^jev-/, "")} · ${tr.summary.jev_judgments} typed judgments\``, "", `These judgments route and verify the case; the deterministic Impact Gate sets the outcome${card ? ` (${card.gate ?? card.impact})` : ""} and no Jev judgment authorizes an action.`);
   return L.join("\n");
 }
 

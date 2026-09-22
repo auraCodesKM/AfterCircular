@@ -1,0 +1,1063 @@
+{
+ "id": "inv_be4f12895f5f",
+ "tenant_id": "nimbus-asset-management-181441765",
+ "question": "What did Jev actually decide?",
+ "intent": "jev_decisions",
+ "summary": "Jev (jev-1.13.0) made 55 typed judgments for HO/24/13/17(1)2026-IMD-POD-1/I/16895/2026 (Certification Requirements for Distribution of Specialized I) \u2014 applicability: YES \u00b7 applies \u00b7 P=0.9; rerank: 6 / 10 policy sections judged relevant; alignment: 12 harmless_uncertain, 8 not_addressed, 2 conflicts, 2 uncertain, 1 satisfies; verification: 2 excerpt(s) rejected \u2014 not verbatim in the source, dropped before the gate; cross check: agree with the Foundry conclusion (1 conflict pair(s), 0 satisfied). These are calibrated model judgments used for routing; the deterministic Impact Gate set the outcome and no judgment authorizes an action.",
+ "document_pk": "doc_ee66adbf3e8c",
+ "analysis_id": "ana_45e55202eaf8",
+ "policy_id": null,
+ "answer": {
+  "intent": "jev_decisions",
+  "documents": [
+   {
+    "id": "D3",
+    "document_pk": "doc_ee66adbf3e8c",
+    "document_id": "102986",
+    "circular_number": "HO/24/13/17(1)2026-IMD-POD-1/I/16895/2026",
+    "title": "Certification Requirements for Distribution of Specialized Investment Funds (SIFs)",
+    "published_date": "2026-07-21",
+    "effective_date": "2026-07-21",
+    "source_mode": "LIVE",
+    "synthetic": false,
+    "url": "https://www.sebi.gov.in/legal/circulars/jul-2026/certification-requirements-for-distribution-of-specialized-investment-funds-sifs-_102986.html",
+    "document_url": "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2026/1784633350069.pdf",
+    "status": "AWAITING_REVIEW",
+    "impact": "CONFLICT",
+    "analysis_id": "ana_45e55202eaf8",
+    "applicability": "YES",
+    "alignment": "CONFLICT",
+    "gate": "CONFLICT",
+    "severity": "operational",
+    "confidence": 0.87,
+    "affected_policies": [
+     "POL-002"
+    ],
+    "reason": "SEBI now requires NISM Series-V-D for persons selling/distributing SIFs and disallows reliance on Series XIII after 21 Sep 2026 (with narrow transitional relief). The internal policy mandates Series XIII (plus Series V-A) for selling Nimbus SIF strategies and does not recognize or require Series-V-D, so it conflicts w\u2026",
+    "review": {
+     "status": "AWAITING_REVIEW",
+     "decided_by": null,
+     "decided_at": null,
+     "ticket_id": null,
+     "ticket_url": null
+    },
+    "regulatory_evidence": [
+     {
+      "id": "D3.R1",
+      "section": "21.10.1",
+      "text": "Any persons employed or engaged or to be employed or engaged in the sale and/or distribution of SIF products shall be required to have a valid \"NISM Series-V-D - Mutual Fund - Specialized Investment Fund Distributors Certification\". Entiti\u2026"
+     },
+     {
+      "id": "D3.R2",
+      "section": "21.10.3",
+      "text": "The existing requirement of h olding of \"NISM Series X III \u2013 Common Derivatives Certification\" for the sale and/or distribution of SIF products shall not be applicable after September 21, 2026."
+     },
+     {
+      "id": "D3.R3",
+      "section": "21.10.4",
+      "text": "In order to ensure seamless transition to the new certification requirement, SIF distributors holding a valid \"NISM Series XIII - Common Derivatives Certification\", obtained on or before September 21, 2026, shall not be required to obtain \u2026"
+     }
+    ],
+    "policy_evidence": [
+     {
+      "id": "D3.P1",
+      "doc_id": "POL-002",
+      "section": "4.2 Specialized Investment Fund strategies",
+      "text": "POL-002 \u2014 Distributor Empanelment and Certification Policy \u00a74.2 Specialized Investment Fund strategies Persons selling or distributing Nimbus SIF strategies must hold, in addition to NISM Series V-A, a valid NISM Series XIII Common Derivat\u2026"
+     }
+    ],
+    "decision_path": [
+     "typesafe:extraction_check",
+     "typesafe:applicability",
+     "typesafe:rerank",
+     "typesafe:alignment",
+     "code:verification",
+     "foundry:escalation",
+     "typesafe:cross_check"
+    ],
+    "escalation_reason": "2 obligation/policy pair(s) judged below confidence 0.7",
+    "recommended_action": "Revise POL-002 to (a) require NISM Series-V-D certification for persons selling/distributing SIFs; (b) add transitional language permitting existing Series XIII holders (obtained on or before 21 Sep \u2026",
+    "regulatory_source": {
+     "regulator": "SEBI",
+     "source_mode": "LIVE",
+     "synthetic": false,
+     "title": "Certification Requirements for Distribution of Specialized Investment Funds (SIFs)",
+     "reference": "HO/24/13/17(1)2026-IMD-POD-1/I/16895/2026",
+     "published_date": "2026-07-21",
+     "detail_url": "https://www.sebi.gov.in/legal/circulars/jul-2026/certification-requirements-for-distribution-of-specialized-investment-funds-sifs-_102986.html",
+     "pdf_url": "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2026/1784633350069.pdf",
+     "document_id": "102986",
+     "content_hash": "79f9be6275fce80a4aed31ae3f78e031fc7f8508a83cf3f3d080e137c7bde2ea",
+     "fetched_at": "2026-09-22T07:43:28.210221+00:00"
+    },
+    "policy_sources": {
+     "POL-002": {
+      "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
+      "url": "https://github.com/auraCodesKM/nimbus-amc-policies/blob/main/policies/POL-002-distributor-empanelment-and-certification-policy.md",
+      "repo": "auraCodesKM/nimbus-amc-policies",
+      "branch": "main",
+      "fictional": true
+     }
+    },
+    "source": "SEBI",
+    "ticket_id": null,
+    "ticket_url": null
+   }
+  ],
+  "trace": {
+   "document_pk": "doc_ee66adbf3e8c",
+   "document_id": "102986",
+   "title": "Certification Requirements for Distribution of Specialized Investment Funds (SIFs)",
+   "tenant_id": "nimbus-asset-management-181441765",
+   "analysis_id": "ana_45e55202eaf8",
+   "outcome": "CONFLICT",
+   "summary": {
+    "stages": 14,
+    "completed": 12,
+    "skipped": 0,
+    "failed": 0,
+    "awaiting_approval": 1,
+    "blocked": 1,
+    "foundry_calls": 3,
+    "jev_judgments": 55,
+    "jev_decision_records": 18,
+    "azure_search_retrievals": 1,
+    "azure_search_results": 10,
+    "deterministic_gate": 1,
+    "human_pending": 1,
+    "latency": {
+     "foundry_ms": 62540,
+     "jev_ms": 14255,
+     "azure_search_ms": 552,
+     "embedding_ms": 511
+    },
+    "foundry_tokens": {
+     "input": 4823,
+     "output": 7886,
+     "cached": 1536
+    },
+    "estimated_cost_usd": 0.016632,
+    "pricing": "list-price estimate, not an Azure invoice",
+    "context_comparison": {
+     "measured_calls": 2,
+     "compact_json_tokens": 1691,
+     "as_sent_tokens": 1589,
+     "saved_tokens": 102,
+     "saved_pct": 6.0,
+     "note": "Same-payload serialization comparison (tiktoken) for the structured context blocks of the measured calls; not provider billing"
+    }
+   },
+   "steps": [
+    {
+     "id": "source",
+     "order": 1,
+     "actor": "regulator",
+     "name": "SEBI",
+     "role": "Official source",
+     "group": "source",
+     "operation": "Official circular",
+     "status": "completed",
+     "summary": "SEBI circular HO/24/13/17(1)2026-IMD-POD-1/I/16895/2026, published 2026-07-21",
+     "reason": "Read from the official regulator listing, not from a search engine or a snapshot",
+     "latency_ms": null,
+     "at": null,
+     "telemetry": {},
+     "details": {
+      "url": "https://www.sebi.gov.in/legal/circulars/jul-2026/certification-requirements-for-distribution-of-specialized-investment-funds-sifs-_102986.html",
+      "pdf_url": "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2026/1784633350069.pdf",
+      "reference": "HO/24/13/17(1)2026-IMD-POD-1/I/16895/2026",
+      "published": "2026-07-21",
+      "source_mode": "LIVE",
+      "synthetic": false,
+      "title": "Certification Requirements for Distribution of Specialized Investment Funds (SIFs)"
+     }
+    },
+    {
+     "id": "ingest",
+     "order": 2,
+     "actor": "connector",
+     "name": "Connector",
+     "role": "Official source ingestion",
+     "group": "source",
+     "operation": "Ingestion and change detection",
+     "status": "completed",
+     "summary": "New document detected (content hash 79f9be6275fc\u2026)",
+     "reason": "The content hash was not among this tenant's processed documents, so the pipeline ran",
+     "latency_ms": null,
+     "at": "2026-09-22T07:43:30.750405+00:00",
+     "telemetry": {},
+     "details": {
+      "content_hash": "79f9be6275fce80a4aed31ae3f78e031fc7f8508a83cf3f3d080e137c7bde2ea",
+      "fetched_at": "2026-09-22T07:43:28.210221+00:00",
+      "document_version": 1
+     }
+    },
+    {
+     "id": "triage",
+     "order": 3,
+     "actor": "deterministic",
+     "name": "Prefilter (code)",
+     "role": "Deterministic decision gate",
+     "group": "decision",
+     "operation": "Triage (prefilter)",
+     "status": "completed",
+     "summary": "Addressee prefilter matched the company profile \u2014 Jev triage not needed",
+     "reason": "A code prefilter on the circular's addressee block settles obvious cases; Jev is consulted only when it cannot",
+     "latency_ms": null,
+     "at": null,
+     "telemetry": {},
+     "details": {
+      "stage": "prefilter",
+      "outcome": "skipped",
+      "addressees": [
+       "mutual-fund-amc",
+       "rta"
+      ],
+      "entity_match": true
+     }
+    },
+    {
+     "id": "extract",
+     "order": 4,
+     "actor": "foundry",
+     "name": "Microsoft Foundry",
+     "role": "Generative reasoning",
+     "group": "reasoning",
+     "operation": "Obligation extraction",
+     "status": "completed",
+     "summary": "Extracted 5 obligations as strict JSON Schema",
+     "reason": "Document passed triage and required obligation extraction",
+     "latency_ms": 22670,
+     "at": "2026-09-22T07:46:11.029605+00:00",
+     "telemetry": {
+      "provider": "Microsoft Foundry",
+      "model": "gpt-5-mini",
+      "api": "Responses API",
+      "structured_mode": "json_schema",
+      "response_id": "resp_01d240a8ab973d65006ab2322c8150819694ffbbe306631644",
+      "latency_ms": 22670,
+      "input_tokens": 1568,
+      "output_tokens": 3009,
+      "cached_tokens": 1536,
+      "estimated_cost_usd": 0.006064,
+      "pricing": "list-price estimate, not an Azure invoice",
+      "attempts": 1,
+      "at": "2026-09-22T07:46:11.029605+00:00",
+      "ok": true,
+      "error": null,
+      "context_format": null
+     },
+     "details": {
+      "applies_to": [
+       "Mutual Funds",
+       "Asset Management Companies",
+       "Trustee Companies",
+       "Registrars to an Issue and Share Transfer Agents (RTAs)",
+       "Association of Mutual Funds in India (AMFI)",
+       "Distributors and agents"
+      ],
+      "effective_date": "2026-07-21",
+      "obligations": [
+       {
+        "section": "21.10.1",
+        "requirement": "Persons employed or engaged in the sale and/or distribution of SIF products must hold a valid \"NISM Series-V-D - Mutual Fund - Specialized Investment Fund Distributors Certification\"."
+       },
+       {
+        "section": "21.10.2",
+        "requirement": "Entities engaged in the sale and/or distribution of only Mutual Fund products must comply with NISM Series V-A certification as specified under Gazette notification no. LAD -NRO/GN/2010-11/09/6422 dated May 31, 2010."
+       },
+       {
+        "section": "21.10.3",
+        "requirement": "The requirement to hold \"NISM Series XIII \u2013 Common Derivatives Certification\" for the sale and/or distribution of SIF products will not be applicable after 21 September 2026."
+       },
+       {
+        "section": "21.10.4",
+        "requirement": "SIF distributors holding a valid \"NISM Series XIII - Common Derivatives Certification\" obtained on or before 21 September 2026 shall not be required to obtain the \"NISM Series -V-D \u2013 Mutual Fund - Specialized Investment Fund Distributors Certification\" until the expiry of their existing Series XIII certification; during this period such distributors must continue to hold a valid \"NISM Series V-A Mutual Fund Distributors Certification\"."
+       },
+       {
+        "section": "21.10.5",
+        "requirement": "AMFI and AMCs must ensure compliance with the certification requirements by distributors and agents."
+       }
+      ]
+     }
+    },
+    {
+     "id": "extraction_check",
+     "order": 5,
+     "actor": "jev",
+     "name": "Jev",
+     "role": "Reasoning support",
+     "group": "reasoning",
+     "operation": "Extraction check",
+     "status": "completed",
+     "summary": "5 obligation(s) confirmed, 0 dropped, 1 flagged uncertain",
+     "reason": "Each extracted obligation is checked against its verbatim excerpt before it can drive a decision",
+     "latency_ms": 1066,
+     "at": null,
+     "telemetry": {
+      "stage": "extraction_check",
+      "records": 1,
+      "provider": "typesafe",
+      "model": "jev-1.13.0",
+      "calibrated": true,
+      "latency_ms": 1066,
+      "input_tokens": 2960,
+      "output_tokens": 214,
+      "questions": 10,
+      "decision": "5 obligation(s) confirmed, 0 dropped, 1 flagged uncertain"
+     },
+     "details": {}
+    },
+    {
+     "id": "embed",
+     "order": 6,
+     "actor": "embedding",
+     "name": "Embeddings",
+     "role": "Semantic representation",
+     "group": "reasoning",
+     "operation": "Query embedding",
+     "status": "completed",
+     "summary": "text-embedding-3-small \u00b7 1536 dimensions",
+     "reason": "Obligations were available, so the retrieval query was embedded for the vector leg of hybrid search",
+     "latency_ms": 511,
+     "at": null,
+     "telemetry": {
+      "model": "text-embedding-3-small",
+      "dimensions": 1536,
+      "latency_ms": 511
+     },
+     "details": {}
+    },
+    {
+     "id": "retrieve",
+     "order": 7,
+     "actor": "azure_search",
+     "name": "Azure AI Search",
+     "role": "Retrieval",
+     "group": "reasoning",
+     "operation": "Hybrid policy retrieval",
+     "status": "completed",
+     "summary": "10 policy candidates \u00b7 hybrid (BM25 + vector, RRF)",
+     "reason": "Obligations were available, so the tenant's policy corpus was searched for the clauses they touch",
+     "latency_ms": 552,
+     "at": null,
+     "telemetry": {
+      "backend": "azure-ai-search",
+      "method": "hybrid (BM25 + vector, RRF)",
+      "k": 10,
+      "count": 10,
+      "latency_ms": 552,
+      "tenant_filter": "tenant_id eq 'nimbus-asset-management-181441765' and status eq 'active'",
+      "corpus_commits": [
+       "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+      ],
+      "query_chars": 1670,
+      "at": "2026-09-22T07:46:12.096866+00:00"
+     },
+     "details": {
+      "chunks": [
+       {
+        "rank": 1,
+        "doc_id": "POL-002",
+        "section": "4.2 Specialized Investment Fund strategies",
+        "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
+        "score": 0.03333333507180214,
+        "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9",
+        "chunk_hash": "39f325c4c7a473f70a572a7a"
+       },
+       {
+        "rank": 2,
+        "doc_id": "POL-002",
+        "section": "4.1 Mutual fund schemes",
+        "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
+        "score": 0.032786883413791656,
+        "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9",
+        "chunk_hash": "9c1612ecd946e55ddddb862d"
+       },
+       {
+        "rank": 3,
+        "doc_id": "POL-002",
+        "section": "1 Purpose",
+        "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
+        "score": 0.032258063554763794,
+        "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9",
+        "chunk_hash": "a115ab4231a84e41022c3144"
+       },
+       {
+        "rank": 4,
+        "doc_id": "POL-002",
+        "section": "5 Monitoring",
+        "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
+        "score": 0.03125763311982155,
+        "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9",
+        "chunk_hash": "36e9f49caef1391323777351"
+       },
+       {
+        "rank": 5,
+        "doc_id": "POL-002",
+        "section": "3 Empanelment",
+        "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
+        "score": 0.03125,
+        "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9",
+        "chunk_hash": "3eb22d6fa39c8c9a78f8a1a2"
+       },
+       {
+        "rank": 6,
+        "doc_id": "POL-002",
+        "section": "2 Scope",
+        "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
+        "score": 0.03079839050769806,
+        "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9",
+        "chunk_hash": "5f7cb93fbcbd91f44623d085"
+       },
+       {
+        "rank": 7,
+        "doc_id": "POL-002",
+        "section": "4.3 Verification",
+        "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
+        "score": 0.03007688745856285,
+        "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9",
+        "chunk_hash": "f354a5a9645f1dc9f4ff7140"
+       },
+       {
+        "rank": 8,
+        "doc_id": "POL-002",
+        "section": "6 Review cadence",
+        "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
+        "score": 0.029857397079467773,
+        "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9",
+        "chunk_hash": "79b2e0e6450e36e89fe05a1d"
+       },
+       {
+        "rank": 9,
+        "doc_id": "POL-005",
+        "section": "2 Regulatory publications",
+        "path": "policies/POL-005-compliance-manual.md",
+        "score": 0.028717949986457825,
+        "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9",
+        "chunk_hash": "7c2cec91642ad31da62c34a2"
+       },
+       {
+        "rank": 10,
+        "doc_id": "POL-005",
+        "section": "3 Reporting",
+        "path": "policies/POL-005-compliance-manual.md",
+        "score": 0.026838432997465134,
+        "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9",
+        "chunk_hash": "3ba3c4197d8c821a5cea127e"
+       }
+      ]
+     }
+    },
+    {
+     "id": "reason",
+     "order": 8,
+     "actor": "jev",
+     "name": "Jev",
+     "role": "Reasoning support",
+     "group": "reasoning",
+     "operation": "Applicability \u00b7 rerank \u00b7 alignment",
+     "status": "completed",
+     "summary": "YES \u00b7 applies \u00b7 P=0.9 \u00b7 6 / 10 policy sections judged relevant \u00b7 12 harmless_uncertain, 8 not_addressed, 2 conflicts, 2 uncertain, 1 satisfies",
+     "reason": "Typed, calibrated judgments route the case; they are model judgments and never authorize an action",
+     "latency_ms": 12148,
+     "at": null,
+     "telemetry": {
+      "applicability": {
+       "stage": "applicability",
+       "records": 1,
+       "provider": "typesafe",
+       "model": "jev-1.13.0",
+       "calibrated": true,
+       "latency_ms": 370,
+       "input_tokens": 1534,
+       "output_tokens": 122,
+       "questions": 5,
+       "decision": "YES \u00b7 applies \u00b7 P=0.9",
+       "reason": "The company is an addressed entity type and at least one obligation concerns its listed activities."
+      },
+      "rerank": {
+       "stage": "rerank",
+       "records": 10,
+       "provider": "typesafe",
+       "model": "jev-1.13.0",
+       "calibrated": true,
+       "latency_ms": 9607,
+       "input_tokens": 7916,
+       "output_tokens": 220,
+       "questions": 10,
+       "decision": "6 / 10 policy sections judged relevant",
+       "items": [
+        {
+         "chunk": "POL-002_4_2-a7684373b0",
+         "relevant": 0.97,
+         "kept": true
+        },
+        {
+         "chunk": "POL-002_4_1-00dc35a0c6",
+         "relevant": 0.96,
+         "kept": true
+        },
+        {
+         "chunk": "POL-002_1-c464276ae2",
+         "relevant": 0.61,
+         "kept": true
+        },
+        {
+         "chunk": "POL-002_5-3e10b3427d",
+         "relevant": 0.93,
+         "kept": true
+        },
+        {
+         "chunk": "POL-002_3-21049b0cb8",
+         "relevant": 0.86,
+         "kept": true
+        },
+        {
+         "chunk": "POL-002_2-86cb093919",
+         "relevant": 0.39,
+         "kept": false
+        },
+        {
+         "chunk": "POL-002_4_3-66a20eb43f",
+         "relevant": 0.9,
+         "kept": true
+        },
+        {
+         "chunk": "POL-002_6-fb97ee5f34",
+         "relevant": 0.25,
+         "kept": false
+        },
+        {
+         "chunk": "POL-005_2-54945e0826",
+         "relevant": 0.09,
+         "kept": false
+        },
+        {
+         "chunk": "POL-005_3-866aee3849",
+         "relevant": 0.05,
+         "kept": false
+        }
+       ]
+      },
+      "alignment": {
+       "stage": "alignment",
+       "records": 5,
+       "provider": "typesafe",
+       "model": "jev-1.13.0",
+       "calibrated": true,
+       "latency_ms": 2171,
+       "input_tokens": 11360,
+       "output_tokens": 1161,
+       "questions": 25,
+       "decision": "12 harmless_uncertain, 8 not_addressed, 2 conflicts, 2 uncertain, 1 satisfies",
+       "items": [
+        {
+         "obligation": "ob0",
+         "choice": "conflicts",
+         "confidence": 0.82,
+         "p_conflicts": 0.88
+        },
+        {
+         "obligation": "ob1",
+         "choice": "satisfies",
+         "confidence": 0.52,
+         "p_conflicts": 0.06
+        },
+        {
+         "obligation": "ob2",
+         "choice": "conflicts",
+         "confidence": 0.49,
+         "p_conflicts": 0.65
+        },
+        {
+         "obligation": "ob3",
+         "choice": "conflicts",
+         "confidence": 0.52,
+         "p_conflicts": 0.68
+        },
+        {
+         "obligation": "ob4",
+         "choice": "not_addressed",
+         "confidence": 0.59,
+         "p_conflicts": 0.13
+        },
+        {
+         "obligation": "ob0",
+         "choice": "conflicts",
+         "confidence": 0.78,
+         "p_conflicts": 0.85
+        },
+        {
+         "obligation": "ob1",
+         "choice": "satisfies",
+         "confidence": 0.88,
+         "p_conflicts": 0.05
+        },
+        {
+         "obligation": "ob2",
+         "choice": "not_addressed",
+         "confidence": 0.97,
+         "p_conflicts": 0.01
+        },
+        {
+         "obligation": "ob3",
+         "choice": "satisfies",
+         "confidence": 0.35,
+         "p_conflicts": 0.15
+        },
+        {
+         "obligation": "ob4",
+         "choice": "not_addressed",
+         "confidence": 0.73,
+         "p_conflicts": 0.03
+        },
+        {
+         "obligation": "ob0",
+         "choice": "satisfies",
+         "confidence": 0.17,
+         "p_conflicts": 0.14
+        },
+        {
+         "obligation": "ob1",
+         "choice": "not_addressed",
+         "confidence": 0.82,
+         "p_conflicts": 0.07
+        },
+        {
+         "obligation": "ob2",
+         "choice": "not_addressed",
+         "confidence": 0.77,
+         "p_conflicts": 0.08
+        },
+        {
+         "obligation": "ob3",
+         "choice": "not_addressed",
+         "confidence": 0.64,
+         "p_conflicts": 0.13
+        },
+        {
+         "obligation": "ob4",
+         "choice": "satisfies",
+         "confidence": 0.61,
+         "p_conflicts": 0.03
+        },
+        {
+         "obligation": "ob0",
+         "choice": "not_addressed",
+         "confidence": 0.32,
+         "p_conflicts": 0.13
+        },
+        {
+         "obligation": "ob1",
+         "choice": "not_addressed",
+         "confidence": 0.79,
+         "p_conflicts": 0.02
+        },
+        {
+         "obligation": "ob2",
+         "choice": "not_addressed",
+         "confidence": 0.9,
+         "p_conflicts": 0.04
+        },
+        {
+         "obligation": "ob3",
+         "choice": "not_addressed",
+         "confidence": 0.64,
+         "p_conflicts": 0.12
+        },
+        {
+         "obligation": "ob4",
+         "choice": "satisfies",
+         "confidence": 0.45,
+         "p_conflicts": 0.02
+        },
+        {
+         "obligation": "ob0",
+         "choice": "not_addressed",
+         "confidence": 0.69,
+         "p_conflicts": 0.14
+        },
+        {
+         "obligation": "ob1",
+         "choice": "not_addressed",
+         "confidence": 0.85,
+         "p_conflicts": 0.08
+        },
+        {
+         "obligation": "ob2",
+         "choice": "not_addressed",
+         "confidence": 0.89,
+         "p_conflicts": 0.06
+        },
+        {
+         "obligation": "ob3",
+         "choice": "not_addressed",
+         "confidence": 0.67,
+         "p_conflicts": 0.18
+        }
+       ],
+       "conflicts": 4
+      }
+     },
+     "details": {}
+    },
+    {
+     "id": "escalate",
+     "order": 9,
+     "actor": "foundry",
+     "name": "Microsoft Foundry",
+     "role": "Generative reasoning",
+     "group": "reasoning",
+     "operation": "Impact analysis (escalation)",
+     "status": "completed",
+     "summary": "YES / CONFLICT \u2014 Foundry reasoning on the full obligation and policy context",
+     "reason": "Typed reasoning was not decisive: 2 obligation/policy pair(s) judged below confidence 0.7",
+     "latency_ms": 13599,
+     "at": "2026-09-22T07:46:29.828089+00:00",
+     "telemetry": {
+      "provider": "Microsoft Foundry",
+      "model": "gpt-5-mini",
+      "api": "Responses API",
+      "structured_mode": "json_schema",
+      "response_id": "resp_0feb5553542335e8006ab2324757b88194b6679d8313d22616",
+      "latency_ms": 13599,
+      "input_tokens": 1785,
+      "output_tokens": 1513,
+      "cached_tokens": 0,
+      "estimated_cost_usd": 0.003472,
+      "pricing": "list-price estimate, not an Azure invoice",
+      "attempts": 1,
+      "at": "2026-09-22T07:46:29.828089+00:00",
+      "ok": true,
+      "error": null,
+      "context_format": "toon",
+      "context_comparison": {
+       "kind": "serialization comparison \u00b7 same payload \u00b7 tiktoken",
+       "as_sent_format": "toon",
+       "as_sent_tokens": 774,
+       "compact_json_tokens": 824,
+       "saved_tokens": 50,
+       "saved_pct": 6.1,
+       "note": "Measures structural serialization overhead of the structured context only; not provider billing and not total prompt size."
+      }
+     },
+     "details": {}
+    },
+    {
+     "id": "verify",
+     "order": 10,
+     "actor": "jev",
+     "name": "Jev",
+     "role": "Reasoning support",
+     "group": "reasoning",
+     "operation": "Verification / cross-check",
+     "status": "completed",
+     "summary": "2 excerpt(s) rejected \u2014 not verbatim in the source, dropped before the gate \u00b7 agree with the Foundry conclusion (1 conflict pair(s), 0 satisfied)",
+     "reason": "Cited excerpts are re-checked against the stored text; a Foundry conclusion is cross-checked before it can reach the gate",
+     "latency_ms": 1041,
+     "at": null,
+     "telemetry": {
+      "verification": {
+       "stage": "verification",
+       "records": 2,
+       "provider": "code",
+       "model": "-",
+       "calibrated": null,
+       "latency_ms": 0,
+       "input_tokens": 0,
+       "output_tokens": 0,
+       "questions": 0,
+       "decision": "2 excerpt(s) rejected \u2014 not verbatim in the source, dropped before the gate"
+      },
+      "cross_check": {
+       "stage": "cross_check",
+       "records": 1,
+       "provider": "typesafe",
+       "model": "jev-1.13.0",
+       "calibrated": true,
+       "latency_ms": 1041,
+       "input_tokens": 2292,
+       "output_tokens": 230,
+       "questions": 5,
+       "decision": "agree with the Foundry conclusion (1 conflict pair(s), 0 satisfied)"
+      }
+     },
+     "details": {}
+    },
+    {
+     "id": "gate",
+     "order": 11,
+     "actor": "deterministic",
+     "name": "Impact Gate",
+     "role": "Deterministic decision gate",
+     "group": "decision",
+     "operation": "Impact Gate",
+     "status": "completed",
+     "summary": "CONFLICT \u00b7 applicability YES \u00b7 alignment CONFLICT \u00b7 confidence 87%",
+     "reason": "Deterministic rules over the typed judgments, verified evidence and thresholds classify the case; the gate, not a model, sets the outcome",
+     "latency_ms": null,
+     "at": null,
+     "telemetry": {
+      "outcome": "CONFLICT",
+      "applicability": "YES",
+      "alignment": "CONFLICT",
+      "confidence": 0.87,
+      "affected_policies": [
+       "POL-002"
+      ],
+      "decision_path": [
+       "typesafe:extraction_check",
+       "typesafe:applicability",
+       "typesafe:rerank",
+       "typesafe:alignment",
+       "code:verification",
+       "foundry:escalation",
+       "typesafe:cross_check"
+      ],
+      "escalation_reason": "2 obligation/policy pair(s) judged below confidence 0.7",
+      "regulatory_evidence": 3,
+      "policy_evidence": 1
+     },
+     "details": {}
+    },
+    {
+     "id": "memo",
+     "order": 12,
+     "actor": "foundry",
+     "name": "Microsoft Foundry",
+     "role": "Generative reasoning",
+     "group": "reasoning",
+     "operation": "Memo drafting",
+     "status": "completed",
+     "summary": "Compliance memo drafted from the verified evidence",
+     "reason": "Impact Gate produced CONFLICT",
+     "latency_ms": 26271,
+     "at": "2026-09-22T07:46:56.107601+00:00",
+     "telemetry": {
+      "provider": "Microsoft Foundry",
+      "model": "gpt-5-mini",
+      "api": "Responses API",
+      "structured_mode": "json_schema",
+      "response_id": "resp_03ba5e64c2f3ab00006ab23255f84c8193bee23b1fac1790c1",
+      "latency_ms": 26271,
+      "input_tokens": 1470,
+      "output_tokens": 3364,
+      "cached_tokens": 0,
+      "estimated_cost_usd": 0.007096,
+      "pricing": "list-price estimate, not an Azure invoice",
+      "attempts": 1,
+      "at": "2026-09-22T07:46:56.107601+00:00",
+      "ok": true,
+      "error": null,
+      "context_format": "toon",
+      "context_comparison": {
+       "kind": "serialization comparison \u00b7 same payload \u00b7 tiktoken",
+       "as_sent_format": "toon",
+       "as_sent_tokens": 815,
+       "compact_json_tokens": 867,
+       "saved_tokens": 52,
+       "saved_pct": 6.0,
+       "note": "Measures structural serialization overhead of the structured context only; not provider billing and not total prompt size."
+      }
+     },
+     "details": {}
+    },
+    {
+     "id": "review",
+     "order": 13,
+     "actor": "human",
+     "name": "Human review",
+     "role": "Human decision",
+     "group": "action",
+     "operation": "Approval required",
+     "status": "awaiting_approval",
+     "summary": "Awaiting Review \u2014 no external action has been taken",
+     "reason": "A verified conflict always stops here; approval is the only path to a side effect",
+     "latency_ms": null,
+     "at": null,
+     "telemetry": {
+      "review_id": "rev_0f14f908a9a8",
+      "status": "AWAITING_REVIEW",
+      "decided_by": null,
+      "decided_at": null,
+      "actor_type": null,
+      "note": null
+     },
+     "details": {}
+    },
+    {
+     "id": "github",
+     "order": 14,
+     "actor": "github",
+     "name": "GitHub",
+     "role": "External side effect",
+     "group": "action",
+     "operation": "Compliance issue",
+     "status": "blocked",
+     "summary": "Not executed",
+     "reason": "Waiting for human approval \u2014 no external action",
+     "latency_ms": null,
+     "at": null,
+     "telemetry": {},
+     "details": {}
+    }
+   ],
+   "foundry_calls": 3,
+   "jev_records": 18,
+   "audit_events": [
+    {
+     "at": "2026-09-22T07:46:56.114624+00:00",
+     "event": "REVIEW_REQUESTED",
+     "actor": "aftercircular",
+     "actor_type": "agent"
+    },
+    {
+     "at": "2026-09-22T07:46:56.111534+00:00",
+     "event": "MEMO_GENERATED",
+     "actor": "aftercircular",
+     "actor_type": "agent"
+    },
+    {
+     "at": "2026-09-22T07:46:29.832140+00:00",
+     "event": "CONFLICT_DETECTED",
+     "actor": "aftercircular",
+     "actor_type": "agent"
+    },
+    {
+     "at": "2026-09-22T07:46:29.830478+00:00",
+     "event": "IMPACT_ANALYZED",
+     "actor": "aftercircular",
+     "actor_type": "agent"
+    },
+    {
+     "at": "2026-09-22T07:46:12.098081+00:00",
+     "event": "POLICIES_RETRIEVED",
+     "actor": "aftercircular",
+     "actor_type": "agent"
+    },
+    {
+     "at": "2026-09-22T07:46:11.032102+00:00",
+     "event": "OBLIGATIONS_EXTRACTED",
+     "actor": "aftercircular",
+     "actor_type": "agent"
+    },
+    {
+     "at": "2026-09-22T07:43:30.750405+00:00",
+     "event": "DOCUMENT_DETECTED",
+     "actor": "aftercircular",
+     "actor_type": "agent"
+    }
+   ]
+  },
+  "reasoning": {
+   "kind": "workspace_data",
+   "jev_route": {
+    "provider": "typesafe",
+    "model": "jev-1.13.0",
+    "calibrated": true,
+    "intent_confidence": 0.96,
+    "intent_probabilities": {
+     "pipeline": 0.01,
+     "web_lookup": 0.0,
+     "policy_lookup": 0.0,
+     "list_applicable": 0.0,
+     "other": 0.0,
+     "run_scan": 0.0,
+     "next_step": 0.0,
+     "jev_decisions": 0.96,
+     "action_request": 0.0,
+     "effective_dates": 0.0,
+     "retrieval": 0.0,
+     "compare": 0.0,
+     "cost": 0.0,
+     "list_aligned": 0.0,
+     "latest_changes": 0.0,
+     "approval_status": 0.01,
+     "performance": 0.0,
+     "explain": 0.02,
+     "prioritize": 0.0,
+     "gaps": 0.0,
+     "list_not_applicable": 0.0,
+     "toon": 0.0,
+     "list_conflicts": 0.0,
+     "scan_status": 0.0,
+     "obligations": 0.0,
+     "summarize_work": 0.0,
+     "other_reasoning": 0.0,
+     "evidence": 0.0,
+     "affected_policies": 0.0,
+     "pending_reviews": 0.0
+    },
+    "latency_ms": 1041,
+    "input_tokens": 3850,
+    "output_tokens": 576,
+    "questions": 8,
+    "document_confidence": 0.5,
+    "document_2_confidence": 0.89,
+    "flags": {
+     "follow_up": true,
+     "requests_action": false,
+     "answerable": false
+    }
+   },
+   "sources": 1,
+   "cited": [
+    "D3"
+   ],
+   "workspace": "Nimbus Asset Management"
+  }
+ },
+ "judge": {
+  "provider": "typesafe",
+  "model": "jev-1.13.0",
+  "calibrated": true,
+  "intent_confidence": 0.96,
+  "intent_probabilities": {
+   "pipeline": 0.01,
+   "web_lookup": 0.0,
+   "policy_lookup": 0.0,
+   "list_applicable": 0.0,
+   "other": 0.0,
+   "run_scan": 0.0,
+   "next_step": 0.0,
+   "jev_decisions": 0.96,
+   "action_request": 0.0,
+   "effective_dates": 0.0,
+   "retrieval": 0.0,
+   "compare": 0.0,
+   "cost": 0.0,
+   "list_aligned": 0.0,
+   "latest_changes": 0.0,
+   "approval_status": 0.01,
+   "performance": 0.0,
+   "explain": 0.02,
+   "prioritize": 0.0,
+   "gaps": 0.0,
+   "list_not_applicable": 0.0,
+   "toon": 0.0,
+   "list_conflicts": 0.0,
+   "scan_status": 0.0,
+   "obligations": 0.0,
+   "summarize_work": 0.0,
+   "other_reasoning": 0.0,
+   "evidence": 0.0,
+   "affected_policies": 0.0,
+   "pending_reviews": 0.0
+  },
+  "latency_ms": 1041,
+  "input_tokens": 3850,
+  "output_tokens": 576,
+  "questions": 8,
+  "document_confidence": 0.5,
+  "document_2_confidence": 0.89,
+  "flags": {
+   "follow_up": true,
+   "requests_action": false,
+   "answerable": false
+  }
+ },
+ "actor": "auraCodesKM",
+ "created_at": "2026-09-22T08:21:37.969848+00:00",
+ "conversation_id": "conv_929c089ecec3"
+}

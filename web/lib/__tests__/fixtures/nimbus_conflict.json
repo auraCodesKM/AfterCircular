@@ -1,0 +1,302 @@
+{
+ "id": "inv_92428f0ba292",
+ "tenant_id": "nimbus-asset-management-181441765",
+ "question": "Why is this a conflict?",
+ "intent": "explain",
+ "summary": "This is a conflict because the SEBI circular requires a new certification (NISM Series\u2011V\u2011D) for persons selling or distributing SIFs and states that holding NISM Series XIII \u201cshall not be applicable after September 21, 2026\u201d (with limited transitional relief), while Nimbus\u2019s internal policy (POL-002) requires NISM Series XIII (in addition to Series V-A) for selling Nimbus SIF strategies and does not require Series\u2011V\u2011D. SEBI text: \"Any persons employed or engaged or to be employed or engaged in the sale and/or distribution of SIF products shall be required to have a valid \\\"NISM Series-V-D - Mutual Fund - Specialized Investment Fund Distributors Certification\\\".\" Policy text: \"POL-002 \u2014 Distributor Empanelment and Certification Policy \u00a74.2 Specialized Investment Fund strategies Persons selling or distributing Nimbus SIF strategies must hold, in addition to NISM Series V-A, a valid NISM Series XIII Common Derivat\u2026\"",
+ "document_pk": "doc_ee66adbf3e8c",
+ "analysis_id": "ana_45e55202eaf8",
+ "policy_id": null,
+ "answer": {
+  "intent": "explain",
+  "points": [
+   {
+    "record_id": "D3",
+    "claim": "SEBI requires NISM Series-V-D for persons selling/distributing SIFs and removes the applicability of NISM Series XIII after September 21, 2026 (with narrow transitional relief), while POL-002 requires NISM Series XIII (plus NISM Series V-A) for Nimbus SIF distributors and does not require Series-V-D, creating a direct conflict between the regulator obligation and the internal policy.",
+    "evidence_ids": [
+     "D3.R1",
+     "D3.R2",
+     "D3.R3",
+     "D3.P1"
+    ],
+    "evidence": [
+     {
+      "id": "D3.R1",
+      "section": "21.10.1",
+      "text": "Any persons employed or engaged or to be employed or engaged in the sale and/or distribution of SIF products shall be required to have a valid \"NISM Series-V-D - Mutual Fund - Specialized Investment Fund Distributors Certification\". Entiti\u2026",
+      "record": "D3"
+     },
+     {
+      "id": "D3.R2",
+      "section": "21.10.3",
+      "text": "The existing requirement of h olding of \"NISM Series X III \u2013 Common Derivatives Certification\" for the sale and/or distribution of SIF products shall not be applicable after September 21, 2026.",
+      "record": "D3"
+     },
+     {
+      "id": "D3.R3",
+      "section": "21.10.4",
+      "text": "In order to ensure seamless transition to the new certification requirement, SIF distributors holding a valid \"NISM Series XIII - Common Derivatives Certification\", obtained on or before September 21, 2026, shall not be required to obtain \u2026",
+      "record": "D3"
+     },
+     {
+      "id": "D3.P1",
+      "doc_id": "POL-002",
+      "section": "4.2 Specialized Investment Fund strategies",
+      "text": "POL-002 \u2014 Distributor Empanelment and Certification Policy \u00a74.2 Specialized Investment Fund strategies Persons selling or distributing Nimbus SIF strategies must hold, in addition to NISM Series V-A, a valid NISM Series XIII Common Derivat\u2026",
+      "record": "D3"
+     }
+    ]
+   }
+  ],
+  "insufficient_evidence": false,
+  "caveat": null,
+  "documents": [
+   {
+    "id": "D3",
+    "document_pk": "doc_ee66adbf3e8c",
+    "document_id": "102986",
+    "circular_number": "HO/24/13/17(1)2026-IMD-POD-1/I/16895/2026",
+    "title": "Certification Requirements for Distribution of Specialized Investment Funds (SIFs)",
+    "published_date": "2026-07-21",
+    "effective_date": "2026-07-21",
+    "source_mode": "LIVE",
+    "synthetic": false,
+    "url": "https://www.sebi.gov.in/legal/circulars/jul-2026/certification-requirements-for-distribution-of-specialized-investment-funds-sifs-_102986.html",
+    "document_url": "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2026/1784633350069.pdf",
+    "status": "AWAITING_REVIEW",
+    "impact": "CONFLICT",
+    "analysis_id": "ana_45e55202eaf8",
+    "applicability": "YES",
+    "alignment": "CONFLICT",
+    "gate": "CONFLICT",
+    "severity": "operational",
+    "confidence": 0.87,
+    "affected_policies": [
+     "POL-002"
+    ],
+    "reason": "SEBI now requires NISM Series-V-D for persons selling/distributing SIFs and disallows reliance on Series XIII after 21 Sep 2026 (with narrow transitional relief). The internal policy mandates Series XIII (plus Series V-A) for selling Nimbus SIF strategies and does not recognize or require Series-V-D, so it conflicts w\u2026",
+    "review": {
+     "status": "AWAITING_REVIEW",
+     "decided_by": null,
+     "decided_at": null,
+     "ticket_id": null,
+     "ticket_url": null
+    },
+    "regulatory_evidence": [
+     {
+      "id": "D3.R1",
+      "section": "21.10.1",
+      "text": "Any persons employed or engaged or to be employed or engaged in the sale and/or distribution of SIF products shall be required to have a valid \"NISM Series-V-D - Mutual Fund - Specialized Investment Fund Distributors Certification\". Entiti\u2026"
+     },
+     {
+      "id": "D3.R2",
+      "section": "21.10.3",
+      "text": "The existing requirement of h olding of \"NISM Series X III \u2013 Common Derivatives Certification\" for the sale and/or distribution of SIF products shall not be applicable after September 21, 2026."
+     },
+     {
+      "id": "D3.R3",
+      "section": "21.10.4",
+      "text": "In order to ensure seamless transition to the new certification requirement, SIF distributors holding a valid \"NISM Series XIII - Common Derivatives Certification\", obtained on or before September 21, 2026, shall not be required to obtain \u2026"
+     }
+    ],
+    "policy_evidence": [
+     {
+      "id": "D3.P1",
+      "doc_id": "POL-002",
+      "section": "4.2 Specialized Investment Fund strategies",
+      "text": "POL-002 \u2014 Distributor Empanelment and Certification Policy \u00a74.2 Specialized Investment Fund strategies Persons selling or distributing Nimbus SIF strategies must hold, in addition to NISM Series V-A, a valid NISM Series XIII Common Derivat\u2026"
+     }
+    ],
+    "decision_path": [
+     "typesafe:extraction_check",
+     "typesafe:applicability",
+     "typesafe:rerank",
+     "typesafe:alignment",
+     "code:verification",
+     "foundry:escalation",
+     "typesafe:cross_check"
+    ],
+    "escalation_reason": "2 obligation/policy pair(s) judged below confidence 0.7",
+    "recommended_action": "Revise POL-002 to (a) require NISM Series-V-D certification for persons selling/distributing SIFs; (b) add transitional language permitting existing Series XIII holders (obtained on or before 21 Sep \u2026",
+    "regulatory_source": {
+     "regulator": "SEBI",
+     "source_mode": "LIVE",
+     "synthetic": false,
+     "title": "Certification Requirements for Distribution of Specialized Investment Funds (SIFs)",
+     "reference": "HO/24/13/17(1)2026-IMD-POD-1/I/16895/2026",
+     "published_date": "2026-07-21",
+     "detail_url": "https://www.sebi.gov.in/legal/circulars/jul-2026/certification-requirements-for-distribution-of-specialized-investment-funds-sifs-_102986.html",
+     "pdf_url": "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2026/1784633350069.pdf",
+     "document_id": "102986",
+     "content_hash": "79f9be6275fce80a4aed31ae3f78e031fc7f8508a83cf3f3d080e137c7bde2ea",
+     "fetched_at": "2026-09-22T07:43:28.210221+00:00"
+    },
+    "policy_sources": {
+     "POL-002": {
+      "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
+      "url": "https://github.com/auraCodesKM/nimbus-amc-policies/blob/main/policies/POL-002-distributor-empanelment-and-certification-policy.md",
+      "repo": "auraCodesKM/nimbus-amc-policies",
+      "branch": "main",
+      "fictional": true
+     }
+    },
+    "source": "SEBI",
+    "ticket_id": null,
+    "ticket_url": null
+   }
+  ],
+  "reasoning": {
+   "kind": "jev_reasoning",
+   "jev_route": {
+    "provider": "typesafe",
+    "model": "jev-1.13.0",
+    "calibrated": true,
+    "intent_confidence": 0.99,
+    "intent_probabilities": {
+     "compare": 0.0,
+     "explain": 0.99,
+     "jev_decisions": 0.0,
+     "list_conflicts": 0.0,
+     "action_request": 0.0,
+     "evidence": 0.0,
+     "other_reasoning": 0.0,
+     "cost": 0.0,
+     "list_aligned": 0.0,
+     "approval_status": 0.0,
+     "pipeline": 0.0,
+     "prioritize": 0.0,
+     "list_applicable": 0.0,
+     "scan_status": 0.0,
+     "next_step": 0.0,
+     "run_scan": 0.0,
+     "latest_changes": 0.0,
+     "policy_lookup": 0.0,
+     "summarize_work": 0.0,
+     "list_not_applicable": 0.0,
+     "obligations": 0.0,
+     "pending_reviews": 0.0,
+     "other": 0.01,
+     "web_lookup": 0.0,
+     "toon": 0.0,
+     "retrieval": 0.0,
+     "performance": 0.0,
+     "gaps": 0.0,
+     "affected_policies": 0.0,
+     "effective_dates": 0.0
+    },
+    "latency_ms": 1059,
+    "input_tokens": 3710,
+    "output_tokens": 574,
+    "questions": 8,
+    "document_confidence": 0.86,
+    "document_2_confidence": 0.76,
+    "flags": {
+     "follow_up": true,
+     "requests_action": false,
+     "answerable": true
+    }
+   },
+   "sources": 1,
+   "cited": [
+    "D3"
+   ],
+   "jev_judgments": {
+    "provider": "typesafe",
+    "model": "jev-1.13.0",
+    "calibrated": true,
+    "questions": 6,
+    "latency_ms": 416,
+    "input_tokens": 2123,
+    "output_tokens": 132,
+    "results": {
+     "sufficient": 0.95,
+     "records": {
+      "D3": {
+       "relevant": 0.98,
+       "evidence_supports": {
+        "D3.R1": 0.96,
+        "D3.R2": 0.95,
+        "D3.R3": 0.86,
+        "D3.P1": 0.96
+       }
+      }
+     }
+    }
+   },
+   "narrative": {
+    "provider": "foundry",
+    "model": "gpt-5-mini",
+    "latency_ms": 15963,
+    "input_tokens": 1744,
+    "output_tokens": 1720,
+    "response_id": "resp_06e9925c2efdc06a006ab23a2565248190b7f7dca76dfa3c4d",
+    "context_tokens": 934,
+    "context_json_tokens": 963,
+    "cached_tokens": 1664,
+    "estimated_cost_usd": 0.003502,
+    "structured_mode": "json_schema",
+    "context_format": "toon",
+    "attempts": 1
+   },
+   "dropped_uncited": [],
+   "evidence": {
+    "regulatory": 3,
+    "policy": 1,
+    "obligations": 0
+   },
+   "workspace": "Nimbus Asset Management"
+  }
+ },
+ "judge": {
+  "provider": "typesafe",
+  "model": "jev-1.13.0",
+  "calibrated": true,
+  "intent_confidence": 0.99,
+  "intent_probabilities": {
+   "compare": 0.0,
+   "explain": 0.99,
+   "jev_decisions": 0.0,
+   "list_conflicts": 0.0,
+   "action_request": 0.0,
+   "evidence": 0.0,
+   "other_reasoning": 0.0,
+   "cost": 0.0,
+   "list_aligned": 0.0,
+   "approval_status": 0.0,
+   "pipeline": 0.0,
+   "prioritize": 0.0,
+   "list_applicable": 0.0,
+   "scan_status": 0.0,
+   "next_step": 0.0,
+   "run_scan": 0.0,
+   "latest_changes": 0.0,
+   "policy_lookup": 0.0,
+   "summarize_work": 0.0,
+   "list_not_applicable": 0.0,
+   "obligations": 0.0,
+   "pending_reviews": 0.0,
+   "other": 0.01,
+   "web_lookup": 0.0,
+   "toon": 0.0,
+   "retrieval": 0.0,
+   "performance": 0.0,
+   "gaps": 0.0,
+   "affected_policies": 0.0,
+   "effective_dates": 0.0
+  },
+  "latency_ms": 1059,
+  "input_tokens": 3710,
+  "output_tokens": 574,
+  "questions": 8,
+  "document_confidence": 0.86,
+  "document_2_confidence": 0.76,
+  "flags": {
+   "follow_up": true,
+   "requests_action": false,
+   "answerable": true
+  }
+ },
+ "actor": "auraCodesKM",
+ "created_at": "2026-09-22T08:20:02.701293+00:00",
+ "conversation_id": "conv_929c089ecec3"
+}
