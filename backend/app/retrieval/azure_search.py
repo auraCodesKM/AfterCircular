@@ -36,7 +36,7 @@ from app.schemas.impact import PolicyChunk
 
 log = logging.getLogger(__name__)
 
-SELECT = ["id", "doc_id", "title", "path", "version", "section", "text"]
+SELECT = ["id", "doc_id", "title", "path", "version", "section", "text", "commit_sha", "chunk_hash"]
 # every field the index carries besides the key and the vector; upload sends exactly these (docs/azure/policies-dev.index.json)
 METADATA = ["tenant_id", "doc_id", "title", "category", "path", "version", "effective_date", "status", "section", "regulator",
             "jurisdiction", "topics", "commit_sha", "chunk_hash", "text"]
@@ -163,7 +163,7 @@ class AzureSearchRetriever(Retriever):
             extra: dict[str, Any] = {"query_type": "semantic", "semantic_configuration_name": self.semantic} if self.semantic else {}
             res = self.client.search(search_text=query, vector_queries=vq, filter=tenant_filter(tenant_id), top=k, select=SELECT, **extra)
             return [PolicyChunk(chunk_id=r["id"], doc_id=r["doc_id"], title=r["title"], path=r["path"], version=r.get("version") or None,
-                                section=r["section"], text=r["text"], score=float(r["@search.score"])) for r in res]
+                                section=r["section"], text=r["text"], score=float(r["@search.score"]), commit_sha=r.get("commit_sha"), chunk_hash=r.get("chunk_hash")) for r in res]
         return await asyncio.to_thread(_do)
 
 

@@ -66,4 +66,5 @@ class LocalRetriever(Retriever):
         fused = rrf(rankings)
         by_id = {c["chunk_id"]: c for c in chunks}
         top = sorted(fused.items(), key=lambda p: -p[1])[:k]
-        return [PolicyChunk(**{kk: by_id[cid][kk] for kk in ("chunk_id", "doc_id", "title", "path", "version", "section", "text")}, score=s) for cid, s in top]
+        return [PolicyChunk(**{kk: by_id[cid][kk] for kk in ("chunk_id", "doc_id", "title", "path", "version", "section", "text")}, score=s,
+                            commit_sha=by_id[cid].get("commit_sha"), chunk_hash=by_id[cid].get("chunk_hash")) for cid, s in top]

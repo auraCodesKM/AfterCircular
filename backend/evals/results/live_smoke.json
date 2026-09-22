@@ -1,0 +1,16 @@
+{
+  "task": "extraction",
+  "model": "gpt-5-mini",
+  "provider": "foundry",
+  "text": "{\"ok\":true,\"echo\":\"aftercircular\"}",
+  "latency_ms": 4742,
+  "input_tokens": 63,
+  "output_tokens": 147,
+  "cached_tokens": 0,
+  "attempts": 1,
+  "estimated_cost_usd": 0.00031,
+  "pricing_status": "estimate",
+  "context_format": null,
+  "structured_mode": "json_schema",
+  "response_id": "resp_00ee5c4f55a31b51006ab1fe95a8248197981a0865d94aeaa6"
+}

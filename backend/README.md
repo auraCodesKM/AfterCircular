@@ -4,7 +4,7 @@ FastAPI service that runs the regulatory-intelligence pipeline (PRD §0 Tier 0):
 
 ```
 POST /api/scan
-  SEBI connector (live sebi.gov.in, or labelled demo snapshot)
+  SEBI connector (live sebi.gov.in; the labelled demo snapshot only in SEBI_MODE=demo_snapshot)
   → content-hash detection, versioning, idempotency (SQLite `processed_documents`)
   → obligation extraction (Foundry, generative, evidence required)
   → decision layer (app/decisions): Jev typed judgments — extraction check, applicability, rerank, alignment, citation check —

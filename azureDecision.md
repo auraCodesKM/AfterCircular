@@ -553,22 +553,55 @@ distributors still on NISM Series XIII — conflict; POL-003 vague cyber reporti
 `policy_sources` (GitHub blob URL per policy at the indexed commit) on every analysis; the UI shows *Open SEBI source*, *PDF*,
 *Open on GitHub*, and the Ask evidence chips link to the same. The GitHub issue body carries the PDF URL and the policy file link.
 
-**Live scenario matrix** (`evals/scenarios/live_matrix.json`, `evals/results/live_e2e_<tenant>.md`, after `scripts/demo_reset.py`):
+**Live scenario matrix — final fresh run 2026-09-22 04:20–04:30 UTC** (`scripts/demo_reset.py` on both tenants → Azure AI Search
+tenant documents deleted and re-indexed from GitHub HEAD → `evals/live_e2e.py`; `evals/results/live_e2e_<tenant>.md`):
 
-| tenant | scan | Foundry calls | est. cost | Jev records | chunks | result |
-|---|---|---:|---:|---:|---:|---|
-| Acme | scan_9cdb6832a2ce | 7 | $0.0548 | 73 | 48 | 102584 **CONFLICT** POL-001 (memo, review) · 102762/104387 **ARCHIVED** at triage (0 Foundry) · 102914 **ALIGNED** · 102986 NEEDS_INVESTIGATION (expected ARCHIVED; `company_state` now carries `not_registered_for`, not re-run) · 103915 NEEDS_INVESTIGATION (Foundry said conflict, Jev cross-check disagreed → person) · repeat scan 0 new / 6 skipped / 0 calls |
-| Nimbus | scan_a9487dfd7832 | 8 | $0.0549 | 67 | 46 | 102986 **CONFLICT** POL-002 (memo, review) · 102584/104387 **ARCHIVED** · 103915 NEEDS_INVESTIGATION (as designed) · 102762 NEEDS_INVESTIGATION (expected ALIGNED: 3 pairs below 0.7) · 102914 NEEDS_INVESTIGATION (no policy addresses it) · repeat scan 0 new / 6 skipped / 0 calls |
+| tenant | scan | Foundry calls | est. cost | Jev records | chunks @ commit | result |
+|---|---|---:|---:|---:|---|---|
+| Nimbus | scan_b27f0182a2e6 | 8 | $0.0558 | 72 | 46 @ a84ddcd | 102986 **CONFLICT** POL-002 §4.2 (extraction → escalation → memo, all Foundry; review → **approved → nimbus-amc-policies#1**) · 102584/104387 **ARCHIVED** at triage (0 Foundry) · 103915 NEEDS_INVESTIGATION (designed) · 102762 NEEDS_INVESTIGATION (expected ALIGNED; 3 pairs < 0.7) · 102914 NEEDS_INVESTIGATION (no policy addresses the depository directions) · repeat scan 0 new / 6 skipped / 0 calls. **5/7** |
+| Acme | scan_6932b27011be | 6 | $0.0519 | 61 | 48 @ bbad523 | 102584 **CONFLICT** POL-001 §5.1 (memo, AWAITING_REVIEW for the live click) · 102762 / 102986 / 104387 **ARCHIVED** at triage (0 Foundry; 102986 now archived thanks to `not_registered_for`) · 102914 NEEDS_INVESTIGATION (expected) · 103915 NEEDS_INVESTIGATION (Foundry said conflict, Jev cross-check disagreed → person) · repeat scan via API `LIVE_NO_NEW_DOCUMENTS` 0 new / 6 skipped / 0 calls. **6/7** |
 
-**Ask matrix** (`evals/results/ask_matrix.md`, live Jev + gpt-5-mini): 13 questions + a 4-turn follow-up chain on one
-`conversation_id`; deterministic intents answered from records, reasoning intents narrated by Foundry and validated against
-record ids; "Create a GitHub issue for this conflict." → **refused**, reviews unchanged.
+Telemetry reconciliation (`evals/reconcile.py`): both scans **RECONCILED** — pipeline counter = `llm_calls` rows (each with a
+Foundry `response_id`) = `analysis.metrics` blocks = audit-implied calls; cost sums equal. Mismatches against the designed
+expectation are all *more cautious* (NEEDS_INVESTIGATION instead of ALIGNED); none is a false conflict; nothing was tuned.
 
-**Human approval → real GitHub issue (2026-09-22 03:49 UTC).** `POST /api/reviews/rev_4e079bf1e196/approve` as
-`auraCodesKM` (audit: `APPROVED` actor_type=human → `TICKET_CREATED` actor_type=agent) opened
-**https://github.com/auraCodesKM/acme-securities-policies/issues/6** — "[Compliance] SEBI HO/38/11/(9)2026-MIRSD-POD/I/15382/2026
-vs POL-001 §5.1", labels compliance / needs-review / severity:operational, body with the official circular page, the PDF URL,
-verbatim §46.2/46.3/46.4/46.8 excerpts, POL-001 §4.2/5.1/6.1 excerpts linked to the GitHub file, the Foundry memo, and
-`AfterCircular-Analysis-ID`. A second approve returned `409 Review rev_4e079bf1e196 is already APPROVED`; the repository has
-exactly one open issue. Repeat scan via the API afterwards: `LIVE_NO_NEW_DOCUMENTS`, 0 new / 6 skipped / 0 model calls.
-Nimbus review `rev_6cc72960deaa` (102986 vs POL-002) is left AWAITING_REVIEW for the live demo click.
+**Ask matrix** (`evals/results/ask_matrix_<tenant>.md`, live Jev + gpt-5-mini, 13 questions of the brief + a sebi.gov.in web
+lookup + a 5-turn follow-up chain on one `conversation_id`): deterministic intents (`list_conflicts`, `list_applicable`,
+`list_aligned`, `list_not_applicable`, `effective_dates`, `pending_reviews`, `latest_changes`) answer from records with no
+model call; reasoning intents (`explain`, `evidence`, `affected_policies`, `prioritize`, `compare`) narrate with Foundry and are
+validated against record ids; "Compare the two most relevant current circulars" honestly returned *not enough evidence*
+(Jev sufficiency 0.34); "Create a GitHub issue for this." → **refused**, reviews unchanged; the web lookup returned the FIRE-format
+circular page + PDF on sebi.gov.in, labelled discovery only.
+
+**Human approval → real GitHub issue.** Fresh run 2026-09-22 04:45 UTC: `POST /api/reviews/rev_b4f59ae0d374/approve` as
+`auraCodesKM` (audit `APPROVED` actor_type=human → `TICKET_CREATED` actor_type=agent) opened
+**https://github.com/auraCodesKM/nimbus-amc-policies/issues/1** — "[Compliance] SEBI HO/24/13/17(1)2026-IMD-POD-1/I/16895/2026 vs
+POL-002 §4.2 Specialized Investment Fund strategies" with the official page, PDF, verbatim §21.10.1/21.10.3/21.10.4 excerpts,
+POL-002 §4.2 linked to the GitHub file, the Foundry memo and `AfterCircular-Analysis-ID`. Second approve →
+`409 Review rev_b4f59ae0d374 is already APPROVED`. The earlier rehearsal's `acme-securities-policies#6` (03:49 UTC, same path)
+was closed with a note when the workspace was reset; Acme's 102584 review is AWAITING_REVIEW for the live click.
+Full persisted traces: `docs/traces/TRACE_nimbus_102986.md` (13/13 steps ran, incl. Foundry extraction, escalation and memo)
+and `docs/traces/TRACE_acme_102584.md`.
+
+## 20. Final Azure architecture decisions (2026-09-22, Phase 13A–13K)
+
+Everything in this section was **executed** on 2026-09-22, not inferred from configuration. Evidence files:
+`backend/evals/results/live_smoke.json`, `retrieval_eval.{json,md}`, `live_e2e_<tenant>.md`, `ask_matrix_<tenant>.md`,
+`evals/reconcile.py` output, `scripts/trace.py` output in `docs/traces/TRACE_*.md`.
+
+| # | Decision | Why | Proof |
+|---|---|---|---|
+| 1 | **Microsoft Foundry** is the AI layer | One resource (`aif-aftercircular-dev`, project `proj-aftercircular-dev`, Korea Central) hosts the chat and embedding deployments behind Entra ID; strict JSON-schema structured outputs on the v1 Responses API give validated `ExtractionResult` / `ImpactAnalysis` / `Memo` / `AskAnswer` objects the code can check before use. | Every Foundry call is persisted in `llm_calls` with the service's own `response_id` (e.g. smoke `resp_00ee5c4f55a3…`, 63→147 tokens, 4.7 s, `json_schema`); `/api/system` shows *connected* only when such a row exists. |
+| 2 | **gpt-5-mini** | Reasoning-class model at ~$0.25/$2 per 1M tokens; a full 6-circular scan costs ≈ $0.055; latency 20–30 s per structured call is acceptable for a batch pipeline; `temperature` is omitted for the gpt-5 family (provider handles it). | `usage`/`/api/system`: 31 Foundry requests all time, 0 errors; controlled failure with `EXTRACTION_MODEL=does-not-exist` → `NotFoundError 404 DeploymentNotFound`, no result fabricated (tests `test_foundry_unavailable_fails_the_document_not_the_truth`, failed call recorded with `ok=0`). |
+| 3 | **Azure AI Search** for internal policy retrieval | The corpus is the tenant's GitHub repository, chunked by clause, filtered by `tenant_id`; the service gives BM25 + HNSW vector + RRF in one query and an index we can inspect (`policies-dev`, 94 documents after the rebuild: Acme 48, Nimbus 46). | `retrieval_eval.md`: expected policy at rank 1 in **8/8** scenario queries; cross-tenant bait queries return **0 foreign rows**; a chunk re-embedded from its current text is its own nearest neighbour (cosine score 1.0), `chunk_hash` matches, index commit = repo HEAD. |
+| 4 | **Hybrid search** (BM25 + vector, RRF) | Compliance text needs exact terms ("five trading days", "NISM Series V-D", "cyber incident") *and* semantic matches; RRF fusion needs no tuning. | Scores in `retrieval_eval.md` are RRF (≈ 0.033 max); every analysis stores `metrics.retrieval` = query, k, method, embedding model, commits, timing, and the chunk list with `commit_sha` / `chunk_hash`. |
+| 5 | **text-embedding-3-small**, 1536-d | Cheapest Foundry embedding with good retrieval quality; 1536 keeps the Free-tier index small (94 vectors). | Vector reality check above; `embedding_dimensions=1536` in index schema `docs/azure/policies-dev.index.json`. |
+| 6 | **SEBI connector separate from Azure AI Search** | The regulatory source is acquisition (official listing → page → PDF → hash → registry), not retrieval. Azure AI Search holds *only* internal policy chunks; a circular never enters the index. | `app/connectors/sebi.py`, `regulatory_sources/sebi/*.json`; `/api/system.sebi` reports live scans and fetch timestamps. |
+| 7 | **Foundry Web Search: enabled, discovery only** | The Responses API `web_search` tool works on this deployment with `filters.allowed_domains=["sebi.gov.in"]` (probe: `resp_081d1eb7…`, 3 search calls, url citations to the 103915 page and PDF, 11,983→1,327 tokens). | `provider.web_search`, `investigate.web_lookup`, `ASK_WEB_SEARCH` flag. |
+| 8 | Where it is used | Only the Ask intent `web_lookup` ("look up / latest SEBI publication not in the workspace"). Never in the scan pipeline, never in impact analysis, never in the memo. | Answer footer *"Microsoft Foundry Web Search … discovery, not compliance evidence"*; telemetry task `ask_web`. |
+| 9 | Why Web Search is **not** the compliance source | Evidence must be the official PDF text, hashed and stored, with verbatim excerpts verified in code; web snippets are neither complete nor verifiable. Off-domain citations are dropped (`web_dropped_off_domain`). | tests `test_web_lookup_is_discovery_only_and_drops_off_domain_citations`, `test_web_lookup_without_foundry_never_invents_a_result`. |
+| 10 | **Semantic ranker: not enabled** | Probe on `srch-aftercircular-dev` (Free tier): `queryType=semantic` → *"This index must have valid semantic configurations defined"*; adding one is possible but paid beyond the free monthly quota and hybrid RRF already ranks the expected clause first in 8/8 checks. Revisit only if a retrieval miss is observed. | `AZURE_SEARCH_SEMANTIC_CONFIG` stays empty; `/api/system.search.semantic_ranker=false`. |
+| 11 | **Why Jev exists** (reasoning support) | Typed, calibrated Noul/Choice/Score judgments make routing auditable and cheap: triage archives out-of-scope circulars with **0 Foundry calls**, alignment/verification decide when Foundry must be escalated to, and a cross-check keeps a person in the loop when Jev and Foundry disagree. Jev never writes prose. | `decisions` table (181 records before the reset; see §19 runs), Decision details in the UI, `Reasoning support · Jev` label. |
+| 12 | **Human approval architecture** | The only path to a side effect is `POST /api/reviews/{id}/approve` under the signed-in GitHub user; Ask refuses actions; a rejected review has no side effect; re-approval is idempotent. | audit `APPROVED` (actor_type human) → `TICKET_CREATED` (agent); issue `acme-securities-policies#6`; `409 already APPROVED` on repeat. |
+| 13 | **Cost controls** | `CallBudget`: max 10 calls / $0.50 per scan, $5 / day application-wide, `BUDGET_EXCEEDED` audit event; content-hash dedup (repeat scan = 0 calls); triage before any Foundry call; deterministic Ask intents make no model call; embeddings batched per query; bounded retries (2). | `evals/reconcile.py`: pipeline counter = telemetry rows = metrics blocks = audit-implied calls, cost sums equal (both scans RECONCILED); repeat scans `LIVE_NO_NEW_DOCUMENTS`, 0 calls. |
+| 14 | **Responsible AI controls** | AI detects and explains; a person decides. No autonomous policy edits, no issue without approval, two-sided verbatim evidence before any CONFLICT, uncertainty preserved as NEEDS_INVESTIGATION, fictional tenants only, tenant isolation in the index, every claim in Ask validated against record ids. | `services/gate.py`, `investigate.validate_answer`, `docs/AI103_MAPPING.md`. |

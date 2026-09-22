@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { AnalysisRecord, ProcessedDocument } from "@/lib/pipeline-types";
 import { DecisionDetails } from "./decision-path";
+import { PipelineTrace } from "./pipeline-trace";
 import { EvidencePair } from "./evidence";
 import { MemoView } from "./memo-view";
 import { Markdown } from "./markdown";
@@ -168,6 +169,7 @@ export function AnalysisBody({ doc, analysis }: { doc: ProcessedDocument; analys
             </DetailRow>
           ) : null}
           <DecisionDetails analysis={analysis} />
+          <PipelineTrace documentPk={doc.id} />
         </div>
       </section>
     </div>

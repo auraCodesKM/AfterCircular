@@ -19,17 +19,17 @@
   },
   "scans": [
     {
-      "scan_id": "scan_a9487dfd7832",
+      "scan_id": "scan_b27f0182a2e6",
       "status": "COMPLETED",
       "source_mode": "LIVE",
       "new": 6,
       "skipped": 0,
       "deferred": 0,
       "llm_calls": 8,
-      "estimated_cost_usd": 0.05495,
+      "estimated_cost_usd": 0.055833,
       "error": null,
       "error_kind": null,
-      "wall_ms": 244845,
+      "wall_ms": 234830,
       "steps": {
         "connect": "done",
         "fetch": "done",
@@ -48,7 +48,7 @@
         "fetch": "6 publication(s)",
         "detect": "6 new, 0 already processed",
         "index": "46 chunks from auraCodesKM/nimbus-amc-policies@a84ddcd (azure-ai-search, re-indexed)",
-        "triage": "not applicable \u2014 header addressed to other entity types (P(concerns)=0.00, entity in scope 0.04) (no extraction call)",
+        "triage": "not applicable \u2014 header addressed to other entity types (P(concerns)=0.00, entity in scope 0.05) (no extraction call)",
         "extract": "archived at triage",
         "retrieve": "archived at triage",
         "analyze": "archived at triage",
@@ -58,7 +58,7 @@
       }
     },
     {
-      "scan_id": "scan_492ef68b3d39",
+      "scan_id": "scan_334acdf7afcd",
       "status": "COMPLETED",
       "source_mode": "LIVE",
       "new": 0,
@@ -68,7 +68,7 @@
       "estimated_cost_usd": 0.0,
       "error": null,
       "error_kind": null,
-      "wall_ms": 12753,
+      "wall_ms": 16980,
       "steps": {
         "connect": "done",
         "fetch": "done",
@@ -154,7 +154,7 @@
         "pdf_url": "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2026/1783077132079.pdf",
         "document_id": "102584",
         "content_hash": "ad0ba971aa01fd1899ad8f534b61ecf31bba4f180abc5dcd92db6b50583c1eb4",
-        "fetched_at": "2026-09-21T19:40:43.434827+00:00"
+        "fetched_at": "2026-09-22T04:20:22.392806+00:00"
       },
       "policy_sources": {},
       "source_mode": "LIVE",
@@ -172,7 +172,7 @@
       "memo": false,
       "review": null,
       "source": "live",
-      "scan_id": "scan_a9487dfd7832"
+      "scan_id": "scan_b27f0182a2e6"
     },
     {
       "document_id": "102762",
@@ -192,18 +192,18 @@
         "affected_policies": [
           "POL-001"
         ],
-        "confidence": 0.86,
+        "confidence": 0.85,
         "severity": "operational"
       },
       "match": false,
       "extraction": {
         "valid": true,
-        "obligations": 9,
+        "obligations": 13,
         "applies_to": [
-          "mutual funds",
-          "asset management companies (AMCs)",
-          "trustee companies",
-          "board of trustees of mutual funds",
+          "Mutual Funds",
+          "Asset Management Companies (AMCs)",
+          "Trustee Companies",
+          "Board of Trustees of Mutual Funds",
           "Association of Mutual Funds in India (AMFI)"
         ]
       },
@@ -220,24 +220,32 @@
         "backend": "azure-ai-search",
         "count": 10,
         "vector": true,
-        "embed_ms": 405,
-        "search_ms": 248
+        "query": "SEBI permits mutual funds to avail intraday borrowings subject to specified purposes, limits tied to receivables, repayment by end of the day, board-approved policies published on AMC websites, maintenance of scheme-wise records of liquidity mismatches and sources of repayment, compliance with specified regulatory provisions, and that AMCs bear the cost or loss arising from intraday borrowing or delays in receivables. The circular is effective from September 1, 2026. Mutual Funds may avail intraday borrowings only for specified purposes (unitholder pay-outs, pay-in for investments, MTM and forex settlements, repayment of existing borrowings). The quantum of intraday borrowings shall be limited to guaranteed receivables such as inflows from RBI, Clearing Corporations, subscription inflows received in scheme bank accounts etc. The quantum of intraday borrowings shall be limited to non-guaranteed receivables sighted during the day such as inflows from maturity proceeds and/or secondary market settlement from NCDs, CP, CDs, OTC Swaps, etc. and to be received by the scheme by end of the day. AMCs may avail intraday borrowing in addition to clauses 2.2.1 and 2.2.2 solely for the purpose of meeting redemption and other pay-out to the unitholders as specified under Regulation 42(1) of SEBI (Mutual Funds) Regulations, 2026. AMCs shall ensure that intraday borrowings are repaid by end of the day. AMCs shall ensure that any intraday borrowings converted to overnight borrowings are within regulatory limits and for the purposes allowed in Regulation 42(1) of SEBI (Mutual Funds) Regulations, 2026.",
+        "k": 10,
+        "method": "hybrid (BM25 + vector, RRF)",
+        "embedding_model": "text-embedding-3-small",
+        "embed_ms": 492,
+        "search_ms": 331,
+        "at": "2026-09-22T04:21:17.840797+00:00",
+        "commits": [
+          "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        ]
       },
       "retrieved_doc_ids": [
         "POL-001"
       ],
       "regulatory_evidence": [
         {
-          "section": "2.1",
-          "text": "2.1. Mutual Funds may avail intraday borrowings for the following purposes: 2.1.1. All unitholder pay-outs such as redemptions, IDCW pay-outs, interest etc. 2.1.2. Pay-in with respect to investments made by the scheme. 2.1.3. MTM obligations and foreign exchange settlements. 2.1.4. Repayment of existing borrowings."
+          "section": "2.1 / 2.1.1 - 2.1.4",
+          "text": "2.1. Mutual Funds may avail intraday borrowings for the following purposes:\n2.1.1. All unitholder pay-outs such as redemptions, IDCW pay-outs, interest etc.\n2.1.2. Pay-in with respect to investments made by the scheme.\n2.1.3. MTM obligations and foreign exchange settlements.\n2.1.4. Repayment of existing borrowings."
         },
         {
           "section": "2.2.1",
-          "text": "2.2.1. Guaranteed receivables such as inflows from RBI, Clearing Corporations, subscription inflows received in scheme bank accounts etc."
+          "text": "2.2. The quantum of intraday borrowings shall be limited to:\n2.2.1. Guaranteed receivables such as inflows from RBI, Clearing Corporations, subscription inflows received in scheme bank accounts etc."
         },
         {
           "section": "2.2.2",
-          "text": "2.2.2. Non-guaranteed receivables sighted during the day such as inflows from maturity proceeds and/or secondary market settlement from NCDs, CP, CDs, OTC Swaps, etc. and to be received by the scheme by end of the day."
+          "text": "2.2.2. Non-guaranteed receivables sighted during the day such as inflows from maturity proceedings and/or secondary market settlement from NCDs, CP, CDs, OTC Swaps, etc. and to be received by the scheme by end of the day."
         },
         {
           "section": "2.2.3",
@@ -261,7 +269,7 @@
         },
         {
           "section": "2.7",
-          "text": "2.7. In line with para 11.10 of the Master Circular, cost of intraday borrowing, if any, shall be borne by the AMC. Further, any loss or cost incurred, on account of any unforeseen event or delay in receiving the funds from receivables as mentioned at clause 2.2.1 and 2.2.2 above shall also be borne by the AMC."
+          "text": "2.7. In line with para 11.10 of the Master Circular, cost of intraday borrowing, if any, shall be borne by the AMC.  Further, any loss or cost incurred, on account of any unforeseen event or delay in receiving the funds from receivables as mentioned at clause 2.2.1 and 2.2.2 above shall also be borne by the AMC."
         }
       ],
       "policy_evidence": [
@@ -287,7 +295,7 @@
         "pdf_url": "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2026/1783685402131.pdf",
         "document_id": "102762",
         "content_hash": "6690673f1b2ee9d555de3d6d93df88e3df4fedc52ae972c7cd3534ae19ffc2c6",
-        "fetched_at": "2026-09-21T19:40:44.231955+00:00"
+        "fetched_at": "2026-09-22T04:20:23.117759+00:00"
       },
       "policy_sources": {
         "POL-001": {
@@ -310,7 +318,7 @@
         "foundry:escalation",
         "typesafe:cross_check"
       ],
-      "escalation_reason": "3 obligation/policy pair(s) judged below confidence 0.7",
+      "escalation_reason": "2 obligation/policy pair(s) judged below confidence 0.7",
       "jev_calls": 18,
       "jev_stages": [
         "alignment",
@@ -322,7 +330,7 @@
       "memo": false,
       "review": null,
       "source": "live",
-      "scan_id": "scan_a9487dfd7832"
+      "scan_id": "scan_b27f0182a2e6"
     },
     {
       "document_id": "102914",
@@ -348,11 +356,11 @@
         "valid": true,
         "obligations": 8,
         "applies_to": [
-          "All Depositories",
-          "All Recognized Stock Exchanges (SEs)",
-          "All Registrar and Transfer Agents (RTAs)",
-          "All Depository Participants (DPs)",
-          "All Mutual Funds (MFs) / All Asset Management Companies (AMCs)",
+          "Depositories",
+          "Recognized Stock Exchanges",
+          "Registrar and Transfer Agents (RTAs)",
+          "Depository Participants (DPs)",
+          "Mutual Funds / Asset Management Companies (AMCs)",
           "Association of Mutual Funds in India (AMFI)"
         ]
       },
@@ -372,26 +380,35 @@
         "backend": "azure-ai-search",
         "count": 10,
         "vector": true,
-        "embed_ms": 462,
-        "search_ms": 379
+        "query": "SEBI directs depositories to implement a facility allowing creation of standing instructions for Systematic Withdrawal Plan (SWP) and Systematic Transfer Plan (STP) for mutual fund units held in demat form, to be rolled out in two phases (unit\u2011based then amount\u2011based), with specific implementation and operationalization tasks and deadlines for depositories. Ensure implementation of Phase - I (Unit-based SWP/STP) by January 31, 2027 and act as nodal facilitator for implementation of this framework. Ensure implementation of Phase - II (Amount-based SWP/STP) by April 30, 2027 and act as nodal facilitator for implementation of this framework. Make the facility available for \"Unit-based SWP / STP\" (standing instructions based on fixed number of units to be redeemed at a specified frequency for withdrawal or for purchasing units of another scheme of the same Mutual Fund). Extend the facility to \"Amount-based SWP / STP\" (standing instruction for fixed amount which is required as pay-out at a specified frequency or for purchasing units of another scheme of the same Mutual Fund). Jointly publish a standard framework on depositories' websites to operationalize the facility by October 31, 2026. Make amendments to the relevant bye-laws, rules and regulations for the implementation of the above framework, as may be applicable/necessary.",
+        "k": 10,
+        "method": "hybrid (BM25 + vector, RRF)",
+        "embedding_model": "text-embedding-3-small",
+        "embed_ms": 360,
+        "search_ms": 300,
+        "at": "2026-09-22T04:22:19.741967+00:00",
+        "commits": [
+          "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        ]
       },
       "retrieved_doc_ids": [
         "POL-001",
         "POL-002",
-        "POL-004"
+        "POL-004",
+        "POL-005"
       ],
       "regulatory_evidence": [
         {
           "section": "5",
-          "text": "5. Depositories shall be the nodal facilitator for implementation of this framework \nand shall  ensure the implementation of Phase - I by January 31, 2027  and \nimplementation of Phase - ll by April 30, 2027."
+          "text": "Depositories shall be the nodal facilitator for implementation of this framework and shall ensure the implementation of Phase - I by January 31, 2027 and implementation of Phase - ll by April 30, 2027."
         },
         {
           "section": "5",
-          "text": "5. Depositories shall be the nodal facilitator for implementation of this framework \nand shall  ensure the implementation of Phase - I by January 31, 2027  and \nimplementation of Phase - ll by April 30, 2027."
+          "text": "Depositories shall be the nodal facilitator for implementation of this framework and shall ensure the implementation of Phase - I by January 31, 2027 and implementation of Phase - ll by April 30, 2027."
         },
         {
           "section": "4.1",
-          "text": "4.1. In Phase - I, the facility shall be made available for \u201cUnit-based SWP \n/ STP\u201d i.e. standing instructions based on fixed number of units to be \n\nPage 2 of 2 \n\nredeemed at a specified frequency for withdrawal or for purchasing \nunits of another scheme of the same Mutual Fund."
+          "text": "4.1. In Phase - I, the facility shall be made available for \u201cUnit-based SWP / STP\u201d i.e. standing instructions based on fixed number of units to be\nredeemed at a specified frequency for withdrawal or for purchasing\nunits of another scheme of the same Mutual Fund."
         }
       ],
       "policy_evidence": [],
@@ -406,7 +423,7 @@
         "pdf_url": "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2026/1784285542603.pdf",
         "document_id": "102914",
         "content_hash": "35a4f557e2ce0b85dcd8cec28e81a30b83e507ddda47a0f7d919c0e530aa89de",
-        "fetched_at": "2026-09-21T19:40:45.161625+00:00"
+        "fetched_at": "2026-09-22T04:20:24.016805+00:00"
       },
       "policy_sources": {},
       "source_mode": "LIVE",
@@ -420,7 +437,7 @@
         "typesafe:alignment"
       ],
       "escalation_reason": null,
-      "jev_calls": 15,
+      "jev_calls": 16,
       "jev_stages": [
         "alignment",
         "applicability",
@@ -430,7 +447,7 @@
       "memo": false,
       "review": null,
       "source": "live",
-      "scan_id": "scan_a9487dfd7832"
+      "scan_id": "scan_b27f0182a2e6"
     },
     {
       "document_id": "102986",
@@ -452,18 +469,18 @@
         "affected_policies": [
           "POL-002"
         ],
-        "confidence": 0.9,
-        "severity": "prohibitive"
+        "confidence": 0.85,
+        "severity": "operational"
       },
       "match": true,
       "extraction": {
         "valid": true,
-        "obligations": 7,
+        "obligations": 5,
         "applies_to": [
-          "Mutual Funds",
-          "Asset Management Companies (AMCs)",
-          "Trustee Companies",
-          "Registrar to an Issue and Share Transfer Agents (RTAs)",
+          "All Mutual Funds (MFs)",
+          "All Asset Management Companies (AMCs)",
+          "All Trustee Companies",
+          "All Registrar to an Issue and Share Transfer Agents (RTAs)",
           "Association of Mutual Funds in India (AMFI)"
         ]
       },
@@ -481,8 +498,16 @@
         "backend": "azure-ai-search",
         "count": 10,
         "vector": true,
-        "embed_ms": 490,
-        "search_ms": 334
+        "query": "SEBI requires persons engaged in sale/distribution of Specialized Investment Funds (SIFs) to hold the new 'NISM Series-V-D - Mutual Fund - Specialized Investment Fund Distributors Certification'; removes the mandatory requirement for 'NISM Series XIII - Common Derivatives Certification' for SIF distribution after 21 Sept 2026, provides transitional relief for holders of Series XIII obtained on/before 21 Sept 2026, and directs AMFI and AMCs to ensure compliance. Any persons employed or engaged or to be employed or engaged in the sale and/or distribution of SIF products shall be required to have a valid \"NISM Series-V-D - Mutual Fund - Specialized Investment Fund Distributors Certification\". Entities engaged in the sale and/or distribution of only Mutual Fund products shall continue to comply with NISM Series V-A certification, as specified under Gazette notification no. LAD -NRO/GN/2010-11/09/6422 dated May 31, 2010. The existing requirement of holding of \"NISM Series XIII \u2013 Common Derivatives Certification\" for the sale and/or distribution of SIF products shall not be applicable after September 21, 2026. SIF distributors holding a valid \"NISM Series XIII - Common Derivatives Certification\", obtained on or before September 21, 2026, shall not be required to obtain the \"NISM Series -V-D \u2013 Mutual Fund - Specialized Investment Fund Distributors Certification\" till the expiry of their existing \"NISM Series XIII - Common Derivatives Certification\"; during this period, such distributors shall continue to hold a valid \"NISM Series V -A Mutual Fund Distributors Certification\". AMFI and AMCs shall ensure compliance with the above requirements by distributors and agents.",
+        "k": 10,
+        "method": "hybrid (BM25 + vector, RRF)",
+        "embedding_model": "text-embedding-3-small",
+        "embed_ms": 439,
+        "search_ms": 287,
+        "at": "2026-09-22T04:22:44.727086+00:00",
+        "commits": [
+          "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        ]
       },
       "retrieved_doc_ids": [
         "POL-002",
@@ -491,27 +516,19 @@
       "regulatory_evidence": [
         {
           "section": "21.10.1",
-          "text": "Any persons employed or engaged or to be employed or engaged in the \nsale and/or distribution of SIF products  shall be required to have a valid \n\"NISM Series-V-D - Mutual Fund - Specialized Investment Fund Distributors \nCertification\"."
-        },
-        {
-          "section": "21.10.1",
-          "text": "Entities holding this certification shall be eligible to distribute both \nMutual Fund and SIF products, without separately holding \"NISM Series V-A \u2013 \nMutual Fund Distributors Certification\"."
+          "text": "21.10.1. Any persons employed or engaged or to be employed or engaged in the \n\nsale and/or distribution of SIF products  shall be required to have a valid \n\"NISM Series-V-D - Mutual Fund - Specialized Investment Fund Distributors \nCertification\". Entities holding this certification shall be eligible to distribute both \nMutual Fund and SIF products, without separately holding \"NISM Series V-A \u2013 \nMutual Fund Distributors Certification\"."
         },
         {
           "section": "21.10.3",
-          "text": "The existing requirement of h olding of \"NISM Series X III \u2013 Common \nDerivatives Certification\" for the sale and/or distribution of SIF products shall not \nbe applicable after September 21, 2026."
+          "text": "21.10.3. The existing requirement of h olding of \"NISM Series X III \u2013 Common \nDerivatives Certification\" for the sale and/or distribution of SIF products shall not \nbe applicable after September 21, 2026."
         },
         {
           "section": "21.10.4",
-          "text": "In order to ensure seamless transition to the new certification \nrequirement, SIF distributors holding a valid \"NISM Series XIII - Common \nDerivatives Certification\", obtained on or before  September 21, 2026, shall not \nbe required to obtain the \"NISM Series -V-D \u2013 Mutual Fund - Specialized \nInvestment Fund Distributors Certification\" till the expiry of their existing \"NISM \nSeries XIII - Common Derivatives Certification\"."
-        },
-        {
-          "section": "21.10.4",
-          "text": "During this period, such distributors shall continue to hold a valid \"NISM  Series V -A Mutual Fund Distributors Certification\", as required under the erstwhile framework."
+          "text": "21.10.4. In order to ensure seamless transition to the new certification \nrequirement, SIF distributors holding a valid \"NISM Series XIII - Common \nDerivatives Certification\", obtained on or before  September 21, 2026, shall not \nbe required to obtain the \"NISM Series -V-D \u2013 Mutual Fund - Specialized \nInvestment Fund Distributors Certification\" till the expiry of their existing \"NISM \nSeries XIII - Common Derivatives Certification\". During this period, such \ndistributors shall continue to hold a valid \"NISM  Series V -A Mutual Fund \nDistributors Certification\", as required under the erstwhile framework."
         },
         {
           "section": "21.10.5",
-          "text": "AMFI and AMCs shall ensure compliance with the above requirements \nby distributors and agents."
+          "text": "21.10.5. AMFI and AMCs shall ensure compliance with the above requirements \nby distributors and agents."
         }
       ],
       "policy_evidence": [
@@ -519,16 +536,6 @@
           "doc_id": "POL-002",
           "section": "4.2 Specialized Investment Fund strategies",
           "text": "POL-002 \u2014 Distributor Empanelment and Certification Policy \u00a74.2 Specialized Investment Fund strategies\nPersons selling or distributing Nimbus SIF strategies must hold, in addition to NISM Series V-A, a valid NISM Series XIII\nCommon Derivatives Certification. Sales staff without the Series XIII certification may not discuss SIF strategies with clients."
-        },
-        {
-          "doc_id": "POL-002",
-          "section": "4.1 Mutual fund schemes",
-          "text": "POL-002 \u2014 Distributor Empanelment and Certification Policy \u00a74.1 Mutual fund schemes\nPersons selling or distributing Nimbus Mutual Fund schemes must hold a valid NISM Series V-A Mutual Fund Distributors\nCertification."
-        },
-        {
-          "doc_id": "POL-002",
-          "section": "5 Monitoring",
-          "text": "POL-002 \u2014 Distributor Empanelment and Certification Policy \u00a75 Monitoring\nCompliance samples ten percent of SIF transactions each quarter to confirm the distributor's certification was valid on the\ntransaction date."
         }
       ],
       "regulatory_source": {
@@ -542,7 +549,7 @@
         "pdf_url": "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2026/1784633350069.pdf",
         "document_id": "102986",
         "content_hash": "79f9be6275fce80a4aed31ae3f78e031fc7f8508a83cf3f3d080e137c7bde2ea",
-        "fetched_at": "2026-09-21T19:40:46.218539+00:00"
+        "fetched_at": "2026-09-22T04:20:24.916695+00:00"
       },
       "policy_sources": {
         "POL-002": {
@@ -561,12 +568,15 @@
         "typesafe:extraction_check",
         "typesafe:applicability",
         "typesafe:rerank",
+        "typesafe:alignment",
+        "code:verification",
         "foundry:escalation",
         "typesafe:cross_check"
       ],
-      "escalation_reason": "applicability uncertain: applicability depends on a fact the company profile does not state",
-      "jev_calls": 13,
+      "escalation_reason": "3 obligation/policy pair(s) judged below confidence 0.7",
+      "jev_calls": 18,
       "jev_stages": [
+        "alignment",
         "applicability",
         "cross_check",
         "extraction_check",
@@ -575,7 +585,7 @@
       "memo": true,
       "review": "AWAITING_REVIEW",
       "source": "live",
-      "scan_id": "scan_a9487dfd7832"
+      "scan_id": "scan_b27f0182a2e6"
     },
     {
       "document_id": "103915",
@@ -595,8 +605,8 @@
         "affected_policies": [
           "POL-003"
         ],
-        "confidence": 0.85,
-        "severity": "operational"
+        "confidence": 0.88,
+        "severity": "administrative"
       },
       "match": true,
       "extraction": {
@@ -629,7 +639,7 @@
       "triage": {
         "stage": "triage",
         "outcome": "proceed",
-        "confidence": 0.33,
+        "confidence": 0.0,
         "addressees": [
           "aif"
         ],
@@ -639,8 +649,16 @@
         "backend": "azure-ai-search",
         "count": 10,
         "vector": true,
-        "embed_ms": 410,
-        "search_ms": 301
+        "query": "SEBI requires all regulated entities to report cyber incidents promptly: by emailing mkt_incidents@sebi.gov.in within 6 hours and by using SEBI's Cyber Incident Reporting Portal (https://siportal.sebi.gov.in) within 24 hours; incidents must be reported in stages (initial report, updates, and final closure) and entities must put in place systems, including amendments to bye-laws/rules/regulations as necessary, to implement these reporting requirements. Report cyber incidents to mkt_incidents@sebi.gov.in within 6 hours. Report cyber incidents on the SEBI Incident Reporting Portal within 24 hours. Regulated Entities (REs) shall report cyber incidents through the Cyber Incident Reporting Portal of SEBI which can be accessed by logging into https://siportal.sebi.gov.in. Provide staged reporting on the portal: an initial report, intermediate updates as the incident evolves, and a final closure report; continue providing updates until the incident is resolved. Take necessary steps to put in place systems for implementation of this circular, including making necessary amendments to the relevant bye-laws, rules and regulations, if any.",
+        "k": 10,
+        "method": "hybrid (BM25 + vector, RRF)",
+        "embedding_model": "text-embedding-3-small",
+        "embed_ms": 559,
+        "search_ms": 327,
+        "at": "2026-09-22T04:23:59.262085+00:00",
+        "commits": [
+          "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        ]
       },
       "retrieved_doc_ids": [
         "POL-003",
@@ -653,16 +671,16 @@
           "text": "2. SEBI has already prescribed guidelines for reporting of cyber incidents under Annexure-O (B: Guidelines on Handling Cybersecurity Incidents ) of CSCRF framework, mandating that all regulated entities report cyber incident through mkt_incidents@sebi.gov.in within 6 hours and SEBI Incident Reporting Portal within 24 hours."
         },
         {
+          "section": "2",
+          "text": "2. SEBI has already prescribed guidelines for reporting of cyber incidents under Annexure-O (B: Guidelines on Handling Cybersecurity Incidents ) of CSCRF framework, mandating that all regulated entities report cyber incident through mkt_incidents@sebi.gov.in within 6 hours and SEBI Incident Reporting Portal within 24 hours."
+        },
+        {
           "section": "5",
           "text": "5. Regulated Entities (REs) shall  report cyber incidents through the Cyber Incident Reporting Portal of SEBI which can be accessed by logging into https://siportal.sebi.gov.in. Regulated Entities are required to take necessary"
         },
         {
           "section": "4",
-          "text": "4. \u0907\u0938 \u092a\u094b\u091f[\u0932 \u092a\u0930 \u0938\u093e\u0907\u092c\u0930 \u0939\u092e\u0932\u0249 \u0915\u0227 \u0918\u091f\u0928\u093e\u0913\u0902 \u0915\u0227 \u091c\u093e\u0928\u0915\u093e\u0930\u0223 \u0905\u092c \u0939\u0930 \u00e8\u0924\u0930 \u092a\u0930 \u0926\u0947\u0928\u0940 \u0939\u094b\u0917\u0940 \u0964  \u090f\u0915 \u0924\u094b \u0920\u0224\u0915 \u0909\u0938\u0940 \u0938\u092e\u092f, \u093f\u091c\u0938 \u0938\u092e\u092f \u0369\u0915\u0938\u0940 \u0938\u093e\u0907\u092c\u0930 \u0939\u092e\u0932\u0947 \u0915\u0227 \u0918\u091f\u0928\u093e \u0915 \u0227 \u092d\u0928\u0915 \u0367\u092e\u0932\u0947 \u0914\u0930 \u0369\u092b\u0930 \u0909\u0938\u0915 \u0947  \u092c\u093e\u0926 \u0909\u0938 \u092a\u0930 \u0906\u0917\u0947 \u091c\u092c-\u091c\u092c \u0915\u0941\u091b \u0939\u094b \u0924\u092c-\u0924\u092c \u092d\u0940 \u091c\u093e\u0928\u0915\u093e\u0930\u0223 \u0938\u093e\u091d\u093e \u0915\u0930\u0928\u0940 \u0939\u094b\u0917\u0940, \u0914\u0930 \u0924\u092c \u0924\u0915 \u0938\u093e\u091d\u093e \u0915\u0930\u0924\u0947 \u0930\u0939\u0928\u0947 \u0939\u094b\u0917\u0940 \u091c\u092c \u0924\u0915 \u0909\u0938\u0915\u093e \u0939\u0932 \u0928 \u01d3\u0928\u0915\u0932 \u091c\u093e\u090f \u0964  \u092f\u0939 \u00e5\u092f\u0935\u00e8\u0925\u093e \u0907\u0938\u0367\u0932\u090f \u0915\u0227 \u091c\u093e \u0930\u0939\u0223 \u0939\u0948 \u00c8\u092f\u0249\u0369\u0915 \u0938\u093e\u0907\u092c\u0930 \u0939\u092e\u0932\u0947 \u0915\u0227 \u0918\u091f\u0928\u093e \u0915\u0227 \u093f\u091c\u0938 \u0938\u092e\u092f \u092d\u0928\u0915 \u0367\u092e\u0932\u0924\u0940 \u0939\u0948, \u0909\u0938 \u0938\u092e\u092f \u0938\u092c \u0915\u0941\u091b \u092a\u0939\u0932\u0947 \u0938\u0947 \u092a\u0924\u093e \u0928\u0939\u0223\u0902 \u0939\u094b\u0924\u093e \u0964"
-        },
-        {
-          "section": "3",
-          "text": "3. In order to streamline the reporting of cyber incidents, SEBI has aligned its Incident Reporting Portal with \u201cFormat for Incident Reporting Exchange (FIRE)\u201d Framework developed by Financial Stability Board (FSB). FIRE enables a structured incident reporting by defining common information fields, standardized definitions, and consistent classification of incident attributes promoting harmonisation across sectors or jurisdictions."
+          "text": "4. \u0907\u0938 \u092a\u094b\u091f[\u0932 \u092a\u0930 \u0938\u093e\u0907\u092c\u0930 \u0939\u092e\u0932\u0249 \u0915\u0227 \u0918\u091f\u0928\u093e\u0913\u0902 \u0915\u0227 \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u0905\u092c \u0939\u0930 \u0938\u094d\u0924\u0930 \u092a\u0930 \u0926\u0947\u0928\u0940 \u0939\u094b\u0917\u0940 \u0964 \u090f\u0915 \u0924\u094b \u0920\u0940\u0915 \u0909\u0938\u0940 \u0938\u092e\u092f, \u091c\u093f\u0938 \u0938\u092e\u092f \u0915\u093f\u0938\u0940 \u0938\u093e\u0907\u092c\u0930 \u0939\u092e\u0932\u0947 \u0915\u0227 \u0918\u091f\u0928\u093e \u0915 \u0227 \u092d\u0928\u0915 \u092e\u093f\u0932\u0947 \u0914\u0930 \u092b\u093f\u0930 \u0909\u0938\u0915\u0947 \u092c\u093e\u0926 \u0909\u0938 \u092a\u0930 \u0906\u0917\u0947 \u091c\u092c-\u091c\u092c \u0915\u0941\u091b \u0939\u094b \u0924\u092c-\u0924\u092c \u092d\u0940 \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u0938\u093e\u091d\u093e \u0915\u0930\u0928\u0940 \u0939\u094b\u0917\u0940, \u0914\u0930 \u0924\u092c \u0924\u0915 \u0938\u093e\u091d\u093e \u0915\u0930\u0924\u0947 \u0930\u0939\u0928\u0947 \u0939\u094b\u0917\u0940 \u091c\u092c \u0924\u0915 \u0909\u0938\u0915\u093e \u0939\u0932 \u0928 \u0928\u093f\u0915\u0932 \u091c\u093e\u090f \u0964"
         },
         {
           "section": "5",
@@ -692,7 +710,7 @@
         "pdf_url": "https://www.sebi.gov.in/sebi_data/attachdocs/aug-2026/1787569463244.pdf",
         "document_id": "103915",
         "content_hash": "93a0348830ce5071ad97316703cf516e3c565d65ac3b9a4ba2ca969a8e8d29da",
-        "fetched_at": "2026-09-21T19:40:47.860448+00:00"
+        "fetched_at": "2026-09-22T04:20:26.499996+00:00"
       },
       "policy_sources": {
         "POL-003": {
@@ -716,8 +734,8 @@
         "foundry:escalation",
         "typesafe:cross_check"
       ],
-      "escalation_reason": "4 obligation/policy pair(s) judged below confidence 0.7",
-      "jev_calls": 19,
+      "escalation_reason": "3 obligation/policy pair(s) judged below confidence 0.7",
+      "jev_calls": 18,
       "jev_stages": [
         "alignment",
         "applicability",
@@ -729,7 +747,7 @@
       "memo": false,
       "review": null,
       "source": "live",
-      "scan_id": "scan_a9487dfd7832"
+      "scan_id": "scan_b27f0182a2e6"
     },
     {
       "document_id": "104387",
@@ -785,7 +803,7 @@
         "pdf_url": "https://www.sebi.gov.in/sebi_data/attachdocs/sep-2026/1788952299552.PDF",
         "document_id": "104387",
         "content_hash": "4e2b179e5b45fe13d91bc3cbcb30cbaed2cf76ed8d8384b91e9732cabd43cba6",
-        "fetched_at": "2026-09-21T19:40:48.511780+00:00"
+        "fetched_at": "2026-09-22T04:20:27.087162+00:00"
       },
       "policy_sources": {},
       "source_mode": "LIVE",
@@ -803,12 +821,12 @@
       "memo": false,
       "review": null,
       "source": "live",
-      "scan_id": "scan_a9487dfd7832"
+      "scan_id": "scan_b27f0182a2e6"
     },
     {
       "case": "8/9. duplicate document + repeated scan (idempotency)",
       "source": "live",
-      "scan_id": "scan_492ef68b3d39",
+      "scan_id": "scan_334acdf7afcd",
       "expected": {
         "new": 0,
         "llm_calls": 0
@@ -845,15 +863,15 @@
   ],
   "totals": {
     "foundry_calls": 8,
-    "input_tokens": 17424,
-    "output_tokens": 25960,
-    "cached_tokens": 5888,
-    "estimated_cost_usd": 0.05495,
+    "input_tokens": 17079,
+    "output_tokens": 25782,
+    "cached_tokens": 0,
+    "estimated_cost_usd": 0.055833,
     "unknown_pricing_calls": 0,
     "retries": 0,
     "errors": 0,
-    "jev_calls": 67,
-    "avg_latency_ms": 25120,
+    "jev_calls": 72,
+    "avg_latency_ms": 24407,
     "live_cases_matched": 5,
     "live_cases": 7
   },

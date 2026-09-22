@@ -20,21 +20,22 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 QUESTIONS = [
-    "What changed in the latest SEBI publication?",
+    "Which current SEBI changes affect this company?",
     "Which circulars conflict with our policies?",
-    "What needs my review?",
-    "Why is the unpaid securities circular a conflict?",
-    "What evidence supports that conflict?",
-    "Which of our policies are affected by SEBI circulars?",
-    "Is the intraday borrowing circular applicable to us?",
-    "What does the cyber incident reporting circular require?",
-    "Show POL-001",
-    "When was the last scan and did it find anything new?",
-    "Which circulars were archived as not applicable and why?",
-    "What is the deadline for the client unpaid securities circular?",
-    "Create a GitHub issue for this conflict.",
+    "Why does this circular conflict with our policy?",
+    "What exact SEBI evidence supports the finding?",
+    "Which internal policy section is affected?",
+    "Which changes are already aligned?",
+    "Which publications are not applicable, and why?",
+    "Which compliance item should be reviewed first, and why?",
+    "What is the effective date?",
+    "What needs human review?",
+    "What changed in the latest live SEBI circular?",
+    "Compare the two most relevant current circulars.",
+    "Create a GitHub issue for this.",
 ]
-FOLLOW_UP = ["Which circulars conflict with our policies?", "Why?", "What evidence supports this?", "What should we do next?"]
+EXTRA = ["Look up the latest SEBI circular on cyber incident reporting on sebi.gov.in."]  # Foundry Web Search, discovery only
+FOLLOW_UP = ["Which circulars conflict with our policies?", "Why is the first one a conflict?", "What exact evidence proves that?", "Which policy section needs updating?", "What should we do next?"]
 
 
 def main() -> None:
@@ -59,6 +60,7 @@ def main() -> None:
 
     reviews_before = c.get("/api/reviews").json()
     rows = [ask(q, None) for q in QUESTIONS]
+    extra = [ask(q, None) for q in EXTRA]
     chain, conv = [], None
     for q in FOLLOW_UP:
         r = ask(q, conv)
@@ -66,21 +68,25 @@ def main() -> None:
         chain.append(r)
     reviews_after = c.get("/api/reviews").json()
     usage = c.get("/api/usage").json()
-    out = {"tenant_id": a.tenant, "at": datetime.now(UTC).isoformat(), "questions": rows, "follow_up_chain": chain,
+    out = {"tenant_id": a.tenant, "at": datetime.now(UTC).isoformat(), "questions": rows, "web_lookup": extra, "follow_up_chain": chain,
            "action_refused": rows[12]["refused"], "reviews_unchanged": reviews_before == reviews_after, "usage_after": usage}
     d = Path(__file__).parent / "results"
     d.mkdir(exist_ok=True)
-    (d / "ask_matrix.json").write_text(json.dumps(out, indent=2))
+    slug = a.tenant.split("-1")[0]
+    (d / f"ask_matrix_{slug}.json").write_text(json.dumps(out, indent=2))
     lines = [f"# Ask matrix — {a.tenant} — {out['at']}", "", "| # | question | intent | provenance | cited | summary |", "|---|---|---|---|---|---|"]
     for i, r in enumerate(rows, 1):
         n = r["narrative"] or {}
         lines.append(f"| {i} | {r['question']} | {r['intent']} | {r['kind']}{' / ' + str(n.get('model')) if n else ''}{' (composed)' if r['composed'] else ''} | {', '.join(r['cited'] or []) or '-'} | {r['summary'][:160].replace('|', '/')} |")
+    lines += ["", "## Web lookup (Foundry Web Search, sebi.gov.in only — discovery, not evidence)", ""]
+    for r in extra:
+        lines.append(f"- **{r['question']}** → intent `{r['intent']}`, kind `{r['kind']}`: {r['summary'][:300].replace(chr(10), ' ')}")
     lines += ["", "## Follow-up chain (one conversation_id)", "", "| step | question | intent | follow_up | summary |", "|---|---|---|---|---|"]
     for i, r in enumerate(chain, 1):
         lines.append(f"| {i} | {r['question']} | {r['intent']} | {((r['judge'] or {}).get('flags') or {}).get('follow_up')} | {r['summary'][:160].replace('|', '/')} |")
     lines += ["", f"- action request (#13) refused: **{out['action_refused']}**", f"- reviews unchanged by Ask: **{out['reviews_unchanged']}**",
               f"- conversation ids in chain: {sorted({r['conversation_id'] for r in chain})}"]
-    (d / "ask_matrix.md").write_text("\n".join(lines) + "\n")
+    (d / f"ask_matrix_{slug}.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
 
 

@@ -7,7 +7,7 @@ load_dotenv()
 from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-from app.api import ask, connectors, documents, evals, health, policies, reviews, scan, tenants, usage  # noqa: E402
+from app.api import ask, connectors, documents, evals, health, policies, reviews, scan, system, tenants, usage  # noqa: E402
 from app.config import settings  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -24,5 +24,5 @@ app = FastAPI(title="AfterCircular API", version="0.1.0", docs_url="/docs")
 app.add_middleware(CORSMiddleware, allow_origins=settings().cors_origin_list, allow_methods=["*"], allow_headers=["*"])
 
 app.include_router(health.router)
-for r in (scan, documents, reviews, tenants, evals, policies, ask, usage, connectors):
+for r in (scan, documents, reviews, tenants, evals, policies, ask, usage, connectors, system):
     app.include_router(r.router, prefix="/api")

@@ -99,3 +99,31 @@ def test_ticket_body_links_official_pdf_and_policy_file():
     assert "https://www.sebi.gov.in/x.pdf" in body and "· LIVE" in body
     assert "[policies/POL-001.md](https://github.com/o/r/blob/main/policies/POL-001.md)" in body
     assert "Demo snapshot" not in body
+
+
+@pytest.mark.anyio
+async def test_web_lookup_is_discovery_only_and_drops_off_domain_citations(db, tenant, monkeypatch):
+    from app.models.provider import LLMResult
+    from app.services import investigate
+
+    class FakeFoundry:
+        async def web_search(self, task, system, question, allowed_domains):
+            assert allowed_domains == ["sebi.gov.in"]
+            return ([{"url": "https://www.sebi.gov.in/legal/circulars/aug-2026/x_103915.html", "title": "FIRE format"},
+                     {"url": "https://example.com/blog", "title": "off-domain"}],
+                    LLMResult(task=task, model="gpt-5-mini", provider="foundry", text="Latest: FIRE format circular.", latency_ms=1200, input_tokens=100, output_tokens=20, response_id="resp_x"))
+
+    monkeypatch.setattr(investigate, "provider", lambda: FakeFoundry())
+    summary, extra = await investigate.web_lookup(db, tenant, "latest SEBI circular on cyber incidents?")
+    assert extra["kind"] == "web_search" and extra["web_dropped_off_domain"] == 1
+    assert [w["url"] for w in extra["web_sources"]] == ["https://www.sebi.gov.in/legal/circulars/aug-2026/x_103915.html"]
+    assert "discovery only" in extra["caveat"].lower() and "Latest" in summary
+    assert db.conn.execute("SELECT task, response_id FROM llm_calls WHERE task='ask_web'").fetchone()[1] == "resp_x"
+
+
+@pytest.mark.anyio
+async def test_web_lookup_without_foundry_never_invents_a_result(db, tenant):
+    from app.services import investigate
+
+    summary, extra = await investigate.web_lookup(db, tenant, "latest SEBI circular?")  # stub provider has no web_search
+    assert extra["kind"] == "clarify" and "web_sources" not in extra and "disabled" in summary

@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     # Ask: Jev makes the judgments; the generative deployment renders them into grounded sentences (strict schema, ids validated).
     # false → answers are composed from the judgments alone (no narrative model call).
     ask_narrative: bool = True
+    ask_web_search: bool = True  # Foundry Web Search tool, restricted to sebi.gov.in; discovery only — never compliance evidence
 
     # Application Insights (azure-monitor-opentelemetry). Empty → no exporter, local logging only.
     applicationinsights_connection_string: str = ""

@@ -136,7 +136,7 @@ class StateStore:
             "analyses": (("decision_path", "TEXT NOT NULL DEFAULT '[]'"), ("escalation_reason", "TEXT")),
             "policy_index_meta": (("documents", "TEXT NOT NULL DEFAULT '[]'"),),
             "llm_calls": (("cached_tokens", "INTEGER"), ("attempts", "INTEGER NOT NULL DEFAULT 1"), ("estimated_cost_usd", "REAL"),
-                          ("context_format", "TEXT"), ("structured_mode", "TEXT"), ("pricing_status", "TEXT")),
+                          ("context_format", "TEXT"), ("structured_mode", "TEXT"), ("pricing_status", "TEXT"), ("response_id", "TEXT"), ("analysis_id", "TEXT")),
             "scans": (("error_kind", "TEXT"), ("error_detail", "TEXT"), ("llm_calls", "INTEGER NOT NULL DEFAULT 0"), ("deferred_documents", "INTEGER NOT NULL DEFAULT 0"),
                       ("estimated_cost_usd", "REAL NOT NULL DEFAULT 0"), ("source_status", "TEXT"), ("source_error", "TEXT")),
             "processed_documents": (("synthetic", "INTEGER NOT NULL DEFAULT 0"), ("document_url", "TEXT"), ("fetched_at", "TEXT")),

@@ -56,7 +56,8 @@ export function sourceStatus(scan: { source_mode?: string | null; source_status?
   if (st === "DEMO_SNAPSHOT" || scan?.source_mode === "DEMO_SNAPSHOT" || (!scan && (healthMode === "demo_snapshot" || healthMode === "snapshot")))
     return { title: "Demo snapshot", detail: "Using synthetic regulatory publications — not SEBI data", live: false, warn: true };
   if (scan?.source_mode === "LIVE") return { title: "Connected to SEBI", detail: "Live publications from sebi.gov.in", live: true, warn: false };
-  return { title: healthMode === "live" ? "SEBI live" : "Source not scanned yet", detail: healthMode === "live" ? "Official listing at sebi.gov.in, fetched on each scan" : "Run a scan to fetch publications", live: healthMode === "live", warn: false };
+  // configured ≠ connected: live mode without a completed scan is "not scanned yet", never "connected"
+  return { title: healthMode === "live" ? "SEBI live mode · not scanned yet" : "Source not scanned yet", detail: healthMode === "live" ? "Official listing at sebi.gov.in is fetched on each scan; nothing has been fetched yet" : "Run a scan to fetch publications", live: false, warn: false };
 }
 
 /** "12s", "5m", "3h", "2d" — relative to now; falls back to the date past a week. */

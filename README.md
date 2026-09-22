@@ -22,7 +22,7 @@ Built for AI-103 (Develop AI Apps and Agents on Azure), Chitkara University.
 
 ```
 Dashboard "Scan now"
-  → SEBI connector (live sebi.gov.in listing → circular page → PDF text; labelled demo snapshot if unreachable)
+  → SEBI connector (live sebi.gov.in listing → circular page → PDF text; in live mode a failure is LIVE_FAILED — no fallback)
   → new document detected (content-hash keyed, versioned, per tenant — SQLite)
   → obligation extraction (Microsoft Foundry, generative, evidence required)
   → obligation check (Jev: is each one stated? does the excerpt support it? + verbatim match in code)

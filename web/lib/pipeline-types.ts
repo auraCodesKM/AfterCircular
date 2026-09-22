@@ -124,10 +124,10 @@ export type DocCard = {
 export type AskEvidence = { id: string; record: string; section?: string | null; text?: string; doc_id?: string; requirement?: string; area?: string };
 export type AskPoint = { record_id: string; claim: string; evidence_ids: string[]; evidence: AskEvidence[] };
 export type AskReasoning = {
-  kind: "workspace_data" | "jev_reasoning" | "refused" | "clarify"; workspace?: string; sources: number; cited: string[];
+  kind: "workspace_data" | "jev_reasoning" | "refused" | "clarify" | "web_search"; workspace?: string; sources: number; cited: string[];
   jev_route?: { provider: string; model: string; calibrated?: boolean; latency_ms?: number; input_tokens?: number | null; output_tokens?: number | null; questions?: number; note?: string; error?: string };
   jev_judgments?: { provider?: string; model?: string; calibrated?: boolean; questions?: number; latency_ms?: number; input_tokens?: number | null; output_tokens?: number | null; error?: string };
-  narrative?: { provider?: string; model?: string; latency_ms?: number; input_tokens?: number | null; output_tokens?: number | null; cached_tokens?: number | null; estimated_cost_usd?: number | null; structured_mode?: string; context_format?: string | null; error?: string } | null;
+  narrative?: { provider?: string; model?: string; latency_ms?: number; input_tokens?: number | null; output_tokens?: number | null; cached_tokens?: number | null; estimated_cost_usd?: number | null; structured_mode?: string | null; context_format?: string | null; response_id?: string | null; tool?: string; allowed_domains?: string[]; error?: string } | null;
   composed?: boolean; dropped_uncited?: string[]; evidence?: { regulatory: number; policy: number; obligations: number };
 };
 export type Investigation = {
@@ -136,6 +136,7 @@ export type Investigation = {
     intent: string; documents?: DocCard[]; document?: DocCard; review?: ReviewRecord | null; policy?: PolicyDetail & { sections: { section: string; text: string }[] };
     policies?: PolicyDoc[]; scan?: ScanRecord | null; actions?: { label: string; kind: string }[]; suggestions?: string[];
     points?: AskPoint[]; insufficient_evidence?: boolean; caveat?: string | null; reasoning?: AskReasoning;
+    web_sources?: { url: string; title: string }[]; web_dropped_off_domain?: number;
   };
   judge: { provider: string; model: string; calibrated: boolean; intent_confidence?: number; document_confidence?: number; policy_confidence?: number; note?: string; latency_ms?: number };
   actor: string; created_at: string;
@@ -149,4 +150,15 @@ export type DashboardSnapshot = {
   audit: AuditEvent[];
   evals: EvalReport | null;
   backendError: string | null;
+};
+
+export type SystemStatus = {
+  at: string;
+  foundry: { configured: boolean; connected: boolean; endpoint_host: string | null; resource: string; project: string; api: string; auth: string; deployments: { extraction: string; impact: string; memo: string };
+    requests_total: number; errors_total: number; requests_today: number; estimated_cost_today_usd: number; last_request_at: string | null; last_response_id: string | null; last_task: string | null; last_structured_mode: string | null };
+  embeddings: { model: string; dimensions: number; connected: boolean; analyses_with_vector_query: number };
+  search: { configured: boolean; connected?: boolean; error?: string; service: string | null; index: string | null; retrieval: string; semantic_ranker: boolean; tenant_filter: string; indexed_commit: string | null; indexed_at: string | null; chunks_recorded: number | null; analyses_retrieved: number; documents_in_index: number | null };
+  jev: { configured: boolean; connected: boolean; model: string | null; role: string; decisions_total: number; decisions_today: number; last_at: string | null };
+  sebi: { mode: string; live: boolean; last_live_scan_at: string | null; last_live_status: string | null; live_documents: number; last_fetch_at: string | null; curated_entry_ids: string[]; latest_scan_status: string | null };
+  github: { repo: string; issues_created: number; awaiting_review: number };
 };

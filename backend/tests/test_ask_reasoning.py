@@ -217,3 +217,16 @@ def test_no_canned_answer_strings_remain_in_reasoning_paths():
     src = inspect.getsource(I)
     for banned in ("These should be prioritized", "2 of 4 processed"):
         assert banned not in src
+
+
+async def test_new_list_intents_answer_from_records_without_a_model(workspace, tenant, monkeypatch):
+    for intent, needle in (("list_aligned", "already aligned"), ("list_applicable", "apply to"), ("effective_dates", "DEMO/SEBI")):
+        jev = FakeJev(intent=intent)
+        monkeypatch.setattr(I, "judge_for", lambda task, jev=jev: jev)
+        inv = await I.investigate(workspace, tenant, "q?")
+        assert inv.answer["reasoning"]["kind"] == "workspace_data" and needle in inv.summary and len(jev.calls) == 1, (intent, inv.summary)
+
+
+def test_by_significance_puts_conflicts_before_archived():
+    recs = [{"impact": "NOT_APPLICABLE", "confidence": 1.0}, {"impact": "ALIGNED", "confidence": 0.7}, {"impact": "CONFLICT", "confidence": 0.8}, {"impact": "UNCERTAIN", "confidence": 0.5}]
+    assert [r["impact"] for r in I.by_significance(recs)] == ["CONFLICT", "UNCERTAIN", "ALIGNED", "NOT_APPLICABLE"]

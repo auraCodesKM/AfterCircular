@@ -120,6 +120,7 @@ class LLMResult(BaseModel):
     pricing_status: str = "unknown"  # "estimate" (list-price table) | "unknown" (no price → cost null, never invented)
     context_format: str | None = None  # "toon" | "json" — how repeated structured context was serialized in the prompt
     structured_mode: str | None = None  # "json_schema" (strict) | "json_object" (schema-in-prompt) | "fixture"
+    response_id: str | None = None  # the service's own id for the response (Foundry `resp_…`) — proof the call happened
 
 
 class LLMProvider(ABC):
@@ -228,12 +229,12 @@ class FoundryProvider(LLMProvider):
         cached = getattr(details, "cached_tokens", None) if details is not None else None
         return inp, out, cached
 
-    def _result(self, task: str, m: str, text: str, t0: float, usage: Any, mode: str | None) -> LLMResult:
+    def _result(self, task: str, m: str, text: str, t0: float, usage: Any, mode: str | None, response_id: str | None = None) -> LLMResult:
         inp, out, cached = self._usage(usage)
         cost = estimate_cost(m, inp, out, cached)
         return LLMResult(task=task, model=m, provider=self.name, text=text, latency_ms=int((time.perf_counter() - t0) * 1000),
                          input_tokens=inp, output_tokens=out, cached_tokens=cached, estimated_cost_usd=cost, pricing_status=pricing_status(m, cost),
-                         structured_mode=mode)
+                         structured_mode=mode, response_id=response_id)
 
     async def generate_structured(self, task, system, user, schema, *, model=None, context=None):
         m = self.model_for(task, model)
@@ -262,7 +263,7 @@ class FoundryProvider(LLMProvider):
         if parsed is None:  # refusal or empty output: one bounded repair through the JSON-mode path
             log.warning("Foundry returned no parsed output for %s; falling back to JSON mode once", task)
             return None
-        return parsed, self._result(task, m, text, t0, usage, "json_schema")
+        return parsed, self._result(task, m, text, t0, usage, "json_schema", getattr(resp, "id", None) if self.api == "responses" else getattr(cc, "id", None))
 
     async def generate(self, task, system, user, *, model=None, json_mode=False, context=None) -> LLMResult:
         m = self.model_for(task, model)
@@ -274,17 +275,36 @@ class FoundryProvider(LLMProvider):
                     if json_mode:
                         kw["text"] = {"format": {"type": "json_object"}}
                     r = await self.client.responses.create(**kw)
-                    return self._result(task, m, r.output_text, t0, r.usage, "json_object" if json_mode else None)
+                    return self._result(task, m, r.output_text, t0, r.usage, "json_object" if json_mode else None, getattr(r, "id", None))
                 kwargs: dict[str, Any] = {"model": m, **self._sampling(m),
                                           "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
                 if json_mode:
                     kwargs["response_format"] = {"type": "json_object"}
                 resp = await self.client.chat.completions.create(**kwargs)
-                return self._result(task, m, resp.choices[0].message.content or "", t0, resp.usage, "json_object" if json_mode else None)
+                return self._result(task, m, resp.choices[0].message.content or "", t0, resp.usage, "json_object" if json_mode else None, getattr(resp, "id", None))
         except ProviderError:
             raise
         except Exception as e:  # noqa: BLE001
             raise ProviderError(f"Foundry call failed ({type(e).__name__}): {str(e)[:200]}") from e
+
+    async def web_search(self, task: str, system: str, question: str, allowed_domains: list[str]) -> tuple[list[dict[str, str]], LLMResult]:
+        """Foundry Web Search tool (Responses API), restricted to `allowed_domains`. Returns the url citations the model attached
+        and the usual telemetry. Discovery only: the caller must never treat these pages as verified compliance evidence."""
+        m = self.model_for(task)
+        t0 = time.perf_counter()
+        try:
+            async with self._sem:
+                r = await self.client.responses.create(model=m, instructions=system, input=question,
+                                                       tools=[{"type": "web_search", "filters": {"allowed_domains": allowed_domains}}])
+        except Exception as e:  # noqa: BLE001
+            raise ProviderError(f"Foundry web search failed ({type(e).__name__}): {str(e)[:200]}") from e
+        cites: list[dict[str, str]] = []
+        for o in r.output:
+            for c in getattr(o, "content", None) or []:
+                for a in getattr(c, "annotations", None) or []:
+                    if getattr(a, "type", "") == "url_citation" and a.url not in {x["url"] for x in cites}:
+                        cites.append({"url": a.url, "title": getattr(a, "title", "") or ""})
+        return cites, self._result(task, m, r.output_text, t0, r.usage, None, getattr(r, "id", None))
 
     async def aclose(self) -> None:
         await self.client.close()

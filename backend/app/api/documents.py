@@ -28,6 +28,17 @@ def document_content(pk: str, t: TenantContext = Depends(tenant), s: StateStore 
     return {"content": s.document_content(pk)}
 
 
+@router.get("/documents/{pk}/trace")
+def document_trace(pk: str, t: TenantContext = Depends(tenant), s: StateStore = Depends(db)) -> dict:
+    """Step-by-step trace built only from persisted rows — what ran, where, with which telemetry; what did not run says so."""
+    from app.services.trace import build_trace
+
+    tr = build_trace(s, t, pk)
+    if not tr:
+        raise HTTPException(404, "Document not found")
+    return tr
+
+
 @router.get("/analyses/{analysis_id}", response_model=AnalysisRecord)
 def get_analysis(analysis_id: str, t: TenantContext = Depends(tenant), s: StateStore = Depends(db)) -> AnalysisRecord:
     a = s.get_analysis(analysis_id, t.tenant_id)

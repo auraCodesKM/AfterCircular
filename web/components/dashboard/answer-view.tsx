@@ -224,6 +224,20 @@ export function AnswerView({ inv, compact, onAsk, stream = true, onDone }: { inv
         </dl>
       ) : null}
 
+      {!streaming && a.web_sources?.length ? (
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Found on sebi.gov.in · discovery only</p>
+          <div className="flex flex-wrap gap-1.5">
+            {a.web_sources.map((w) => (
+              <a key={w.url} href={w.url} target="_blank" rel="noreferrer" className="inline-flex max-w-full items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted">
+                <span className="truncate">{w.title || w.url}</span> <ArrowUpRight className="size-3 shrink-0" />
+              </a>
+            ))}
+          </div>
+          {a.web_dropped_off_domain ? <p className="text-[11px] text-muted-foreground">{a.web_dropped_off_domain} result(s) outside sebi.gov.in were dropped.</p> : null}
+        </div>
+      ) : null}
+
       {!streaming && a.actions?.some((x) => x.kind === "scan") ? (
         <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/dashboard?scan=1" />}>
           <RefreshCw /> Go to Scan now
@@ -280,6 +294,16 @@ function Provenance({ inv }: { inv: Investigation }) {
           {r.workspace ? ` · Workspace: ${r.workspace}` : ""} · {routeLine}
         </p>
       </div>
+    );
+  }
+  if (r.kind === "web_search") {
+    const n = r.narrative;
+    return (
+      <p className="text-[11px] text-muted-foreground">
+        <span className="font-medium text-foreground/80">Microsoft Foundry Web Search</span>
+        {n && !n.error ? ` · ${n.model ?? ""} (${n.tool ?? "web_search"}, domains ${(n.allowed_domains ?? []).join(", ") || "—"}, ${ms(n.latency_ms)}, ${tok(n.input_tokens, n.output_tokens)}${n.estimated_cost_usd !== undefined && n.estimated_cost_usd !== null ? `, est. $${n.estimated_cost_usd.toFixed(4)}` : ""})` : ""}
+        {" "}· discovery, not compliance evidence · {routeLine}
+      </p>
     );
   }
   return (

@@ -186,6 +186,10 @@ async def test_foundry_unavailable_fails_the_document_not_the_truth(db, tenant, 
     docs = db.list_documents(tenant.tenant_id)
     assert docs and all(d.status == "FAILED" and "Foundry" in (d.error or "") for d in docs)
     assert db.list_reviews(tenant.tenant_id) == []
+    failed_calls = db.conn.execute("SELECT task, ok, error FROM llm_calls WHERE ok=0").fetchall()
+    assert failed_calls and all("Foundry" in r["error"] for r in failed_calls)  # the failure is telemetry, not a result
+    assert not db.conn.execute("SELECT 1 FROM llm_calls WHERE ok=1").fetchone()
+    assert {e.event_type for e in db.list_audit(tenant.tenant_id)} >= {"PIPELINE_FAILED"} and "TICKET_CREATED" not in {e.event_type for e in db.list_audit(tenant.tenant_id)}
 
 
 def test_gate_never_accepts_a_conflict_without_two_sided_evidence():

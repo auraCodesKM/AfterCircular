@@ -16,6 +16,8 @@ class PolicyChunk(BaseModel):
     section: str
     text: str
     score: float = 0.0
+    commit_sha: str | None = None  # repository commit the chunk was indexed from (grounding proof)
+    chunk_hash: str | None = None
 
 
 class RegulatoryEvidence(BaseModel):

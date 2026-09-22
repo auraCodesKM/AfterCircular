@@ -104,11 +104,11 @@ class Scan:
                 s.status, s.detail, s.at = status, detail, now()  # type: ignore[assignment]
         self.db.save_scan(self.rec)
 
-    def _llm(self, res: LLMResult, ok: bool = True, error: str | None = None) -> dict[str, Any]:
-        self.db.record_llm_call(tenant_id=self.tenant.tenant_id, scan_id=self.rec.id, task=res.task, model=res.model, provider=res.provider,
+    def _llm(self, res: LLMResult, ok: bool = True, error: str | None = None, analysis_id: str | None = None) -> dict[str, Any]:
+        self.db.record_llm_call(tenant_id=self.tenant.tenant_id, scan_id=self.rec.id, analysis_id=analysis_id, task=res.task, model=res.model, provider=res.provider,
                                 latency_ms=res.latency_ms, input_tokens=res.input_tokens, output_tokens=res.output_tokens, cached_tokens=res.cached_tokens,
                                 attempts=res.attempts, estimated_cost_usd=res.estimated_cost_usd, context_format=res.context_format,
-                                structured_mode=res.structured_mode, pricing_status=res.pricing_status, ok=int(ok), error=error)
+                                structured_mode=res.structured_mode, pricing_status=res.pricing_status, response_id=res.response_id, ok=int(ok), error=error)
         self.rec.llm_calls += 1
         if res.estimated_cost_usd is not None:
             self.rec.estimated_cost_usd = round(self.rec.estimated_cost_usd + res.estimated_cost_usd, 6)
@@ -117,7 +117,7 @@ class Scan:
                  res.context_format, res.structured_mode, res.attempts)
         return {"model": res.model, "latency_ms": res.latency_ms, "input_tokens": res.input_tokens, "output_tokens": res.output_tokens,
                 "cached_tokens": res.cached_tokens, "attempts": res.attempts, "estimated_cost_usd": res.estimated_cost_usd,
-                "context_format": res.context_format, "structured_mode": res.structured_mode}
+                "context_format": res.context_format, "structured_mode": res.structured_mode, "response_id": res.response_id}
 
     # ---- run ---------------------------------------------------------------------------
     async def run(self) -> ScanRecord:
@@ -272,7 +272,7 @@ class Scan:
             # 1. extract
             self.step("extract", "running", doc.title[:80])
             extraction, res = await extract_obligations(self.llm, reg)
-            analysis.extraction, analysis.models["extraction"], analysis.metrics["extraction"] = extraction.model_dump(), res.model, self._llm(res)
+            analysis.extraction, analysis.models["extraction"], analysis.metrics["extraction"] = extraction.model_dump(), res.model, self._llm(res, analysis_id=analysis.id)
             db.save_analysis(analysis)
             audit.record(db, t.tenant_id, "OBLIGATIONS_EXTRACTED", scan_id=self.rec.id, document_pk=doc.id, analysis_id=analysis.id,
                          count=len(extraction.obligations), model=res.model)
@@ -287,8 +287,10 @@ class Scan:
             t_search = time.perf_counter()
             chunks = await self.ret.search(t.tenant_id, query, vec[0] if vec else None, k=10)
             analysis.retrieved_chunks = [c.model_dump() for c in chunks]
-            analysis.metrics["retrieval"] = {"backend": self.ret.name, "count": len(chunks), "vector": bool(vec),
-                                             "embed_ms": int((t_search - t_embed) * 1000), "search_ms": int((time.perf_counter() - t_search) * 1000)}
+            analysis.metrics["retrieval"] = {"backend": self.ret.name, "count": len(chunks), "vector": bool(vec), "query": query, "k": 10,
+                                             "method": "hybrid (BM25 + vector, RRF)" if vec else "keyword (BM25)", "embedding_model": settings().embedding_model if vec else None,
+                                             "embed_ms": int((t_search - t_embed) * 1000), "search_ms": int((time.perf_counter() - t_search) * 1000), "at": now().isoformat(),
+                                             "commits": sorted({c.commit_sha for c in chunks if c.commit_sha})}
             db.save_analysis(analysis)
             audit.record(db, t.tenant_id, "POLICIES_RETRIEVED", scan_id=self.rec.id, document_pk=doc.id, analysis_id=analysis.id,
                          chunks=[c.chunk_id for c in chunks], backend=self.ret.name)
@@ -308,7 +310,7 @@ class Scan:
                                                path_prefix=analysis.decision_path)
                 impact = decision.impact or ImpactAnalysis(applicability="UNCERTAIN", reason="decision layer returned nothing", confidence=0.0)
                 for res in decision.llm_results:
-                    analysis.models["impact"], analysis.metrics["impact"] = res.model, self._llm(res)
+                    analysis.models["impact"], analysis.metrics["impact"] = res.model, self._llm(res, analysis_id=analysis.id)
                 db.save_decisions(decision.records)
                 analysis.impact, analysis.decision_path, analysis.escalation_reason = {**impact.model_dump(), **provenance(doc, impact, t, manifest)}, decision.path, decision.escalation_reason
                 analysis.metrics["decisions"] = {"records": len(decision.records), "judges": sorted({r.provider for r in decision.records if r.provider != "code"}),
@@ -328,7 +330,7 @@ class Scan:
                 db.update_document(doc.id, status="DRAFTING", impact="CONFLICT")
                 self.step("memo", "running")
                 memo, res = await generate_memo(self.llm, extraction, impact, chunks, document_id=doc.document_id)
-                analysis.memo, analysis.models["memo"], analysis.metrics["memo"] = memo.model_dump(), res.model, self._llm(res)
+                analysis.memo, analysis.models["memo"], analysis.metrics["memo"] = memo.model_dump(), res.model, self._llm(res, analysis_id=analysis.id)
                 db.save_analysis(analysis)
                 audit.record(db, t.tenant_id, "MEMO_GENERATED", scan_id=self.rec.id, document_pk=doc.id, analysis_id=analysis.id, model=res.model)
                 self.step("memo", "done", "AI-generated draft — human review required")
@@ -359,6 +361,10 @@ class Scan:
             db.update_document(doc.id, status="FAILED", error=err)
             db.save_analysis(analysis)
             audit.record(db, t.tenant_id, "PIPELINE_FAILED", scan_id=self.rec.id, document_pk=doc.id, analysis_id=analysis.id, error=err)
+            if isinstance(e, ProviderError):  # the failed model call is telemetry too: it shows up in the usage error count, never as a result
+                task = {"extract": "extraction", "analyze": "impact", "memo": "memo"}.get(next((s.key for s in self.rec.steps if s.status == "running"), ""), "unknown")
+                db.record_llm_call(tenant_id=t.tenant_id, scan_id=self.rec.id, analysis_id=analysis.id, task=task, model=self.llm.model_for(task) if task != "unknown" else "-",
+                                   provider=self.llm.name, latency_ms=0, input_tokens=None, output_tokens=None, ok=0, error=err[:300])
             for s in self.rec.steps:
                 if s.status == "running":
                     self.step(s.key, "failed", err)

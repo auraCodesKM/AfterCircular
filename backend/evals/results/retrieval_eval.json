@@ -1,0 +1,424 @@
+{
+  "at": "2026-09-22T04:11:54.628685+00:00",
+  "service": "https://srch-aftercircular-dev.search.windows.net",
+  "index": "policies-dev",
+  "embedding_model": "text-embedding-3-small",
+  "dimensions": 1536,
+  "method": "hybrid: BM25 + vector (HNSW cosine) fused by RRF; semantic ranker not configured",
+  "quality": [
+    {
+      "tenant": "acme-securities-pvt-ltd-181441765",
+      "query": "client unpaid securities pledge payment period trading days",
+      "expected": "POL-001",
+      "hit": true,
+      "rank": 1,
+      "vector": true,
+      "top": [
+        {
+          "doc_id": "POL-001",
+          "section": "5.1 Payment period",
+          "path": "policies/POL-001-client-unpaid-securities-policy.md",
+          "score": 0.03333,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-001",
+          "section": "6.1 Invocation",
+          "path": "policies/POL-001-client-unpaid-securities-policy.md",
+          "score": 0.03279,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-001",
+          "section": "3 Definitions",
+          "path": "policies/POL-001-client-unpaid-securities-policy.md",
+          "score": 0.03226,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-001",
+          "section": "5.3 Exposure",
+          "path": "policies/POL-001-client-unpaid-securities-policy.md",
+          "score": 0.03126,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-001",
+          "section": "7 Extensions",
+          "path": "policies/POL-001-client-unpaid-securities-policy.md",
+          "score": 0.03125,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        }
+      ]
+    },
+    {
+      "tenant": "acme-securities-pvt-ltd-181441765",
+      "query": "cyber incident reporting to SEBI portal within hours",
+      "expected": "POL-002",
+      "hit": true,
+      "rank": 1,
+      "vector": true,
+      "top": [
+        {
+          "doc_id": "POL-002",
+          "section": "4.1 Initial report",
+          "path": "policies/POL-002-cyber-incident-response-policy.md",
+          "score": 0.03333,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-002",
+          "section": "4.2 Staged reporting",
+          "path": "policies/POL-002-cyber-incident-response-policy.md",
+          "score": 0.03252,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-002",
+          "section": "7 Review cadence",
+          "path": "policies/POL-002-cyber-incident-response-policy.md",
+          "score": 0.03175,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-002",
+          "section": "4.3 Other regulators and exchanges",
+          "path": "policies/POL-002-cyber-incident-response-policy.md",
+          "score": 0.03128,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-002",
+          "section": "1 Purpose",
+          "path": "policies/POL-002-cyber-incident-response-policy.md",
+          "score": 0.03101,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        }
+      ]
+    },
+    {
+      "tenant": "acme-securities-pvt-ltd-181441765",
+      "query": "position limits exposure derivatives risk",
+      "expected": "POL-003",
+      "hit": true,
+      "rank": 1,
+      "vector": true,
+      "top": [
+        {
+          "doc_id": "POL-003",
+          "section": "3 Client-level limits",
+          "path": "policies/POL-003-trading-risk-and-position-limits-policy.md",
+          "score": 0.03333,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-003",
+          "section": "1 Purpose",
+          "path": "policies/POL-003-trading-risk-and-position-limits-policy.md",
+          "score": 0.03252,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-003",
+          "section": "5 Proprietary book",
+          "path": "policies/POL-003-trading-risk-and-position-limits-policy.md",
+          "score": 0.03252,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-003",
+          "section": "2.1 Segments covered",
+          "path": "policies/POL-003-trading-risk-and-position-limits-policy.md",
+          "score": 0.0315,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-003",
+          "section": "4 Margins",
+          "path": "policies/POL-003-trading-risk-and-position-limits-policy.md",
+          "score": 0.03126,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        }
+      ]
+    },
+    {
+      "tenant": "acme-securities-pvt-ltd-181441765",
+      "query": "standing instructions demat account depository participant",
+      "expected": "POL-005",
+      "hit": true,
+      "rank": 1,
+      "vector": true,
+      "top": [
+        {
+          "doc_id": "POL-005",
+          "section": "3 Client instructions",
+          "path": "policies/POL-005-depository-participant-operations-policy.md",
+          "score": 0.03333,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-005",
+          "section": "2 Scope",
+          "path": "policies/POL-005-depository-participant-operations-policy.md",
+          "score": 0.03252,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-005",
+          "section": "1 Purpose",
+          "path": "policies/POL-005-depository-participant-operations-policy.md",
+          "score": 0.03227,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-005",
+          "section": "5 Records",
+          "path": "policies/POL-005-depository-participant-operations-policy.md",
+          "score": 0.03175,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        },
+        {
+          "doc_id": "POL-005",
+          "section": "4 Depository frameworks",
+          "path": "policies/POL-005-depository-participant-operations-policy.md",
+          "score": 0.03078,
+          "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
+        }
+      ]
+    },
+    {
+      "tenant": "nimbus-asset-management-181441765",
+      "query": "intraday borrowing by a scheme to meet redemptions",
+      "expected": "POL-001",
+      "hit": true,
+      "rank": 1,
+      "vector": true,
+      "top": [
+        {
+          "doc_id": "POL-001",
+          "section": "4.1 Permitted purposes",
+          "path": "policies/POL-001-scheme-borrowing-and-liquidity-policy.md",
+          "score": 0.03306,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-001",
+          "section": "4.2 Quantum",
+          "path": "policies/POL-001-scheme-borrowing-and-liquidity-policy.md",
+          "score": 0.03306,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-001",
+          "section": "4.7 Cost",
+          "path": "policies/POL-001-scheme-borrowing-and-liquidity-policy.md",
+          "score": 0.032,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-001",
+          "section": "4.3 Repayment",
+          "path": "policies/POL-001-scheme-borrowing-and-liquidity-policy.md",
+          "score": 0.03128,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-001",
+          "section": "4.6 Records",
+          "path": "policies/POL-001-scheme-borrowing-and-liquidity-policy.md",
+          "score": 0.03125,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        }
+      ]
+    },
+    {
+      "tenant": "nimbus-asset-management-181441765",
+      "query": "distributor NISM certification specialized investment fund",
+      "expected": "POL-002",
+      "hit": true,
+      "rank": 1,
+      "vector": true,
+      "top": [
+        {
+          "doc_id": "POL-002",
+          "section": "4.2 Specialized Investment Fund strategies",
+          "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
+          "score": 0.03306,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-002",
+          "section": "1 Purpose",
+          "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
+          "score": 0.0328,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-002",
+          "section": "4.1 Mutual fund schemes",
+          "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
+          "score": 0.03252,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-002",
+          "section": "5 Monitoring",
+          "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
+          "score": 0.0315,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-002",
+          "section": "3 Empanelment",
+          "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
+          "score": 0.03101,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        }
+      ]
+    },
+    {
+      "tenant": "nimbus-asset-management-181441765",
+      "query": "cyber incident reporting",
+      "expected": "POL-003",
+      "hit": true,
+      "rank": 1,
+      "vector": true,
+      "top": [
+        {
+          "doc_id": "POL-003",
+          "section": "4 Regulatory reporting",
+          "path": "policies/POL-003-cyber-incident-response-policy.md",
+          "score": 0.03333,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-003",
+          "section": "1 Purpose",
+          "path": "policies/POL-003-cyber-incident-response-policy.md",
+          "score": 0.03227,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-003",
+          "section": "3 Response",
+          "path": "policies/POL-003-cyber-incident-response-policy.md",
+          "score": 0.03227,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-003",
+          "section": "5 Post-incident review",
+          "path": "policies/POL-003-cyber-incident-response-policy.md",
+          "score": 0.03226,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-003",
+          "section": "2 Scope",
+          "path": "policies/POL-003-cyber-incident-response-policy.md",
+          "score": 0.03078,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        }
+      ]
+    },
+    {
+      "tenant": "nimbus-asset-management-181441765",
+      "query": "SWP STP standing instructions demat units",
+      "expected": "POL-004",
+      "hit": true,
+      "rank": 1,
+      "vector": true,
+      "top": [
+        {
+          "doc_id": "POL-004",
+          "section": "3 Systematic plans for units held in statement form",
+          "path": "policies/POL-004-unit-holder-transactions-policy.md",
+          "score": 0.03333,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-004",
+          "section": "1 Purpose",
+          "path": "policies/POL-004-unit-holder-transactions-policy.md",
+          "score": 0.03279,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-004",
+          "section": "4 Units held in demat form",
+          "path": "policies/POL-004-unit-holder-transactions-policy.md",
+          "score": 0.032,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-004",
+          "section": "2 Scope",
+          "path": "policies/POL-004-unit-holder-transactions-policy.md",
+          "score": 0.03151,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        },
+        {
+          "doc_id": "POL-004",
+          "section": "6 Review cadence",
+          "path": "policies/POL-004-unit-holder-transactions-policy.md",
+          "score": 0.03125,
+          "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
+        }
+      ]
+    }
+  ],
+  "isolation": [
+    {
+      "tenant": "acme-securities-pvt-ltd-181441765",
+      "query": "distributor NISM certification specialized investment fund scheme",
+      "results": 6,
+      "foreign_rows": [],
+      "doc_ids": [
+        "POL-001",
+        "POL-003",
+        "POL-005"
+      ]
+    },
+    {
+      "tenant": "nimbus-asset-management-181441765",
+      "query": "client unpaid securities pledge trading member",
+      "results": 2,
+      "foreign_rows": [],
+      "doc_ids": [
+        "POL-002",
+        "POL-003"
+      ]
+    }
+  ],
+  "embedding": {
+    "id": "acme-securities-pvt-ltd-181441765_POL-001_1-8d3ef89a43",
+    "doc_id": "POL-001",
+    "section": "1 Purpose",
+    "stored_chunk_hash": "b3799959590e26e698333a62",
+    "recomputed_chunk_hash": "b3799959590e26e698333a62",
+    "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f",
+    "query_vector_dims": 1536,
+    "nearest_by_vector": [
+      [
+        "acme-securities-pvt-ltd-181441765_POL-001_1-8d3ef89a43",
+        1.0
+      ],
+      [
+        "acme-securities-pvt-ltd-181441765_POL-001_3-e6416d2f47",
+        0.87814
+      ],
+      [
+        "acme-securities-pvt-ltd-181441765_POL-001_4_1-f53c1e0d33",
+        0.83749
+      ]
+    ],
+    "self_is_nearest": true,
+    "index_meta_commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f",
+    "hash_matches": true,
+    "commit_matches_index_meta": true
+  },
+  "document_counts": {
+    "acme-securities-pvt-ltd-181441765": 48,
+    "nimbus-asset-management-181441765": 46
+  }
+}

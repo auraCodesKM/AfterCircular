@@ -41,6 +41,9 @@ DETERMINISTIC = {
     "approval_status": "whether anything has been approved or rejected, who decided, whether a GitHub issue exists",
     "list_conflicts": "list which circulars conflict with internal policy (a list, not an explanation)",
     "list_not_applicable": "list which circulars do not apply to the company",
+    "list_aligned": "list which circulars are already aligned with internal policy (no change needed)",
+    "list_applicable": "list which circulars or SEBI changes apply to / affect this company (applicable ones, whatever their result)",
+    "effective_dates": "the effective date or deadline of a circular (or of all of them when none is named)",
     "latest_changes": "a list of what arrived recently or what the last scan found — not the contents of any one circular",
     "scan_status": "when the last scan ran, whether the source is live, which source or models are in use",
     "run_scan": "asks to run, trigger or start a new scan now",
@@ -56,7 +59,8 @@ REASONING = {
     "summarize_work": "summarize the pending compliance work, the overall situation, what the workspace contains",
     "other_reasoning": "another question that needs reasoning over the workspace records",
 }
-INTENTS = {**DETERMINISTIC, **REASONING, "action_request": "asks the assistant itself to act now: approve, reject, create a GitHub issue, change a policy — not a question about what the company should do",
+WEB = {"web_lookup": "asks to look something up on sebi.gov.in, or about the latest/newest SEBI publication on a topic that `records` do not contain (not about any record in the workspace)"}
+INTENTS = {**DETERMINISTIC, **REASONING, **WEB, "action_request": "asks the assistant itself to act now: approve, reject, create a GitHub issue, change a policy — not a question about what the company should do",
            "other": "not about this workspace, or too vague to route"}
 MIN_INTENT_CONFIDENCE = 0.5
 MIN_TARGET_CONFIDENCE = 0.5
@@ -74,6 +78,9 @@ def _keyword_intent(q: str) -> str:
         ("pending_reviews", ["review", "waiting", "pending", "decide"]),
         ("approval_status", ["approved", "rejected", "anyone"]),
         ("list_not_applicable", ["not applicable", "not apply"]),
+        ("list_aligned", ["already aligned", "aligned"]),
+        ("effective_dates", ["effective date", "deadline"]),
+        ("list_applicable", ["affect this company", "affect us", "apply to us", "applicable to us"]),
         ("list_conflicts", ["conflict"]),
         ("affected_policies", ["policy section", "sections are affected", "which polic"]),
         ("obligations", ["obligation", "requirement"]),
@@ -97,7 +104,7 @@ async def route(ctx: dict[str, Any], document_id: str | None) -> tuple[str, list
              "policies": [{"doc_id": p["doc_id"], "title": p["title"]} for p in ctx["policies"]], "pending_reviews": len(ctx["pending_reviews"])}
     qs: dict[str, Any] = {
         "intent": Choice(instructions="What is `question` asking for? Read `conversation` first: a short follow-up refers to the previous turn.", criteria=dict(INTENTS)),
-        "requests_action": Noul(instructions="Does `question` ask the assistant to perform an action itself (approve, reject, create an issue, edit a policy, run something)? Asking what the company should do next is a recommendation, not an action.",
+        "requests_action": Noul(instructions="Does `question` ask the assistant to perform an action itself (approve, reject, create an issue, edit a policy, run something)? Asking what the company should do next is a recommendation, and asking to look something up or search sebi.gov.in is a read-only question — neither is an action.",
                                 criteria=NoulCriteria(true="it asks for an action to be carried out", false="it asks for information, analysis or an explanation")),
         "follow_up": Noul(instructions="Does `question` depend on `conversation` to be understood (pronouns, 'the first one', 'that', 'which should be…')?",
                           criteria=NoulCriteria(true="it cannot be interpreted without the previous turn", false="it stands on its own")),
@@ -106,7 +113,7 @@ async def route(ctx: dict[str, Any], document_id: str | None) -> tuple[str, list
     }
     if recs:
         crit = {**{r["id"]: f"{r['circular_number'] or r['document_id']}: {r['title'][:80]}" for r in recs}, "none": "no specific publication"}
-        qs["document"] = Choice(instructions="Which record in `records` does `question` refer to first? 'the latest live circular' means the newest record with source_mode LIVE; 'the first conflict' means the first conflict in `conversation`. Choose none when it refers to no specific publication, or to all of them.", criteria=crit)
+        qs["document"] = Choice(instructions="Which record in `records` does `question` refer to first? 'the latest live circular' means the newest record with source_mode LIVE; 'the first conflict' means the first conflict in `conversation`; 'the finding' or 'most relevant' means a record with a result to act on (impact CONFLICT, then UNCERTAIN) — never an archived NOT_APPLICABLE one. Choose none when it refers to no specific publication, or to all of them.", criteria=crit)
         qs["document_2"] = Choice(instructions="If `question` refers to a second specific record (comparisons, 'these two'), which one? Otherwise none.", criteria=crit)
     if ctx["policies"]:
         qs["policy"] = Choice(instructions="Which internal policy in `policies` does `question` refer to? Choose none when it refers to no specific policy.",
@@ -133,6 +140,10 @@ async def route(ctx: dict[str, Any], document_id: str | None) -> tuple[str, list
         if doc_conf >= 0.8 and top and all(k in ("explain", "latest_changes", "compare", "evidence", "obligations", "summarize_work") for k, _ in top):
             intent = "explain"
             meta["note"] = f"intent split {', '.join(f'{k} {v:.2f}' for k, v in top)}; target clear ({doc_conf:.2f}) → explaining it"
+        elif top and top[0][0] in DETERMINISTIC and top[0][1] >= 0.4:
+            # a list-type reading leads (e.g. latest_changes 0.45 vs affected_policies 0.20): answer from records — no model, no guess
+            intent = top[0][0]
+            meta["note"] = f"intent split {', '.join(f'{k} {v:.2f}' for k, v in top)}; leading reading is deterministic → {intent}"
         elif doc_conf >= MIN_TARGET_CONFIDENCE and top and all(k in REASONING for k, _ in top):
             # split only between reasoning readings of one clear circular → take Jev's top reading; the narrative is still validated
             intent = top[0][0]
@@ -238,6 +249,8 @@ Rules — these are absolute:
 - Quote evidence text verbatim when citing it. Do not compute new scores or invent priorities beyond the judge's urgency levels.
 - If `judgments.sufficient` is below 0.5 or the records lack what the question needs, set insufficient_evidence=true and write
   exactly: "I don't have enough evidence in this workspace to determine that." then say what the workspace does contain.
+- A record whose impact is NOT_APPLICABLE was archived at triage: its `reason` and its header excerpt (R1) fully answer what it
+  is and why it does not apply — say that; it is not insufficient evidence. A record with no obligations was never extracted.
 - `caveat` is only for a specific thing the workspace cannot tell (e.g. "no effective date is recorded"); leave it null otherwise
   and never repeat the answer or the insufficient-evidence sentence there.
 - Company and policies are a fictional PoC tenant; records with synthetic=true are fictional demo circulars — say so if asked.
@@ -256,7 +269,7 @@ async def narrate(llm: LLMProvider, ctx: dict[str, Any], records: list[dict[str,
     except ProviderError as e:
         log.warning("ask narrative unavailable: %s", e)
         return None, {"error": str(e)[:160]}
-    return ans, {"provider": res.provider, "model": res.model, "latency_ms": res.latency_ms, "input_tokens": res.input_tokens, "output_tokens": res.output_tokens,
+    return ans, {"provider": res.provider, "model": res.model, "latency_ms": res.latency_ms, "input_tokens": res.input_tokens, "output_tokens": res.output_tokens, "response_id": res.response_id,
                  "cached_tokens": res.cached_tokens, "estimated_cost_usd": res.estimated_cost_usd, "structured_mode": res.structured_mode, "context_format": res.context_format, "attempts": res.attempts}
 
 
@@ -317,6 +330,19 @@ def _cards(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def targets_of(ctx: dict[str, Any]) -> list[str]:
+    return list(ctx.get("_targets") or [])
+
+
+SIGNIFICANCE = {"CONFLICT": 0, "UNCERTAIN": 1, "ALIGNED": 2, "NOT_APPLICABLE": 3}
+
+
+def by_significance(recs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Untargeted reasoning questions ("the finding", "the two most relevant") start from what matters: conflicts, then open
+    questions, then aligned, then archived — a stable rule, not a guess."""
+    return sorted(recs, key=lambda r: (SIGNIFICANCE.get(r["impact"] or "", 4), -(r["confidence"] or 0)))
+
+
 def deterministic(intent: str, ctx: dict[str, Any], db: StateStore, tenant: TenantContext, pol: str | None) -> tuple[str, dict[str, Any]]:
     recs = ctx["records"]
     answer: dict[str, Any] = {}
@@ -344,6 +370,19 @@ def deterministic(intent: str, ctx: dict[str, Any], db: StateStore, tenant: Tena
     if intent == "list_not_applicable":
         n = [r for r in recs if r["impact"] == "NOT_APPLICABLE"]
         return (f"{len(n)} of {len(recs)} processed circulars do not apply to {tenant.company_name}: " + ", ".join(r["circular_number"] or r["document_id"] for r in n) + "." if n else "No processed circular was judged not applicable."), {"documents": _cards(n)}
+    if intent == "list_aligned":
+        al = [r for r in recs if r["impact"] == "ALIGNED"]
+        return (f"{len(al)} of {len(recs)} processed circulars are already aligned with internal policy: " + ", ".join(r["circular_number"] or r["document_id"] for r in al) + "." if al else "No processed circular has been judged aligned yet."), {"documents": _cards(al)}
+    if intent == "list_applicable":
+        ap = [r for r in recs if r["applicability"] == "YES" or r["impact"] in ("CONFLICT", "ALIGNED", "UNCERTAIN")]
+        by = {k: [r for r in ap if r["impact"] == k] for k in ("CONFLICT", "UNCERTAIN", "ALIGNED")}
+        parts = [f"{len(v)} {k.lower().replace('uncertain', 'needing investigation')}" for k, v in by.items() if v]
+        return (f"{len(ap)} of {len(recs)} processed circulars apply to {tenant.company_name}" + (f" ({', '.join(parts)})" if parts else "") + ": " + ", ".join(r["circular_number"] or r["document_id"] for r in ap) + "."
+                if ap else f"None of the {len(recs)} processed circulars applies to {tenant.company_name}."), {"documents": _cards(ap)}
+    if intent == "effective_dates":
+        sel = [r for r in recs if r["id"] in targets_of(ctx)] or [r for r in recs if r["impact"] in ("CONFLICT", "UNCERTAIN", "ALIGNED")] or recs
+        parts = [f"{r['circular_number'] or r['document_id']}: {r['effective_date'] or 'no effective date recorded'}" for r in sel]
+        return ("; ".join(parts) + "." if parts else "No publications processed yet."), {"documents": _cards(sel)}
     if intent == "latest_changes":
         recent = recs[:5]
         if not recent:
@@ -362,17 +401,57 @@ def deterministic(intent: str, ctx: dict[str, Any], db: StateStore, tenant: Tena
     return "Nothing to show.", {}
 
 
+# ---- Foundry Web Search (discovery only) ------------------------------------------------------------------------------
+WEB_DOMAINS = ["sebi.gov.in"]
+WEB_SYSTEM = ("You look up SEBI publications for a compliance analyst. Use only search results from sebi.gov.in. Answer in at most four sentences: "
+              "title, date, reference number if visible, and the exact URL of each publication. If nothing relevant is found, say so. Never assess "
+              "applicability or compliance — that is done elsewhere from the official PDF.")
+
+
+async def web_lookup(db: StateStore, tenant: TenantContext, question: str) -> tuple[str, dict[str, Any]]:
+    """Foundry Web Search restricted to sebi.gov.in. Discovery, not evidence: nothing here enters an analysis; the SEBI
+    connector remains the only path by which a circular is fetched, hashed and analysed. Citations outside the domain are dropped."""
+    p = provider()
+    if not settings().ask_web_search or not hasattr(p, "web_search"):
+        return ("Looking up sebi.gov.in from Ask is disabled in this workspace. Run a scan to fetch publications through the official SEBI connector.",
+                {"kind": "clarify", "actions": [{"label": "Scan now", "kind": "scan"}]})
+    budget_var.set(CallBudget(1, settings().max_estimated_cost_per_scan_usd, settings().max_estimated_cost_per_day_usd,
+                              db.estimated_cost_since(now().replace(hour=0, minute=0, second=0, microsecond=0).isoformat())))
+    try:
+        cites, res = await p.web_search("impact", WEB_SYSTEM, question, WEB_DOMAINS)
+    except ProviderError as e:
+        return (f"Foundry web search failed: {str(e)[:160]}", {"kind": "clarify"})
+    finally:
+        budget_var.set(None)
+    kept = [c for c in cites if any(c["url"].split("/")[2].endswith(d) for d in WEB_DOMAINS if "//" in c["url"])]
+    dropped = len(cites) - len(kept)
+    db.record_llm_call(tenant_id=tenant.tenant_id, scan_id=None, task="ask_web", model=res.model, provider=res.provider, latency_ms=res.latency_ms, input_tokens=res.input_tokens,
+                       output_tokens=res.output_tokens, cached_tokens=res.cached_tokens, attempts=res.attempts, estimated_cost_usd=res.estimated_cost_usd, context_format=None,
+                       structured_mode=None, pricing_status=res.pricing_status, response_id=res.response_id, ok=1)
+    summary = res.text.strip() or "No sebi.gov.in result was returned."
+    return summary, {"web_sources": kept, "web_dropped_off_domain": dropped, "kind": "web_search",
+                     "caveat": "Found with Microsoft Foundry Web Search restricted to sebi.gov.in. Discovery only — a publication becomes evidence only after the SEBI connector fetches and analyses it (Scan now).",
+                     "telemetry": {"provider": res.provider, "model": res.model, "latency_ms": res.latency_ms, "input_tokens": res.input_tokens, "output_tokens": res.output_tokens,
+                                   "response_id": res.response_id, "estimated_cost_usd": res.estimated_cost_usd, "tool": "web_search", "allowed_domains": WEB_DOMAINS}}
+
+
 # ---- orchestration --------------------------------------------------------------------------------------------------------
 async def investigate(db: StateStore, tenant: TenantContext, question: str, conversation_id: str | None = None) -> Investigation:
     ctx = build_context(db, tenant, question.strip(), conversation_id)
     ids = index_ids(ctx)
     first_doc = ctx["records"][0]["document_id"] if ctx["records"] else None
     intent, targets, pol, flags, judge = await route(ctx, first_doc)
+    ctx["_targets"] = targets
     answer: dict[str, Any] = {"intent": intent}
     reasoning: dict[str, Any] = {"kind": "workspace_data", "jev_route": judge, "sources": 0, "cited": []}
     summary: str
 
-    if flags["requests_action"] or intent == "action_request":
+    if intent == "web_lookup":  # a read-only lookup on sebi.gov.in is not an action, even when phrased imperatively
+        summary, extra = await web_lookup(db, tenant, question)
+        answer.update(extra)
+        reasoning["kind"] = extra.get("kind", "web_search")
+        reasoning["narrative"] = extra.pop("telemetry", None)
+    elif flags["requests_action"] or intent == "action_request":
         summary = ("This action requires human approval. Ask AfterCircular only reads and reasons; approving, rejecting and opening GitHub issues happen in the "
                    "review screen, under your GitHub login." + (f" {len(ctx['pending_reviews'])} analysis is currently awaiting review." if len(ctx["pending_reviews"]) == 1 else f" {len(ctx['pending_reviews'])} analyses are currently awaiting review." if ctx["pending_reviews"] else ""))
         reasoning["kind"] = "refused"
@@ -384,11 +463,17 @@ async def investigate(db: StateStore, tenant: TenantContext, question: str, conv
         reasoning["sources"] = len(extra.get("documents", [])) if isinstance(extra.get("documents"), list) else (1 if extra else 0)
         reasoning["cited"] = [d["id"] for d in extra.get("documents", [])] if isinstance(extra.get("documents"), list) else []
     elif intent in REASONING and ctx["records"]:
-        selected = [r for r in ctx["records"] if r["id"] in targets] or [r for r in ctx["records"] if r.get("analysis_id")] or ctx["records"]
+        weak_target = bool(targets) and (judge.get("document_confidence") or 0) < 0.7 and not flags["follow_up"]
+        selected = [r for r in ctx["records"] if r["id"] in targets] if targets and not weak_target else by_significance([r for r in ctx["records"] if r.get("analysis_id")] or ctx["records"])
+        if weak_target:  # the judge was not sure which record is meant: reason over all of them, most significant first, target included
+            judge["note"] = (judge.get("note") or "") + f" target {targets[0]} below 0.70 → reasoning over all records"
+        if intent == "compare" and len(selected) < 2:  # "the two most relevant" → the two most significant records
+            selected = (selected + [r for r in by_significance(ctx["records"]) if r not in selected])[:2]
         if flags["follow_up"] and not targets and ctx["conversation"]:
-            prev = set(ctx["conversation"][-1].get("records_cited") or [])
+            prev = list(ctx["conversation"][-1].get("records_cited") or [])
             if prev:
-                selected = [r for r in ctx["records"] if r["id"] in prev] or selected
+                by_id = {r["id"]: r for r in ctx["records"]}
+                selected = [by_id[i] for i in prev if i in by_id] or selected  # in the order the previous answer cited them
         judge2 = judge_for("ask")
         qs = reasoning_questions(intent, selected)
         state = {"question": question, "conversation": ctx["conversation"], "company": ctx["workspace"]["company"],
@@ -422,7 +507,7 @@ async def investigate(db: StateStore, tenant: TenantContext, question: str, conv
                     db.record_llm_call(tenant_id=tenant.tenant_id, scan_id=None, task="ask", model=nar["model"], provider=nar["provider"], latency_ms=nar["latency_ms"],
                                        input_tokens=nar["input_tokens"], output_tokens=nar["output_tokens"], cached_tokens=nar["cached_tokens"], attempts=nar["attempts"],
                                        estimated_cost_usd=nar["estimated_cost_usd"], context_format=nar["context_format"], structured_mode=nar["structured_mode"],
-                                       pricing_status="estimate" if nar["estimated_cost_usd"] is not None else "unknown", ok=1)
+                                       pricing_status="estimate" if nar["estimated_cost_usd"] is not None else "unknown", response_id=nar.get("response_id"), ok=1)
                 reasoning["narrative"] = nar
             else:
                 reasoning["narrative"] = None
