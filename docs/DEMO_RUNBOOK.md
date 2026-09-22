@@ -12,7 +12,9 @@ cd web && npm run dev                                       # http://localhost:3
 `az login` must be valid (Foundry + Search use Entra ID). Two tenants exist: **Acme Securities Pvt. Ltd.** (fictional stock
 broker + DP, repo `auraCodesKM/acme-securities-policies`) and **Nimbus Asset Management** (fictional AMC, repo
 `auraCodesKM/nimbus-amc-policies`). To rehearse from a clean slate: `uv run python scripts/demo_reset.py --tenant <id> --yes`,
-then Scan now (≈ 1–2 min per circular with gpt-5-mini; the eval runner processes all six at once).
+then **Scan now** once: with `AFTERCIRCULAR_MAX_DOCUMENTS_PER_SCAN=6` one click processes all six curated circulars (≈ 4 min,
+≈ $0.05–0.06 with gpt-5-mini, 6–8 Foundry calls). Rehearsed three times on 2026-09-22 with the same outcomes (SIF certification →
+CONFLICT POL-002 §4.2). The workspace is left in that state: Nimbus scanned, review pending, nothing approved.
 
 ## The demo (≈ 5 minutes) — start in **Nimbus Asset Management**
 

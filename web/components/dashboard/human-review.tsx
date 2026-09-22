@@ -56,11 +56,17 @@ export function HumanReview({ review, onDecided, compact }: { review: ReviewReco
   return (
     <>
       <ApprovalCard
-        title="Human review required"
+        title={status === "approved" ? "Human review · approved" : status === "rejected" ? "Human review · rejected" : "Human review required"}
         description={
-          compact
-            ? "AI identified a conflict and drafted a memo. No external action has been taken."
-            : "AI has identified a policy conflict and drafted a memo. No external action has been taken. Approving opens a compliance-review issue in the connected repository; the policy itself is not modified."
+          status === "approved"
+            ? current.ticket_url
+              ? "A person approved this finding; AfterCircular then opened the compliance-review issue below. The policy file itself was not modified."
+              : "A person approved this finding. No GitHub issue is recorded for it."
+            : status === "rejected"
+              ? "A person rejected this finding. No external action was taken; the decision is in the audit log."
+              : compact
+                ? "AI identified a conflict and drafted a memo. No external action has been taken."
+                : "AI has identified a policy conflict and drafted a memo. No external action has been taken. Approving opens a compliance-review issue in the connected repository; the policy itself is not modified."
         }
         status={status}
         approveLabel="Approve & open issue"

@@ -142,6 +142,13 @@ async def search() -> None:
     try:
         await _search_body(ret, llm, tenant)
     finally:
+        # leave the shared index holding only the real tenant corpora: the check's fixture rows are removed again
+        from app.retrieval.azure_search import tenant_filter
+
+        ids = [r["id"] for r in ret.client.search(search_text="*", filter=tenant_filter(tenant, status=None), select=["id"], top=1000)]
+        if ids:
+            ret.client.delete_documents([{"id": i} for i in ids])
+            print(f"cleaned up {len(ids)} fixture chunks for tenant_id={tenant}")
         if llm:
             await llm.aclose()
 

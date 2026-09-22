@@ -6,6 +6,8 @@ os.environ.setdefault("BACKEND_API_KEY", "test-key")
 os.environ.setdefault("DEFAULT_JUDGE", "stub")
 os.environ["DECISION_ROUTES"] = ""
 os.environ["SEBI_SELECTED_ENTRY_IDS"] = ""  # tests must not inherit the demo's curated set from .env
+os.environ["AZURE_SEARCH_ENDPOINT"] = ""  # tests never touch the real policies-dev index (fixture chunks polluted it once); the local hybrid retriever is used
+os.environ["FOUNDRY_ENDPOINT"] = ""  # and never call Foundry: AI_PROVIDER=stub
 # stub provider makes no model calls, so the whole snapshot may be processed in tests
 os.environ.setdefault("AFTERCIRCULAR_MAX_DOCUMENTS_PER_SCAN", "5")
 

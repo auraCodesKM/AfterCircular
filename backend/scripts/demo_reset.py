@@ -23,7 +23,7 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 from app.config import settings  # noqa: E402
 from app.services.state import store  # noqa: E402
 
-TABLES = ["processed_documents", "analyses", "decisions", "reviews", "audit_events", "llm_calls", "investigations", "policy_chunks", "policy_index_meta"]
+TABLES = ["processed_documents", "analyses", "decisions", "reviews", "audit_events", "llm_calls", "investigations", "scans", "policy_chunks", "policy_index_meta"]
 
 
 async def clear_search(tenant_id: str) -> int:

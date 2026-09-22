@@ -32,7 +32,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     <TooltipProvider>
       <SoundEffects>
         <WorkspaceProvider health={ctx.health} tenant={{ companyName: ctx.tenant.companyName, repo: ctx.tenant.githubRepo, branch: ctx.tenant.defaultBranch }} recent={recent.data}>
-          <div className="bg-background font-(family-name:--font-geist) text-foreground">
+          <div className="bg-background font-(family-name:--font-geist-sans) text-foreground">
             <SidebarProvider>
               <AppSidebar
                 pendingReviews={pending}

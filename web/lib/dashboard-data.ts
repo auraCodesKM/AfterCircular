@@ -23,7 +23,13 @@ export async function shellContext(): Promise<ShellContext> {
   // GitHub refused to refresh the token (revoked / rotated grant): the session cannot read repositories any more → sign in again.
   // A *network* failure to refresh keeps the last token and is not a reason to log the person out.
   if (session.error === "RefreshTokenError" || session.error === "RefreshTokenMissing") redirect("/signin?error=SessionExpired");
-  const { tenants, tenant } = await activeTenant(session.user.githubId);
+  let tenants: Tenant[], tenant: Tenant | null;
+  try {
+    ({ tenants, tenant } = await activeTenant(session.user.githubId));
+  } catch (e) {
+    // the tenant store lives in the backend: when it is down the error boundary says so instead of a bare 500
+    throw new Error(`Backend unreachable at ${process.env.BACKEND_URL ?? "(BACKEND_URL unset)"}: ${(e as Error).message}`);
+  }
   if (!tenant) redirect("/connect");
   let health: Health | null = null;
   let backendError: string | null = null;
