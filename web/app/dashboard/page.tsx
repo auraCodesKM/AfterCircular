@@ -40,7 +40,7 @@ export default async function OverviewPage() {
   const headline = pending ? `${pending} regulatory ${pending === 1 ? "change needs" : "changes need"} your decision` : conflicts ? "Conflicts handled — nothing is waiting on you" : docs.length ? "All clear — nothing needs your review" : "Run your first scan";
   const description = docs.length
     ? `${docs.length} regulatory ${docs.length === 1 ? "publication" : "publications"} processed · ${conflicts} in conflict${lastScanAt ? ` · ${lastScanDocs} new in the last scan` : ""}`
-    : `AfterCircular reads the regulator, compares each circular with the policies in ${ctx.tenant.githubRepo}, and drafts what a person must decide.`;
+    : `Live regulatory monitoring for the policies in ${ctx.tenant.githubRepo}: SEBI circulars are read by Microsoft Foundry, matched to your clauses by Azure AI Search, and a person decides.`;
 
   return (
     <div className="space-y-10">

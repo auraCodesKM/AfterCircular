@@ -26,10 +26,11 @@ export function ModelsView({ health, evals }: { health: Health | null; evals: Ev
     return r === "typesafe" ? `Jev · ${judge?.model ?? "jev-latest"}` : r === "foundry" ? "Foundry (uncalibrated emulation)" : r === "stub" ? "stub · fixture" : r;
   };
   const genName = (key: string) => (health?.ai_provider === "foundry" ? (health.models[key] ?? "—") : "stub · fixture");
+  const dep = health?.models?.extraction;
   const models = [
-    { name: "Jev", vendor: "TypeSafe System One", role: "Typed judgments with calibrated probabilities", status: judge?.typesafe_configured ? "configured" : "not configured" },
-    { name: "Foundry", vendor: "Microsoft Foundry / Azure OpenAI", role: "Generation and reasoning", status: health?.ai_provider === "foundry" ? "configured" : "not configured" },
-    { name: "Stub", vendor: "Local fixtures", role: "Evaluation and tests only — no model calls", status: "always available" },
+    { name: "Microsoft Foundry", vendor: `Foundry deployment ${dep ?? "—"} · Responses API, strict JSON schema · Entra ID`, role: "Regulatory obligation extraction, impact reasoning, memo drafting and Ask narrative generation — the primary AI layer.", status: health?.ai_provider === "foundry" ? "configured" : "not configured" },
+    { name: "Azure AI Search", vendor: `Hybrid retrieval · embeddings ${health?.models?.embedding ?? "—"}`, role: "Retrieves the internal policy clauses each obligation is compared against (BM25 + vector, RRF, tenant filter).", status: health?.retrieval === "azure-ai-search" ? "configured" : "local fallback" },
+    { name: "Jev (reasoning support)", vendor: `TypeSafe System One · ${judge?.model ?? "jev-latest"}`, role: "Typed, calibrated judgments that route and verify: triage, applicability, relevance, alignment, citation checks, Ask routing.", status: judge?.typesafe_configured ? "configured" : "not configured" },
   ];
 
   return (

@@ -33,6 +33,7 @@ from pypdf import PdfReader
 
 from app.config import settings
 from app.connectors.base import RegulatorySource
+from app.connectors.registry import load_registry
 from app.schemas.regulatory import FetchResult, RegulatoryDocument
 
 log = logging.getLogger(__name__)
@@ -202,11 +203,26 @@ class SEBIConnector(RegulatorySource):
     # ---- live ----------------------------------------------------------------------------------------------------------
     async def _fetch_live(self, limit: int) -> FetchResult:
         warnings: list[str] = []
+        selected = settings().sebi_selected_ids
         async with (self._client or self._make_client()) as client:
             r = await self._get(client, LISTING_URL, expect="html")
             rows = parse_listing(r.text)
             if not rows:
                 raise SourceError("listing page contained no circular rows (layout changed?)")
+            if selected:
+                # curated demo set: only registry entries, each still fetched live; ids that have left the first listing page
+                # are fetched by their official detail URL from the registry record
+                registry = load_registry()
+                by_id = {x["entry_id"]: x for x in rows}
+                chosen: list[dict[str, str]] = []
+                for eid in selected:
+                    reg = registry.get(eid)
+                    if reg is None:
+                        warnings.append(f"Selected entry {eid} is not in the source registry — skipped")
+                        continue
+                    chosen.append(by_id.get(eid) or {"url": reg["detail_url"], "entry_id": eid, "title": reg["title"], "date": _listing_date(reg["date"])})
+                rows = chosen
+                limit = max(limit, len(rows))
             docs: list[RegulatoryDocument] = []
             for row in rows[:limit]:
                 try:
@@ -243,6 +259,14 @@ class SEBIConnector(RegulatorySource):
             docs.append(RegulatoryDocument.model_validate({**raw, "source_mode": "DEMO_SNAPSHOT", "synthetic": True}).with_hash())
         return FetchResult(mode="DEMO_SNAPSHOT", status="DEMO_SNAPSHOT", documents=docs, discovered=len(docs),
                            warnings=["Demo snapshot: fictional circulars, clearly labelled. Not SEBI data."])
+
+
+def _listing_date(iso: str | None) -> str:
+    """Registry dates are ISO; the listing parser expects 'Sep 09, 2026'."""
+    try:
+        return datetime.strptime(iso or "", "%Y-%m-%d").strftime("%b %d, %Y")
+    except ValueError:
+        return ""
 
 
 def _normalize_mode(mode: str) -> str:

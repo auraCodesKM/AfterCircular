@@ -75,6 +75,21 @@ class SourceUnavailable(RuntimeError):
     """Live regulatory source failed and the mode forbids a fallback."""
 
 
+def provenance(doc: ProcessedDocument, impact: ImpactAnalysis, tenant: TenantContext, manifest: dict[str, Any]) -> dict[str, Any]:
+    """Citable sources stored next to the impact: the exact official page/PDF for the regulation and the exact GitHub file
+    for every policy clause cited. Kept outside the Foundry output schema (strict) — code attaches it, the model never does."""
+    paths = {d["id"]: d["path"] for d in manifest.get("documents", []) if d.get("id") and d.get("path")}
+    policy_sources = {}
+    for e in impact.policy_evidence:
+        path = paths.get(e.doc_id)
+        policy_sources[e.doc_id] = {"path": path, "url": f"https://github.com/{tenant.github_repo}/blob/{tenant.default_branch}/{path}" if path else None,
+                                    "repo": tenant.github_repo, "branch": tenant.default_branch, "fictional": True}
+    return {"regulatory_source": {"regulator": doc.source, "source_mode": doc.source_mode, "synthetic": doc.synthetic, "title": doc.title, "reference": doc.circular_number,
+                                  "published_date": doc.published_date, "detail_url": doc.url, "pdf_url": doc.document_url, "document_id": doc.document_id,
+                                  "content_hash": doc.content_hash, "fetched_at": doc.fetched_at.isoformat() if doc.fetched_at else None},
+            "policy_sources": policy_sources}
+
+
 class Scan:
     def __init__(self, db: StateStore, tenant: TenantContext, llm: LLMProvider | None = None, ret: Retriever | None = None, force: bool = False):
         self.db, self.tenant, self.force = db, tenant, force
@@ -241,7 +256,7 @@ class Scan:
                 impact = ImpactAnalysis(applicability="NO", reason=f"Archived at triage ({tri.stage}): {tri.reason}",
                                         regulatory_evidence=[RegulatoryEvidence(section="header", text=addressee_block(reg.content)[:300] or reg.title)],
                                         effective_date=str(doc.effective_date) if doc.effective_date else None, confidence=tri.confidence or 1.0)
-                analysis.impact, analysis.gate_outcome = impact.model_dump(), "ARCHIVED"
+                analysis.impact, analysis.gate_outcome = {**impact.model_dump(), **provenance(doc, impact, t, manifest)}, "ARCHIVED"
                 db.save_analysis(analysis)
                 db.update_document(doc.id, status="ARCHIVED", impact="NOT_APPLICABLE")
                 audit.record(db, t.tenant_id, "IMPACT_ANALYZED", scan_id=self.rec.id, document_pk=doc.id, analysis_id=analysis.id, applicability="NO",
@@ -295,7 +310,7 @@ class Scan:
                 for res in decision.llm_results:
                     analysis.models["impact"], analysis.metrics["impact"] = res.model, self._llm(res)
                 db.save_decisions(decision.records)
-                analysis.impact, analysis.decision_path, analysis.escalation_reason = impact.model_dump(), decision.path, decision.escalation_reason
+                analysis.impact, analysis.decision_path, analysis.escalation_reason = {**impact.model_dump(), **provenance(doc, impact, t, manifest)}, decision.path, decision.escalation_reason
                 analysis.metrics["decisions"] = {"records": len(decision.records), "judges": sorted({r.provider for r in decision.records if r.provider != "code"}),
                                                  "kept_chunks": [c.chunk_id for c in decision.kept_chunks], "obligations_verified": len(decision.obligations)}
                 chunks = decision.kept_chunks or chunks

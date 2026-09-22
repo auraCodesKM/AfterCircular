@@ -5,6 +5,7 @@ os.environ.setdefault("SEBI_MODE", "snapshot")
 os.environ.setdefault("BACKEND_API_KEY", "test-key")
 os.environ.setdefault("DEFAULT_JUDGE", "stub")
 os.environ["DECISION_ROUTES"] = ""
+os.environ["SEBI_SELECTED_ENTRY_IDS"] = ""  # tests must not inherit the demo's curated set from .env
 # stub provider makes no model calls, so the whole snapshot may be processed in tests
 os.environ.setdefault("AFTERCIRCULAR_MAX_DOCUMENTS_PER_SCAN", "5")
 

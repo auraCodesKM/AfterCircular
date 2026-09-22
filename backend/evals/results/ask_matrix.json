@@ -1,0 +1,1101 @@
+{
+  "tenant_id": "acme-securities-pvt-ltd-181441765",
+  "at": "2026-09-22T03:47:45.930580+00:00",
+  "questions": [
+    {
+      "question": "What changed in the latest SEBI publication?",
+      "id": "inv_3ad301c40aaf",
+      "intent": "latest_changes",
+      "summary": "5 recent publications: 0 conflict, 1 aligned, 2 not applicable, 2 pending or uncertain.",
+      "conversation_id": "conv_15629b197606",
+      "kind": "workspace_data",
+      "narrative": null,
+      "composed": false,
+      "cited": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5"
+      ],
+      "evidence": null,
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 0.72,
+        "intent_probabilities": {
+          "list_conflicts": 0.0,
+          "action_request": 0.0,
+          "prioritize": 0.0,
+          "explain": 0.16,
+          "affected_policies": 0.0,
+          "evidence": 0.0,
+          "other_reasoning": 0.0,
+          "policy_lookup": 0.0,
+          "compare": 0.07,
+          "list_not_applicable": 0.0,
+          "summarize_work": 0.0,
+          "obligations": 0.0,
+          "approval_status": 0.0,
+          "other": 0.03,
+          "scan_status": 0.0,
+          "run_scan": 0.0,
+          "pending_reviews": 0.0,
+          "latest_changes": 0.74
+        },
+        "latency_ms": 1179,
+        "input_tokens": 3120,
+        "output_tokens": 454,
+        "questions": 7,
+        "document_confidence": 0.96,
+        "document_2_confidence": 0.87,
+        "flags": {
+          "follow_up": false,
+          "requests_action": false,
+          "answerable": true
+        }
+      },
+      "refused": false
+    },
+    {
+      "question": "Which circulars conflict with our policies?",
+      "id": "inv_ddc6f516a47b",
+      "intent": "list_conflicts",
+      "summary": "1 of 6 processed circulars conflict with internal policy: HO/38/11/(9)2026-MIRSD-POD/I/15382/2026.",
+      "conversation_id": "conv_0ca38d50ad5b",
+      "kind": "workspace_data",
+      "narrative": null,
+      "composed": false,
+      "cited": [
+        "D6"
+      ],
+      "evidence": null,
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 1.0,
+        "intent_probabilities": {
+          "action_request": 0.0,
+          "list_conflicts": 1.0,
+          "summarize_work": 0.0,
+          "evidence": 0.0,
+          "policy_lookup": 0.0,
+          "prioritize": 0.0,
+          "run_scan": 0.0,
+          "other": 0.0,
+          "explain": 0.0,
+          "affected_policies": 0.0,
+          "compare": 0.0,
+          "obligations": 0.0,
+          "approval_status": 0.0,
+          "list_not_applicable": 0.0,
+          "latest_changes": 0.0,
+          "other_reasoning": 0.0,
+          "scan_status": 0.0,
+          "pending_reviews": 0.0
+        },
+        "latency_ms": 383,
+        "input_tokens": 3120,
+        "output_tokens": 455,
+        "questions": 7,
+        "document_confidence": 0.42,
+        "document_2_confidence": 0.84,
+        "flags": {
+          "follow_up": false,
+          "requests_action": false,
+          "answerable": true
+        }
+      },
+      "refused": false
+    },
+    {
+      "question": "What needs my review?",
+      "id": "inv_c948c5bc3a3d",
+      "intent": "pending_reviews",
+      "summary": "1 conflict waiting for your decision.",
+      "conversation_id": "conv_8beb3b783b83",
+      "kind": "workspace_data",
+      "narrative": null,
+      "composed": false,
+      "cited": [
+        "D6"
+      ],
+      "evidence": null,
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 0.99,
+        "intent_probabilities": {
+          "explain": 0.0,
+          "affected_policies": 0.0,
+          "pending_reviews": 1.0,
+          "list_conflicts": 0.0,
+          "other_reasoning": 0.0,
+          "run_scan": 0.0,
+          "approval_status": 0.0,
+          "obligations": 0.0,
+          "summarize_work": 0.0,
+          "policy_lookup": 0.0,
+          "prioritize": 0.0,
+          "compare": 0.0,
+          "action_request": 0.0,
+          "latest_changes": 0.0,
+          "scan_status": 0.0,
+          "other": 0.0,
+          "evidence": 0.0,
+          "list_not_applicable": 0.0
+        },
+        "latency_ms": 443,
+        "input_tokens": 3116,
+        "output_tokens": 458,
+        "questions": 7,
+        "document_confidence": 0.31,
+        "document_2_confidence": 0.9,
+        "flags": {
+          "follow_up": false,
+          "requests_action": false,
+          "answerable": true
+        }
+      },
+      "refused": false
+    },
+    {
+      "question": "Why is the unpaid securities circular a conflict?",
+      "id": "inv_0f91bacf2c24",
+      "intent": "explain",
+      "summary": "The circular conflicts with POL-001 because several of POL-001\u2019s timing and communication rules differ from the circular\u2019s requirements. Examples: POL-001 allows seven trading days to meet payment and not sending a separate pledge notice, while the circular requires a maximum period of \u201cshall not exceed five trading\u2026\u201d and an explicit communication after pledge. POL-001\u2019s sale timing/notice language also differs from the circular\u2019s requirement to give \u201creasonable notice.\u201d",
+      "conversation_id": "conv_adf3f86938cf",
+      "kind": "jev_reasoning",
+      "narrative": {
+        "provider": "foundry",
+        "model": "gpt-5-mini",
+        "latency_ms": 31591,
+        "input_tokens": 1796,
+        "output_tokens": 3348,
+        "cached_tokens": 0,
+        "estimated_cost_usd": 0.007145,
+        "structured_mode": "json_schema",
+        "context_format": "toon",
+        "attempts": 1
+      },
+      "composed": false,
+      "cited": [
+        "D6"
+      ],
+      "evidence": {
+        "regulatory": 7,
+        "policy": 6,
+        "obligations": 0
+      },
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 1.0,
+        "intent_probabilities": {
+          "other_reasoning": 0.0,
+          "list_not_applicable": 0.0,
+          "evidence": 0.0,
+          "pending_reviews": 0.0,
+          "scan_status": 0.0,
+          "list_conflicts": 0.0,
+          "prioritize": 0.0,
+          "action_request": 0.0,
+          "run_scan": 0.0,
+          "other": 0.0,
+          "summarize_work": 0.0,
+          "latest_changes": 0.0,
+          "policy_lookup": 0.0,
+          "affected_policies": 0.0,
+          "compare": 0.0,
+          "approval_status": 0.0,
+          "explain": 1.0,
+          "obligations": 0.0
+        },
+        "latency_ms": 433,
+        "input_tokens": 3120,
+        "output_tokens": 458,
+        "questions": 7,
+        "document_confidence": 0.76,
+        "document_2_confidence": 0.66,
+        "flags": {
+          "follow_up": false,
+          "requests_action": false,
+          "answerable": false
+        }
+      },
+      "refused": false
+    },
+    {
+      "question": "What evidence supports that conflict?",
+      "id": "inv_a47a172d7155",
+      "intent": "evidence",
+      "summary": "Record D6 contains both the SEBI circular requirements and the company's POL-001 text that demonstrate the conflict. The circular requires a policy with a maximum pledge period of \"shall not exceed five trading\u2026\", communication at pledge creation, and prompt invocation/liquidation; POL-001 instead allows seven trading days for payment, permits sale on a subsequent trading day with notification after sale, and states no separate communication is sent when a pledge is created. The quoted excerpts below show the conflicting requirements.",
+      "conversation_id": "conv_aeb547904a94",
+      "kind": "jev_reasoning",
+      "narrative": {
+        "provider": "foundry",
+        "model": "gpt-5-mini",
+        "latency_ms": 36801,
+        "input_tokens": 5068,
+        "output_tokens": 3490,
+        "cached_tokens": 0,
+        "estimated_cost_usd": 0.008247,
+        "structured_mode": "json_schema",
+        "context_format": "json",
+        "attempts": 1
+      },
+      "composed": false,
+      "cited": [
+        "D6"
+      ],
+      "evidence": {
+        "regulatory": 4,
+        "policy": 3,
+        "obligations": 0
+      },
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 0.99,
+        "intent_probabilities": {
+          "approval_status": 0.0,
+          "obligations": 0.0,
+          "scan_status": 0.0,
+          "prioritize": 0.0,
+          "other_reasoning": 0.0,
+          "policy_lookup": 0.0,
+          "explain": 0.01,
+          "pending_reviews": 0.0,
+          "other": 0.0,
+          "summarize_work": 0.0,
+          "action_request": 0.0,
+          "affected_policies": 0.0,
+          "evidence": 0.99,
+          "list_conflicts": 0.0,
+          "run_scan": 0.0,
+          "compare": 0.0,
+          "list_not_applicable": 0.0,
+          "latest_changes": 0.0
+        },
+        "latency_ms": 1061,
+        "input_tokens": 3117,
+        "output_tokens": 459,
+        "questions": 7,
+        "document_confidence": 0.28,
+        "document_2_confidence": 0.65,
+        "flags": {
+          "follow_up": true,
+          "requests_action": false,
+          "answerable": true
+        }
+      },
+      "refused": false
+    },
+    {
+      "question": "Which of our policies are affected by SEBI circulars?",
+      "id": "inv_b1db53552e07",
+      "intent": "affected_policies",
+      "summary": "Two of our policies are explicitly affected: POL-002 is affected by SEBI circular D2 (cyber incident reporting) and POL-001 is affected by SEBI circular D6 (handling of clients' unpaid securities) and is in conflict with that circular. D4 is aligned with POL-005 (no change required). D3 may be relevant but its applicability to Acme Securities is UNCERTAIN.",
+      "conversation_id": "conv_79c11aa432d9",
+      "kind": "jev_reasoning",
+      "narrative": {
+        "provider": "foundry",
+        "model": "gpt-5-mini",
+        "latency_ms": 26987,
+        "input_tokens": 5076,
+        "output_tokens": 3628,
+        "cached_tokens": 0,
+        "estimated_cost_usd": 0.008525,
+        "structured_mode": "json_schema",
+        "context_format": "json",
+        "attempts": 1
+      },
+      "composed": false,
+      "cited": [
+        "D2",
+        "D6",
+        "D4",
+        "D3"
+      ],
+      "evidence": {
+        "regulatory": 4,
+        "policy": 3,
+        "obligations": 3
+      },
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 1.0,
+        "intent_probabilities": {
+          "approval_status": 0.0,
+          "affected_policies": 1.0,
+          "list_not_applicable": 0.0,
+          "compare": 0.0,
+          "evidence": 0.0,
+          "latest_changes": 0.0,
+          "other": 0.0,
+          "scan_status": 0.0,
+          "action_request": 0.0,
+          "obligations": 0.0,
+          "list_conflicts": 0.0,
+          "policy_lookup": 0.0,
+          "run_scan": 0.0,
+          "summarize_work": 0.0,
+          "pending_reviews": 0.0,
+          "prioritize": 0.0,
+          "other_reasoning": 0.0,
+          "explain": 0.0
+        },
+        "latency_ms": 961,
+        "input_tokens": 3124,
+        "output_tokens": 456,
+        "questions": 7,
+        "document_confidence": 0.44,
+        "document_2_confidence": 0.92,
+        "flags": {
+          "follow_up": false,
+          "requests_action": false,
+          "answerable": true
+        }
+      },
+      "refused": false
+    },
+    {
+      "question": "Is the intraday borrowing circular applicable to us?",
+      "id": "inv_fbf3f724f8c2",
+      "intent": "explain",
+      "summary": "No. Record D5 in this workspace marks the circular as not applicable to us (applicability: NO; impact: NOT_APPLICABLE). The record's regulatory excerpt shows the circular \u201cpermit intraday borrowings by mutual funds for various purposes a s specified in this circular.\u201d The record was archived at triage with the reason: \"Archived at triage (triage): header addressed to other entity types (P(concerns)=0.00, entity in scope 0.04)\".",
+      "conversation_id": "conv_6ec1383ed53d",
+      "kind": "jev_reasoning",
+      "narrative": {
+        "provider": "foundry",
+        "model": "gpt-5-mini",
+        "latency_ms": 15300,
+        "input_tokens": 941,
+        "output_tokens": 1740,
+        "cached_tokens": 0,
+        "estimated_cost_usd": 0.003715,
+        "structured_mode": "json_schema",
+        "context_format": "toon",
+        "attempts": 1
+      },
+      "composed": false,
+      "cited": [
+        "D5"
+      ],
+      "evidence": {
+        "regulatory": 1,
+        "policy": 0,
+        "obligations": 0
+      },
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 0.44,
+        "intent_probabilities": {
+          "latest_changes": 0.0,
+          "evidence": 0.0,
+          "obligations": 0.14,
+          "prioritize": 0.0,
+          "explain": 0.48,
+          "run_scan": 0.0,
+          "other": 0.04,
+          "list_not_applicable": 0.06,
+          "other_reasoning": 0.23,
+          "list_conflicts": 0.0,
+          "summarize_work": 0.0,
+          "pending_reviews": 0.0,
+          "compare": 0.0,
+          "action_request": 0.0,
+          "policy_lookup": 0.0,
+          "approval_status": 0.02,
+          "scan_status": 0.01,
+          "affected_policies": 0.02
+        },
+        "latency_ms": 1567,
+        "input_tokens": 3121,
+        "output_tokens": 454,
+        "questions": 7,
+        "note": "intent split explain 0.48, other_reasoning 0.23; target clear (0.79) \u2192 explain",
+        "document_confidence": 0.79,
+        "document_2_confidence": 0.56,
+        "flags": {
+          "follow_up": false,
+          "requests_action": false,
+          "answerable": true
+        }
+      },
+      "refused": false
+    },
+    {
+      "question": "What does the cyber incident reporting circular require?",
+      "id": "inv_faf95d31a101",
+      "intent": "obligations",
+      "summary": "Record D2 requires regulated entities to notify SEBI both by email and via the SEBI Cyber Incident Reporting Portal, to provide staged updates through the incident lifecycle until closure, and to implement governance changes as needed. Key deadlines in D2 include reporting to mkt_incidents@sebi.gov.in within 6 hours and submitting on the SEBI portal within 24 hours.",
+      "conversation_id": "conv_098e7eb4a122",
+      "kind": "jev_reasoning",
+      "narrative": {
+        "provider": "foundry",
+        "model": "gpt-5-mini",
+        "latency_ms": 22275,
+        "input_tokens": 1665,
+        "output_tokens": 2579,
+        "cached_tokens": 0,
+        "estimated_cost_usd": 0.005574,
+        "structured_mode": "json_schema",
+        "context_format": "json",
+        "attempts": 1
+      },
+      "composed": false,
+      "cited": [
+        "D2"
+      ],
+      "evidence": {
+        "regulatory": 1,
+        "policy": 1,
+        "obligations": 5
+      },
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 0.93,
+        "intent_probabilities": {
+          "policy_lookup": 0.0,
+          "list_conflicts": 0.0,
+          "other_reasoning": 0.0,
+          "latest_changes": 0.0,
+          "pending_reviews": 0.0,
+          "affected_policies": 0.0,
+          "approval_status": 0.0,
+          "list_not_applicable": 0.0,
+          "other": 0.0,
+          "action_request": 0.0,
+          "compare": 0.0,
+          "evidence": 0.0,
+          "run_scan": 0.0,
+          "explain": 0.06,
+          "prioritize": 0.0,
+          "scan_status": 0.0,
+          "summarize_work": 0.0,
+          "obligations": 0.9400000000000001
+        },
+        "latency_ms": 1006,
+        "input_tokens": 3120,
+        "output_tokens": 459,
+        "questions": 7,
+        "document_confidence": 0.74,
+        "document_2_confidence": 0.58,
+        "flags": {
+          "follow_up": false,
+          "requests_action": false,
+          "answerable": false
+        }
+      },
+      "refused": false
+    },
+    {
+      "question": "Show POL-001",
+      "id": "inv_94f366bce39a",
+      "intent": "policy_lookup",
+      "summary": "POL-001 \u2014 Client Unpaid Securities and Pledge Policy, version 1.2, 12 sections. Affected by 1 circular(s).",
+      "conversation_id": "conv_6576f1307902",
+      "kind": "workspace_data",
+      "narrative": null,
+      "composed": false,
+      "cited": [
+        "D6"
+      ],
+      "evidence": null,
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 1.0,
+        "intent_probabilities": {
+          "compare": 0.0,
+          "scan_status": 0.0,
+          "obligations": 0.0,
+          "affected_policies": 0.0,
+          "evidence": 0.0,
+          "policy_lookup": 1.0,
+          "other_reasoning": 0.0,
+          "run_scan": 0.0,
+          "action_request": 0.0,
+          "summarize_work": 0.0,
+          "approval_status": 0.0,
+          "other": 0.0,
+          "list_not_applicable": 0.0,
+          "explain": 0.0,
+          "latest_changes": 0.0,
+          "prioritize": 0.0,
+          "list_conflicts": 0.0,
+          "pending_reviews": 0.0
+        },
+        "latency_ms": 1230,
+        "input_tokens": 3117,
+        "output_tokens": 457,
+        "questions": 7,
+        "document_confidence": 0.54,
+        "document_2_confidence": 0.96,
+        "flags": {
+          "follow_up": false,
+          "requests_action": false,
+          "answerable": true
+        }
+      },
+      "refused": false
+    },
+    {
+      "question": "When was the last scan and did it find anything new?",
+      "id": "inv_abedc808e625",
+      "intent": "scan_status",
+      "summary": "Last scan completed at 2026-09-21 19:38 UTC from live SEBI, nothing new: 0 new, 6 already processed, 0 model calls.",
+      "conversation_id": "conv_1c717c637842",
+      "kind": "workspace_data",
+      "narrative": null,
+      "composed": false,
+      "cited": [],
+      "evidence": null,
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 0.83,
+        "intent_probabilities": {
+          "latest_changes": 0.16,
+          "prioritize": 0.0,
+          "run_scan": 0.0,
+          "evidence": 0.0,
+          "explain": 0.0,
+          "obligations": 0.0,
+          "other": 0.0,
+          "list_not_applicable": 0.0,
+          "other_reasoning": 0.0,
+          "list_conflicts": 0.0,
+          "summarize_work": 0.0,
+          "pending_reviews": 0.0,
+          "compare": 0.0,
+          "action_request": 0.0,
+          "policy_lookup": 0.0,
+          "approval_status": 0.0,
+          "scan_status": 0.84,
+          "affected_policies": 0.0
+        },
+        "latency_ms": 675,
+        "input_tokens": 3123,
+        "output_tokens": 454,
+        "questions": 7,
+        "document_confidence": 0.76,
+        "document_2_confidence": 0.98,
+        "flags": {
+          "follow_up": false,
+          "requests_action": false,
+          "answerable": false
+        }
+      },
+      "refused": false
+    },
+    {
+      "question": "Which circulars were archived as not applicable and why?",
+      "id": "inv_df96dc05ea6f",
+      "intent": "list_not_applicable",
+      "summary": "2 of 6 processed circulars do not apply to acme-securities-pvt-ltd-181441765: HO/47/16/13(5)2026-MRD-POD1/ I/20735/2026, HO/(92)2026-IMD-POD-2/I/16006/2026.",
+      "conversation_id": "conv_afee5a6bb55d",
+      "kind": "workspace_data",
+      "narrative": null,
+      "composed": false,
+      "cited": [
+        "D1",
+        "D5"
+      ],
+      "evidence": null,
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 0.82,
+        "intent_probabilities": {
+          "list_conflicts": 0.0,
+          "summarize_work": 0.0,
+          "action_request": 0.0,
+          "prioritize": 0.0,
+          "scan_status": 0.0,
+          "other": 0.0,
+          "pending_reviews": 0.0,
+          "other_reasoning": 0.02,
+          "list_not_applicable": 0.84,
+          "approval_status": 0.0,
+          "run_scan": 0.0,
+          "affected_policies": 0.0,
+          "obligations": 0.0,
+          "evidence": 0.0,
+          "explain": 0.14,
+          "compare": 0.0,
+          "policy_lookup": 0.0,
+          "latest_changes": 0.0
+        },
+        "latency_ms": 371,
+        "input_tokens": 3123,
+        "output_tokens": 458,
+        "questions": 7,
+        "document_confidence": 0.49,
+        "document_2_confidence": 0.45,
+        "flags": {
+          "follow_up": false,
+          "requests_action": false,
+          "answerable": true
+        }
+      },
+      "refused": false
+    },
+    {
+      "question": "What is the deadline for the client unpaid securities circular?",
+      "id": "inv_894fbc4065ac",
+      "intent": "explain",
+      "summary": "The circular requires that the maximum period for handling unpaid securities \"shall not exceed five trading days from the pay-out date\". This conflicts with the firm policy POL-001, which states \"Clients must meet the funds obligation for unpaid securities within **seven trading days from the pay-out date**.\"",
+      "conversation_id": "conv_ce4aa40a5ea1",
+      "kind": "jev_reasoning",
+      "narrative": {
+        "provider": "foundry",
+        "model": "gpt-5-mini",
+        "latency_ms": 24965,
+        "input_tokens": 1798,
+        "output_tokens": 1515,
+        "cached_tokens": 0,
+        "estimated_cost_usd": 0.003479,
+        "structured_mode": "json_schema",
+        "context_format": "toon",
+        "attempts": 1
+      },
+      "composed": false,
+      "cited": [
+        "D6"
+      ],
+      "evidence": {
+        "regulatory": 1,
+        "policy": 1,
+        "obligations": 1
+      },
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 0.38,
+        "intent_probabilities": {
+          "other": 0.08,
+          "evidence": 0.01,
+          "compare": 0.0,
+          "pending_reviews": 0.0,
+          "action_request": 0.0,
+          "summarize_work": 0.0,
+          "affected_policies": 0.0,
+          "scan_status": 0.0,
+          "approval_status": 0.0,
+          "list_conflicts": 0.0,
+          "policy_lookup": 0.03,
+          "latest_changes": 0.0,
+          "list_not_applicable": 0.0,
+          "run_scan": 0.0,
+          "other_reasoning": 0.22,
+          "prioritize": 0.0,
+          "explain": 0.24,
+          "obligations": 0.42
+        },
+        "latency_ms": 627,
+        "input_tokens": 3122,
+        "output_tokens": 459,
+        "questions": 7,
+        "note": "intent split obligations 0.42, explain 0.24; target clear (0.84) \u2192 explaining it",
+        "document_confidence": 0.84,
+        "document_2_confidence": 0.75,
+        "flags": {
+          "follow_up": false,
+          "requests_action": false,
+          "answerable": false
+        }
+      },
+      "refused": false
+    },
+    {
+      "question": "Create a GitHub issue for this conflict.",
+      "id": "inv_83af9fa1fd3b",
+      "intent": "action_request",
+      "summary": "This action requires human approval. Ask AfterCircular only reads and reasons; approving, rejecting and opening GitHub issues happen in the review screen, under your GitHub login. 1 analysis is currently awaiting review.",
+      "conversation_id": "conv_d2669de9df5b",
+      "kind": "refused",
+      "narrative": null,
+      "composed": false,
+      "cited": [],
+      "evidence": null,
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 1.0,
+        "intent_probabilities": {
+          "approval_status": 0.0,
+          "policy_lookup": 0.0,
+          "evidence": 0.0,
+          "list_conflicts": 0.0,
+          "pending_reviews": 0.0,
+          "scan_status": 0.0,
+          "explain": 0.0,
+          "compare": 0.0,
+          "other": 0.0,
+          "run_scan": 0.0,
+          "latest_changes": 0.0,
+          "affected_policies": 0.0,
+          "action_request": 1.0,
+          "prioritize": 0.0,
+          "other_reasoning": 0.0,
+          "summarize_work": 0.0,
+          "list_not_applicable": 0.0,
+          "obligations": 0.0
+        },
+        "latency_ms": 967,
+        "input_tokens": 3120,
+        "output_tokens": 458,
+        "questions": 7,
+        "document_confidence": 0.46,
+        "document_2_confidence": 0.58,
+        "flags": {
+          "follow_up": true,
+          "requests_action": true,
+          "answerable": true
+        }
+      },
+      "refused": true
+    }
+  ],
+  "follow_up_chain": [
+    {
+      "question": "Which circulars conflict with our policies?",
+      "id": "inv_74efbc1a915c",
+      "intent": "list_conflicts",
+      "summary": "1 of 6 processed circulars conflict with internal policy: HO/38/11/(9)2026-MIRSD-POD/I/15382/2026.",
+      "conversation_id": "conv_a55c27040267",
+      "kind": "workspace_data",
+      "narrative": null,
+      "composed": false,
+      "cited": [
+        "D6"
+      ],
+      "evidence": null,
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 1.0,
+        "intent_probabilities": {
+          "compare": 0.0,
+          "affected_policies": 0.0,
+          "scan_status": 0.0,
+          "explain": 0.0,
+          "approval_status": 0.0,
+          "other_reasoning": 0.0,
+          "summarize_work": 0.0,
+          "latest_changes": 0.0,
+          "prioritize": 0.0,
+          "list_not_applicable": 0.0,
+          "obligations": 0.0,
+          "pending_reviews": 0.0,
+          "other": 0.0,
+          "action_request": 0.0,
+          "policy_lookup": 0.0,
+          "run_scan": 0.0,
+          "evidence": 0.0,
+          "list_conflicts": 1.0
+        },
+        "latency_ms": 394,
+        "input_tokens": 3120,
+        "output_tokens": 455,
+        "questions": 7,
+        "document_confidence": 0.44,
+        "document_2_confidence": 0.82,
+        "flags": {
+          "follow_up": false,
+          "requests_action": false,
+          "answerable": true
+        }
+      },
+      "refused": false
+    },
+    {
+      "question": "Why?",
+      "id": "inv_c47858483bed",
+      "intent": "explain",
+      "summary": "The SEBI circular HO/38/11/(9)2026-MIRSD-POD/I/15382/2026 (record D6) conflicts with POL-001 because the circular requires shorter timelines for client payment and specific pre-sale communications and policy wording that differ from POL-001. Key mismatches are: (1) POL-001 allows seven trading days to meet funds obligations while the circular requires a maximum period that \u201cshall not exceed five trading\u2026\u201d; (2) POL-001 says no separate communication is sent when a pledge is created, while the circular mandates an email/SMS after pledge creation; (3) POL-001 permits sale and notifies the client after the sale, while the circular requires reasonable notice before invoking pledge and liquidation. The workspace records these conflicts and recommends amending POL-001.",
+      "conversation_id": "conv_a55c27040267",
+      "kind": "jev_reasoning",
+      "narrative": {
+        "provider": "foundry",
+        "model": "gpt-5-mini",
+        "latency_ms": 21013,
+        "input_tokens": 1834,
+        "output_tokens": 2726,
+        "cached_tokens": 0,
+        "estimated_cost_usd": 0.00591,
+        "structured_mode": "json_schema",
+        "context_format": "toon",
+        "attempts": 1
+      },
+      "composed": false,
+      "cited": [
+        "D6"
+      ],
+      "evidence": {
+        "regulatory": 4,
+        "policy": 3,
+        "obligations": 4
+      },
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 0.99,
+        "intent_probabilities": {
+          "policy_lookup": 0.0,
+          "list_conflicts": 0.0,
+          "other_reasoning": 0.0,
+          "latest_changes": 0.0,
+          "pending_reviews": 0.0,
+          "affected_policies": 0.0,
+          "approval_status": 0.0,
+          "list_not_applicable": 0.0,
+          "other": 0.0,
+          "action_request": 0.0,
+          "compare": 0.0,
+          "evidence": 0.0,
+          "run_scan": 0.0,
+          "explain": 1.0,
+          "prioritize": 0.0,
+          "scan_status": 0.0,
+          "summarize_work": 0.0,
+          "obligations": 0.0
+        },
+        "latency_ms": 349,
+        "input_tokens": 3206,
+        "output_tokens": 453,
+        "questions": 7,
+        "document_confidence": 0.23,
+        "document_2_confidence": 0.94,
+        "flags": {
+          "follow_up": true,
+          "requests_action": false,
+          "answerable": true
+        }
+      },
+      "refused": false
+    },
+    {
+      "question": "What evidence supports this?",
+      "id": "inv_2a8ec0f09007",
+      "intent": "evidence",
+      "summary": "The conflict is supported by specific excerpts in the SEBI circular (record D6) that differ from POL-001 excerpts in this workspace. Key supporting texts: the circular requires a maximum period that \u201cshall not exceed five trading\u2026\u201d (D6.R1 / D6.O4) while POL-001 allows \u201cseven trading days from the pay-out date\u201d (D6.P1); the circular requires a post-pledge communication (\u201cAfter the creation of pledge , a communication (email / SMS) shall be sent\u2026\u201d, D6.R3) while POL-001 states \u201cNo separate communication is sent when the pledge is created.\u201d (D6.P3); the circular\u2019s invocation/liquidation wording (D6.R2) contrasts with POL-001\u2019s sale timing/notification language (D6.P2).",
+      "conversation_id": "conv_a55c27040267",
+      "kind": "jev_reasoning",
+      "narrative": {
+        "provider": "foundry",
+        "model": "gpt-5-mini",
+        "latency_ms": 28895,
+        "input_tokens": 1936,
+        "output_tokens": 3403,
+        "cached_tokens": 0,
+        "estimated_cost_usd": 0.00729,
+        "structured_mode": "json_schema",
+        "context_format": "toon",
+        "attempts": 1
+      },
+      "composed": false,
+      "cited": [
+        "D6"
+      ],
+      "evidence": {
+        "regulatory": 4,
+        "policy": 3,
+        "obligations": 3
+      },
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 0.98,
+        "intent_probabilities": {
+          "compare": 0.0,
+          "scan_status": 0.0,
+          "evidence": 0.98,
+          "affected_policies": 0.0,
+          "policy_lookup": 0.0,
+          "obligations": 0.0,
+          "run_scan": 0.0,
+          "other_reasoning": 0.0,
+          "action_request": 0.0,
+          "summarize_work": 0.0,
+          "approval_status": 0.0,
+          "other": 0.0,
+          "list_not_applicable": 0.0,
+          "explain": 0.02,
+          "latest_changes": 0.0,
+          "pending_reviews": 0.0,
+          "list_conflicts": 0.0,
+          "prioritize": 0.0
+        },
+        "latency_ms": 956,
+        "input_tokens": 3359,
+        "output_tokens": 459,
+        "questions": 7,
+        "document_confidence": 0.46,
+        "document_2_confidence": 0.93,
+        "flags": {
+          "follow_up": true,
+          "requests_action": false,
+          "answerable": true
+        }
+      },
+      "refused": false
+    },
+    {
+      "question": "What should we do next?",
+      "id": "inv_4ebb81cc8ddd",
+      "intent": "prioritize",
+      "summary": "Priority: high. Amend POL-001 to adopt the SEBI circular's requirements before the circular takes effect and issue an interim instruction if needed. Specifically, align the policy language on the payment timeline and post-pledge client communication to match the circular.",
+      "conversation_id": "conv_a55c27040267",
+      "kind": "jev_reasoning",
+      "narrative": {
+        "provider": "foundry",
+        "model": "gpt-5-mini",
+        "latency_ms": 24717,
+        "input_tokens": 2001,
+        "output_tokens": 2611,
+        "cached_tokens": 0,
+        "estimated_cost_usd": 0.005722,
+        "structured_mode": "json_schema",
+        "context_format": "toon",
+        "attempts": 1
+      },
+      "composed": false,
+      "cited": [
+        "D6"
+      ],
+      "evidence": {
+        "regulatory": 2,
+        "policy": 2,
+        "obligations": 0
+      },
+      "judge": {
+        "provider": "typesafe",
+        "model": "jev-1.13.0",
+        "calibrated": true,
+        "intent_confidence": 0.87,
+        "intent_probabilities": {
+          "explain": 0.0,
+          "prioritize": 0.89,
+          "run_scan": 0.0,
+          "policy_lookup": 0.0,
+          "other": 0.01,
+          "list_not_applicable": 0.0,
+          "list_conflicts": 0.0,
+          "scan_status": 0.0,
+          "obligations": 0.0,
+          "action_request": 0.09,
+          "summarize_work": 0.0,
+          "other_reasoning": 0.0,
+          "compare": 0.0,
+          "evidence": 0.0,
+          "affected_policies": 0.0,
+          "latest_changes": 0.0,
+          "approval_status": 0.0,
+          "pending_reviews": 0.01
+        },
+        "latency_ms": 1019,
+        "input_tokens": 3503,
+        "output_tokens": 458,
+        "questions": 7,
+        "document_confidence": 0.46,
+        "document_2_confidence": 0.89,
+        "flags": {
+          "follow_up": true,
+          "requests_action": false,
+          "answerable": true
+        }
+      },
+      "refused": false
+    }
+  ],
+  "action_refused": true,
+  "reviews_unchanged": true,
+  "usage_after": {
+    "period": "today",
+    "since": "2026-09-22T00:00:00+00:00",
+    "deployments": {
+      "extraction": "gpt-5-mini",
+      "impact": "gpt-5-mini",
+      "memo": "gpt-5-mini",
+      "embedding": "text-embedding-3-small"
+    },
+    "active_model": "gpt-5-mini",
+    "pricing": {
+      "gpt-5-mini": "estimate",
+      "text-embedding-3-small": "estimate"
+    },
+    "models": [
+      {
+        "model": "gpt-5-mini",
+        "provider": "foundry",
+        "requests": 9,
+        "input_tokens": 22115,
+        "output_tokens": 25040,
+        "cached_tokens": 0,
+        "estimated_cost_usd": 0.055607,
+        "avg_latency_ms": 25838,
+        "errors": 0,
+        "retried": 0,
+        "unknown_pricing_calls": 0,
+        "toon_calls": 6,
+        "pricing_status": "estimate"
+      }
+    ],
+    "requests": 9,
+    "input_tokens": 22115,
+    "output_tokens": 25040,
+    "cached_tokens": 0,
+    "errors": 0,
+    "retried": 0,
+    "unknown_pricing_calls": 0,
+    "toon_calls": 6,
+    "estimated_cost_usd": 0.055607,
+    "avg_latency_ms": 25838,
+    "scan": {
+      "id": "scan_1d1bf0d813b7",
+      "status": "COMPLETED",
+      "llm_calls": 0,
+      "estimated_cost_usd": null,
+      "requests": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cached_tokens": 0,
+      "errors": 0,
+      "retried": 0,
+      "unknown_pricing_calls": 0,
+      "toon_calls": 0,
+      "avg_latency_ms": null
+    },
+    "budget": {
+      "scan_limit_usd": 0.5,
+      "daily_limit_usd": 5.0,
+      "max_llm_calls_per_scan": 10,
+      "spent_today_usd": 0.055607,
+      "daily_remaining_usd": 4.944393,
+      "scan_remaining_usd": 0.5,
+      "note": "Application circuit breakers on list-price estimates; not Azure billing limits."
+    }
+  }
+}

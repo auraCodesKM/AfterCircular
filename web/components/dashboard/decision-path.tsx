@@ -21,7 +21,7 @@ const stageLabel: Record<DecisionRecord["stage"], string> = {
   escalation: "Reasoning model",
   cross_check: "Reasoning model cross-checked",
 };
-const providerName: Record<string, string> = { typesafe: "Jev · System One", foundry: "Microsoft Foundry", stub: "Stub (fixture, no model)", code: "Code" };
+const providerName: Record<string, string> = { typesafe: "Jev (reasoning support)", foundry: "Microsoft Foundry", stub: "Stub (fixture, no model)", code: "Deterministic code" };
 
 function fmtAnswer(a: DecisionAnswer) {
   if (a.type === "noul") return `P(yes) ${(a.noul ?? 0).toFixed(2)}`;

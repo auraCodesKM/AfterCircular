@@ -1,0 +1,28 @@
+{
+  "_comment": "Expected outcomes for the REAL SEBI circulars in regulatory_sources/sebi against the two FICTIONAL tenant corpora. 'expected' is what the deliberately designed policies should produce; the pipeline computes the actual result independently (nothing here is read by production code). UNCERTAIN means the corpus was written to leave the question open.",
+  "tenants": {
+    "acme-securities-pvt-ltd-181441765": {"company": "Acme Securities Pvt. Ltd.", "repo": "auraCodesKM/acme-securities-policies", "profile": "stock broker + depository participant; no commodity segment; no MF/SIF distribution"},
+    "nimbus-asset-management-181441765": {"company": "Nimbus Asset Management", "repo": "auraCodesKM/nimbus-amc-policies", "profile": "mutual fund AMC with one SIF strategy; not a broker or DP"}
+  },
+  "cases": [
+    {"entry_id": "102584", "tenant": "acme-securities-pvt-ltd-181441765", "applicability": "YES", "gate": "CONFLICT", "affected": ["POL-001"],
+     "why": "Addressed to all stock brokers. Acme POL-001 gives clients seven trading days (circular §46.4: not more than five), keeps the policy internal (§46.3: communicate to clients), sends no communication on pledge creation (§46.2), allows exposure on pledged securities (§46.5), and lets Operations extend without limit (§46.12)."},
+    {"entry_id": "102584", "tenant": "nimbus-asset-management-181441765", "applicability": "NO", "gate": "ARCHIVED", "affected": [], "why": "Addressed to stock exchanges, depositories and stock brokers; Nimbus is an AMC."},
+    {"entry_id": "102762", "tenant": "nimbus-asset-management-181441765", "applicability": "YES", "gate": "ALIGNED", "affected": [],
+     "why": "Addressed to mutual funds/AMCs. Nimbus POL-001 §3–§4 mirror the circular: board + trustee approval and website publication (§2.4), permitted purposes (§2.1), quantum limited to receivables (§2.2), same-day repayment (§2.3), scheme-wise records (§2.5), cost borne by the AMC (§2.7)."},
+    {"entry_id": "102762", "tenant": "acme-securities-pvt-ltd-181441765", "applicability": "NO", "gate": "ARCHIVED", "affected": [], "why": "Addressed to mutual funds, AMCs, trustees and AMFI; Acme is a broker."},
+    {"entry_id": "102986", "tenant": "nimbus-asset-management-181441765", "applicability": "YES", "gate": "CONFLICT", "affected": ["POL-002"],
+     "why": "Addressed to AMCs, which must ensure distributor compliance (§21.10.5). Nimbus offers a SIF and POL-002 §4.2 requires NISM Series XIII for SIF distribution, whereas the circular requires NISM Series V-D (§21.10.1) and says Series XIII is not applicable after 21 Sep 2026 (§21.10.3)."},
+    {"entry_id": "102986", "tenant": "acme-securities-pvt-ltd-181441765", "applicability": "NO", "gate": "ARCHIVED", "affected": [], "why": "Addressed to MFs, AMCs, trustees, RTAs and AMFI; Acme does not distribute MF or SIF products."},
+    {"entry_id": "103915", "tenant": "acme-securities-pvt-ltd-181441765", "applicability": "YES", "gate": "ALIGNED", "affected": [],
+     "why": "Addressed to all regulated entities including stock brokers. Acme POL-002 §4 already reports within 6 hours by email and 24 hours on the SEBI portal and files staged updates to closure (circular §2, §4, §5)."},
+    {"entry_id": "103915", "tenant": "nimbus-asset-management-181441765", "applicability": "YES", "gate": "UNCERTAIN", "affected": [],
+     "why": "Addressed to MFs/AMCs. Nimbus POL-003 §4 says incidents are reported 'in line with the applicable framework' but names no portal, timeline or staged reporting — written to leave the comparison open (NEEDS_INVESTIGATION or CONFLICT are both defensible)."},
+    {"entry_id": "102914", "tenant": "nimbus-asset-management-181441765", "applicability": "YES", "gate": "ALIGNED", "affected": [],
+     "why": "Addressed to MFs/AMCs among others, but the directions are to depositories (§5–§6). Nimbus POL-004 §4.2 commits to connect to the depositories' framework when published."},
+    {"entry_id": "102914", "tenant": "acme-securities-pvt-ltd-181441765", "applicability": "UNCERTAIN", "gate": "UNCERTAIN", "affected": [],
+     "why": "Addressed to depository participants (Acme is one) but the obligations fall on depositories; Acme POL-005 §3.2/§4.1 adopt depository frameworks. ALIGNED or NEEDS_INVESTIGATION are both defensible."},
+    {"entry_id": "104387", "tenant": "acme-securities-pvt-ltd-181441765", "applicability": "NO", "gate": "ARCHIVED", "affected": [], "why": "Addressed to stock exchanges with a commodity derivatives segment; Acme has no commodity segment (POL-003 §2.2)."},
+    {"entry_id": "104387", "tenant": "nimbus-asset-management-181441765", "applicability": "NO", "gate": "ARCHIVED", "affected": [], "why": "Commodity derivatives exchanges only; Nimbus is an AMC."}
+  ]
+}

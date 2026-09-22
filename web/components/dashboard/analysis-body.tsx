@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, FileDiff, ListChecks, Scale } from "lucide-react";
+import { ChevronRight, Cpu, FileDiff, ListChecks, Scale } from "lucide-react";
 import type { ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -64,6 +64,35 @@ export function AnalysisBody({ doc, analysis }: { doc: ProcessedDocument; analys
       {impact ? (
         <>
           <section className="space-y-3">
+            <SectionHeader as="h3" icon={<Cpu />} title="How this analysis was produced" description="Every line below is read from the stored run — provider, deployment and counts — never assumed." />
+            <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm sm:grid-cols-[auto_1fr]">
+              <dt className="text-muted-foreground">Regulation</dt>
+              <dd>
+                {doc.source} · {impact.regulatory_source?.synthetic || doc.source_mode === "DEMO_SNAPSHOT" ? <span className="text-warning">DEMO SNAPSHOT · synthetic</span> : <span className="text-success">LIVE</span>}
+                {impact.regulatory_source?.reference ? <span className="ml-2 font-mono text-xs">{impact.regulatory_source.reference}</span> : null}
+                {impact.regulatory_source?.detail_url && !impact.regulatory_source.synthetic ? (
+                  <a href={impact.regulatory_source.detail_url} target="_blank" rel="noreferrer" className="ml-2 underline underline-offset-4">Open SEBI source ↗</a>
+                ) : null}
+                {impact.regulatory_source?.pdf_url && !impact.regulatory_source.synthetic ? (
+                  <a href={impact.regulatory_source.pdf_url} target="_blank" rel="noreferrer" className="ml-2 underline underline-offset-4">PDF ↗</a>
+                ) : null}
+              </dd>
+              <dt className="text-muted-foreground">AI extraction</dt>
+              <dd>{analysis.models.extraction ? `Microsoft Foundry · ${analysis.models.extraction}` : analysis.ai_provider === "stub" ? "Stub fixture (no model)" : "Not run (archived before extraction)"}</dd>
+              <dt className="text-muted-foreground">Retrieved policies</dt>
+              <dd>{analysis.metrics.retrieval ? `${analysis.metrics.retrieval.backend === "azure-ai-search" ? "Azure AI Search" : "Local hybrid index"} · ${analysis.metrics.retrieval.count ?? 0} candidate clauses` : "Not run"}</dd>
+              <dt className="text-muted-foreground">Reasoning</dt>
+              <dd>
+                {analysis.decision_path.some((p) => p.startsWith("typesafe:")) ? "Jev typed judgments (reasoning support)" : analysis.decision_path.some((p) => p.startsWith("stub:")) ? "Stub judgments (fixture)" : "—"}
+                {analysis.models.impact ? ` · Microsoft Foundry ${analysis.models.impact} on escalation` : ""}
+                {analysis.models.memo ? ` · memo drafted by Microsoft Foundry ${analysis.models.memo}` : ""}
+              </dd>
+              <dt className="text-muted-foreground">Policy source</dt>
+              <dd>Internal policies from GitHub (fictional PoC tenant)</dd>
+            </dl>
+          </section>
+
+          <section className="space-y-3">
             <SectionHeader as="h3" icon={<Scale />} title="Impact" />
             <dl className="grid grid-cols-2 divide-border overflow-hidden rounded-xl border border-border bg-card sm:grid-cols-4 sm:divide-x">
               {(
@@ -85,7 +114,7 @@ export function AnalysisBody({ doc, analysis }: { doc: ProcessedDocument; analys
           <WhyBlock impact={impact} />
 
           {impact.regulatory_evidence.length || impact.policy_evidence.length ? (
-            <EvidencePair regulatory={impact.regulatory_evidence} policy={impact.policy_evidence} source={{ label: `${doc.source} circular`, url: doc.url, published: doc.published_date }} />
+            <EvidencePair regulatory={impact.regulatory_evidence} policy={impact.policy_evidence} source={{ label: `${doc.source} circular`, url: doc.url, published: doc.published_date, regulatory: impact.regulatory_source, policies: impact.policy_sources }} />
           ) : null}
 
           {impact.recommended_action ? (

@@ -92,7 +92,7 @@ export function DocumentsTable({
                   {d.circular_number ?? d.document_id}
                 </span>
                 {d.document_version > 1 ? ` · v${d.document_version}` : ""}
-                {d.source_mode === "DEMO_SNAPSHOT" ? " · demo" : ""}
+                {d.source_mode === "DEMO_SNAPSHOT" ? " · DEMO SNAPSHOT (synthetic)" : " · LIVE"}
               </p>
               <p className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                 <span>Effective {fmtDate(d.effective_date)}</span>
@@ -178,7 +178,7 @@ export function DocumentsTable({
                       {d.document_version > 1
                         ? ` · v${d.document_version}`
                         : ""}
-                      {d.source_mode === "DEMO_SNAPSHOT" ? " · demo" : ""}
+                      {d.source_mode === "DEMO_SNAPSHOT" ? " · DEMO SNAPSHOT (synthetic)" : " · LIVE"}
                     </p>
                   </TableCell>
                   <TableCell className="py-3">

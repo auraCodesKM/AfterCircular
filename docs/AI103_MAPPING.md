@@ -1,0 +1,23 @@
+# AI-103 concept mapping — AfterCircular
+
+Every row names the real service and the code that calls it. Nothing is claimed that the code does not do.
+
+| AI-103 concept | AfterCircular feature | Actual Microsoft / Azure service | Code | Demo step (DEMO_RUNBOOK.md) |
+|---|---|---|---|---|
+| **Microsoft Foundry** | primary AI layer: obligation extraction, impact reasoning, memo drafting, Ask narrative | Foundry resource `aif-aftercircular-dev` (Korea Central), project `proj-aftercircular-dev`, deployment **gpt-5-mini** (Global Standard), Azure OpenAI **v1 Responses API** (`<resource>/openai/v1/`), auth **Entra ID** (`DefaultAzureCredential`) | `backend/app/models/provider.py` (`FoundryProvider`), `app/agents/*`, `app/services/investigate.py::narrate` | 5, 6, 12 |
+| Azure AI models / model deployment | one chat deployment serves three tasks by configuration; swappable to another deployment by env only | `EXTRACTION_MODEL/IMPACT_MODEL/MEMO_MODEL=gpt-5-mini`, `EMBEDDING_MODEL=text-embedding-3-small` | `app/config.py`, `provider.model_for` | 16 |
+| Structured output | strict JSON-Schema outputs for `ExtractionResult`, `ImpactAnalysis`, `Memo`, `AskAnswer`; one bounded repair; per-schema fallback | `responses.parse(text_format=<Pydantic>)` | `provider.generate_structured`, `app/schemas/*` | 6 |
+| Prompt engineering | system rules (untrusted input, verbatim evidence, no unsupported claims), stable prefix first, TOON for repeated records | — | `app/agents/*.py`, `app/toon.py` | 6 |
+| Grounding | every claim carries a record id / evidence id validated in code; conflicts need two-sided verbatim evidence; citation check | — | `investigate.validate_answer`, `decisions/impact.py::verify_conflicts`, `services/gate.py` | 7, 8, 12 |
+| RAG / embeddings / vector search | policy corpus chunked by clause, embedded, retrieved per circular | **Azure AI Search** `srch-aftercircular-dev` index `policies-dev` (HNSW cosine, BM25, RRF, `tenant_id` filter); **text-embedding-3-small** (1536-d) | `app/retrieval/azure_search.py`, `app/services/policies.py` | 5, 7 |
+| Agentic workflow / tool use | deterministic pipeline with typed judgments, escalation, memo, human gate, GitHub tool; Ask = route → judge → grounded narrative, read-only | Foundry + Jev (TypeSafe System One) + GitHub REST | `app/services/pipeline.py`, `app/decisions/*`, `app/tools/github.py`, `app/services/investigate.py` | 9, 12–14 |
+| Responsible AI / human oversight | approval is the only path to a side effect; uncertainty preserved (NEEDS_INVESTIGATION); no autonomous policy edits; fictional tenants | content filters on the Foundry deployment (default) | `app/services/reviews.py`, `services/gate.py`, `decisions/policy.py` | 10, 11, 14 |
+| Monitoring / telemetry | per-call tokens, cached tokens, latency, estimated cost, structured mode, TOON/JSON; per-scan cost; usage endpoint | `llm_calls` table; Application Insights exporter (optional, `APPLICATIONINSIGHTS_CONNECTION_STRING`) | `services/state.py::usage`, `api/usage.py`, `main.py` | 16 |
+| Security / identity | no API keys in the demo: Entra ID for Foundry and Search; GitHub OAuth for users; tenant headers set only by the trusted web server | Entra ID roles *Cognitive Services OpenAI User*, *Search Index Data Contributor* | `provider.EntraCredential`, `retrieval/azure_search.py`, `web/auth.ts`, `api/deps.py` | 1 |
+| Cloud architecture | Foundry + Search in `rg-aftercircular-dev`, local backend for the PoC, Container Apps/Functions documented for phase 2 | Azure resources listed in `azureDecision.md` §12 | `azureDecision.md`, `backend/Dockerfile`, `backend/functions/` | — |
+| Evaluation / testing | golden scenarios (stub), judge calibration, TOON benchmark, live scenario matrix (real circulars × two tenants), cost/safety tests, opt-in live tests | — | `backend/tests/*`, `evals/live_e2e.py`, `evals/scenarios/live_matrix.json`, `evals/toon_benchmark.py` | — |
+| Real data source | official SEBI listing → circular page → PDF, no fallback in live mode, provenance on every document | www.sebi.gov.in | `app/connectors/sebi.py`, `regulatory_sources/sebi/*.json` | 2–4 |
+
+Where **Jev** sits: TypeSafe System One is not a Microsoft service. It returns typed judgments with calibrated probabilities
+(triage, applicability, relevance, alignment, citation checks, Ask routing/sufficiency). It is labelled *reasoning support*
+everywhere in the UI; the generative work — extraction, reasoning on escalation, memo, narrative — is Microsoft Foundry.

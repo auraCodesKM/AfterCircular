@@ -25,6 +25,13 @@ export type Evidence = { section: string; text: string };
 export type PolicyEvidence = { doc_id: string; section: string; text: string };
 export type Obligation = { requirement: string; affected_area: string; deadline: string | null; evidence: Evidence };
 
+/** Where a cited regulation really lives (official page + PDF) and where a cited policy clause lives (exact GitHub file). Attached by code, never by a model. */
+export type RegulatorySource = {
+  regulator: string; source_mode: "LIVE" | "DEMO_SNAPSHOT"; synthetic: boolean; title: string; reference: string | null; published_date: string | null;
+  detail_url: string; pdf_url: string | null; document_id: string; content_hash: string; fetched_at: string | null;
+};
+export type PolicySource = { path: string | null; url: string | null; repo: string; branch: string; fictional: boolean };
+
 export type AnalysisRecord = {
   id: string; document_pk: string; scan_id: string | null;
   extraction: { regulator?: string; circular_number?: string | null; effective_date?: string | null; applies_to?: string[]; summary?: string; obligations?: Obligation[] };
@@ -33,6 +40,7 @@ export type AnalysisRecord = {
     applicability: "YES" | "NO" | "UNCERTAIN"; alignment: "ALIGNED" | "CONFLICT" | null; affected_policies: string[]; reason: string;
     regulatory_evidence: Evidence[]; policy_evidence: PolicyEvidence[]; effective_date: string | null; recommended_action: string | null; confidence: number;
     severity?: "administrative" | "operational" | "prohibitive" | null;
+    regulatory_source?: RegulatorySource | null; policy_sources?: Record<string, PolicySource>;
   } | null;
   gate_outcome: string | null;
   memo: { regulatory_change: string; current_policy: string; identified_gap: string; proposed_amendment: string; effective_date: string; recommended_action: string; evidence: string[]; disclaimer: string } | null;
@@ -104,12 +112,13 @@ export type PolicyIndex = { index: { repo: string; commit_sha: string; indexed_a
 
 /** A card the agent returns for one processed circular. */
 export type DocCard = {
-  id?: string; document_id?: string; gate?: string | null; confidence?: number | null; review?: { status: string; decided_by?: string | null; decided_at?: string | null; ticket_id?: string | null; ticket_url?: string | null } | null;
+  id?: string; document_id?: string; url?: string; gate?: string | null; confidence?: number | null; review?: { status: string; decided_by?: string | null; decided_at?: string | null; ticket_id?: string | null; ticket_url?: string | null } | null;
   document_pk: string; title: string; circular_number: string | null; source: string; published_date: string | null; effective_date: string | null;
   impact: string | null; status: DocumentStatus; source_mode: "LIVE" | "DEMO_SNAPSHOT"; synthetic?: boolean; document_url?: string | null; fetched_at?: string | null; analysis_id: string | null;
   applicability: "YES" | "NO" | "UNCERTAIN" | null; alignment: "ALIGNED" | "CONFLICT" | null; affected_policies: string[]; reason: string | null;
   severity: string | null; regulatory_evidence: Evidence[]; policy_evidence: PolicyEvidence[]; recommended_action: string | null;
   decision_path: string[]; escalation_reason: string | null; ticket_url: string | null; ticket_id: string | null;
+  regulatory_source?: RegulatorySource | null; policy_sources?: Record<string, PolicySource>;
 };
 
 export type AskEvidence = { id: string; record: string; section?: string | null; text?: string; doc_id?: string; requirement?: string; area?: string };

@@ -13,7 +13,7 @@ export default async function DocumentsPage() {
   const documents = await load<ProcessedDocument[]>(ctx, "/api/documents", []);
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow={`${ctx.tenant.companyName} · Documents`} title="Regulatory publications" description="Every circular processed for this workspace, with its impact on your policies and where it stands." meta={<span>{documents.data.length} processed</span>} />
+      <PageHeader eyebrow={`${ctx.tenant.companyName} · Documents`} title="Regulatory publications" description="Real publications fetched from the regulator's official site (LIVE) — or clearly labelled synthetic fixtures in demo mode — with their impact on this company's internal policies. Internal policies themselves live under Policies." meta={<span>{documents.data.length} processed</span>} />
       {documents.error ? (
         <Alert variant="error">
           <AlertTitle>Could not load documents</AlertTitle>

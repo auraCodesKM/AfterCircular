@@ -16,11 +16,14 @@ def build_ticket(doc: ProcessedDocument, analysis: AnalysisRecord, review: Revie
     title = f"[Compliance] {doc.source} {doc.circular_number or doc.document_id} vs {first_policy.doc_id + ' §' + first_policy.section if first_policy else affected}"
     demo = "\n> **Demo snapshot:** this circular is fictional (`source_mode = DEMO_SNAPSHOT`).\n" if doc.source_mode == "DEMO_SNAPSHOT" else ""
     reg_ev = "\n".join(f"  - §{e.section}: “{e.text}”" for e in impact.regulatory_evidence) or "  - —"
-    pol_ev = "\n".join(f"  - {e.doc_id} §{e.section}: “{e.text}”" for e in impact.policy_evidence) or "  - —"
+    pol_src = (analysis.impact or {}).get("policy_sources") or {}  # provenance merged by the pipeline: doc_id → {path, url, repo, branch}
+    pol_ev = "\n".join(f"  - {e.doc_id} §{e.section}: “{e.text}”" + (f" ([{pol_src[e.doc_id]['path']}]({pol_src[e.doc_id]['url']}))" if e.doc_id in pol_src else "")
+                       for e in impact.policy_evidence) or "  - —"
     body = f"""{demo}
 ## Regulatory change
-- **Source:** {doc.source} ({doc.jurisdiction})
+- **Source:** {doc.source} ({doc.jurisdiction}) · {doc.source_mode}{(' · fetched ' + doc.fetched_at.isoformat()) if doc.fetched_at else ''}
 - **Reference:** {doc.circular_number or '—'}, published {doc.published_date or '—'}, {doc.url}
+- **Official PDF:** {doc.document_url or '—'}
 - **Title:** {doc.title}
 - **Summary:** {extraction.summary}
 - **Clause(s):**

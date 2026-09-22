@@ -48,7 +48,7 @@ DETERMINISTIC = {
 }
 REASONING = {
     "explain": "what one circular says or changed, why it got its result (conflict, aligned, not applicable), the reasoning behind one verdict",
-    "prioritize": "which items matter most, which are urgent, what to do first and why",
+    "prioritize": "which items matter most, which are urgent, what to do first or next and why (a recommendation, not an action)",
     "evidence": "what evidence supports a conclusion, which excerpts or clauses back a verdict",
     "affected_policies": "which internal policy documents or sections are affected by a circular or by all conflicts",
     "obligations": "which obligations or requirements a circular imposes, which affect a given area",
@@ -56,7 +56,7 @@ REASONING = {
     "summarize_work": "summarize the pending compliance work, the overall situation, what the workspace contains",
     "other_reasoning": "another question that needs reasoning over the workspace records",
 }
-INTENTS = {**DETERMINISTIC, **REASONING, "action_request": "asks the assistant to approve, reject, create a GitHub issue, change a policy, or otherwise act",
+INTENTS = {**DETERMINISTIC, **REASONING, "action_request": "asks the assistant itself to act now: approve, reject, create a GitHub issue, change a policy — not a question about what the company should do",
            "other": "not about this workspace, or too vague to route"}
 MIN_INTENT_CONFIDENCE = 0.5
 MIN_TARGET_CONFIDENCE = 0.5
@@ -97,7 +97,7 @@ async def route(ctx: dict[str, Any], document_id: str | None) -> tuple[str, list
              "policies": [{"doc_id": p["doc_id"], "title": p["title"]} for p in ctx["policies"]], "pending_reviews": len(ctx["pending_reviews"])}
     qs: dict[str, Any] = {
         "intent": Choice(instructions="What is `question` asking for? Read `conversation` first: a short follow-up refers to the previous turn.", criteria=dict(INTENTS)),
-        "requests_action": Noul(instructions="Does `question` ask the assistant to perform an action (approve, reject, create an issue, edit a policy, run something)?",
+        "requests_action": Noul(instructions="Does `question` ask the assistant to perform an action itself (approve, reject, create an issue, edit a policy, run something)? Asking what the company should do next is a recommendation, not an action.",
                                 criteria=NoulCriteria(true="it asks for an action to be carried out", false="it asks for information, analysis or an explanation")),
         "follow_up": Noul(instructions="Does `question` depend on `conversation` to be understood (pronouns, 'the first one', 'that', 'which should be…')?",
                           criteria=NoulCriteria(true="it cannot be interpreted without the previous turn", false="it stands on its own")),
@@ -133,6 +133,10 @@ async def route(ctx: dict[str, Any], document_id: str | None) -> tuple[str, list
         if doc_conf >= 0.8 and top and all(k in ("explain", "latest_changes", "compare", "evidence", "obligations", "summarize_work") for k, _ in top):
             intent = "explain"
             meta["note"] = f"intent split {', '.join(f'{k} {v:.2f}' for k, v in top)}; target clear ({doc_conf:.2f}) → explaining it"
+        elif doc_conf >= MIN_TARGET_CONFIDENCE and top and all(k in REASONING for k, _ in top):
+            # split only between reasoning readings of one clear circular → take Jev's top reading; the narrative is still validated
+            intent = top[0][0]
+            meta["note"] = f"intent split {', '.join(f'{k} {v:.2f}' for k, v in top)}; target clear ({doc_conf:.2f}) → {intent}"
         else:
             meta["note"] = f"intent confidence {a.confidence:.2f} below {MIN_INTENT_CONFIDENCE}; asking for clarification"
             intent = "other"
@@ -242,7 +246,7 @@ Rules — these are absolute:
 
 
 async def narrate(llm: LLMProvider, ctx: dict[str, Any], records: list[dict[str, Any]], judgments: dict[str, Any], intent: str) -> tuple[AskAnswer | None, dict[str, Any] | None]:
-    rows = [{k: v for k, v in r.items() if k not in ("document_pk", "analysis_id", "url", "document_url", "decision_path", "triage")} for r in records]
+    rows = [{k: v for k, v in r.items() if k not in ("document_pk", "analysis_id", "url", "document_url", "decision_path", "triage", "regulatory_source", "policy_sources")} for r in records]
     block = format_context({"records": rows}, prefer="toon" if settings().toon_context else "json")
     convo = "\n".join(f"Q: {t['question']}\nA: {t['answer_summary']}" for t in ctx["conversation"]) or "(none)"
     user = (f"COMPANY: {ctx['workspace']['company']} (fictional PoC tenant)\nINTENT: {intent}\nPREVIOUS TURNS\n{convo}\n\nQUESTION\n{ctx['question']}\n\n"
@@ -308,7 +312,7 @@ def _cards(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rv = r.get("review") or {}
         out.append({k: r[k] for k in ("id", "document_pk", "document_id", "circular_number", "title", "published_date", "effective_date", "source_mode", "synthetic", "url", "document_url", "status", "impact",
                                       "analysis_id", "applicability", "alignment", "gate", "severity", "confidence", "affected_policies", "reason", "review", "regulatory_evidence", "policy_evidence",
-                                      "decision_path", "escalation_reason", "recommended_action")}
+                                      "decision_path", "escalation_reason", "recommended_action", "regulatory_source", "policy_sources")}
                    | {"source": r["regulator"], "ticket_id": rv.get("ticket_id"), "ticket_url": rv.get("ticket_url")})
     return out
 
@@ -388,7 +392,7 @@ async def investigate(db: StateStore, tenant: TenantContext, question: str, conv
         judge2 = judge_for("ask")
         qs = reasoning_questions(intent, selected)
         state = {"question": question, "conversation": ctx["conversation"], "company": ctx["workspace"]["company"],
-                 "records": [{k: v for k, v in r.items() if k not in ("document_pk", "analysis_id", "url", "document_url", "triage")} for r in selected]}
+                 "records": [{k: v for k, v in r.items() if k not in ("document_pk", "analysis_id", "url", "document_url", "triage", "regulatory_source", "policy_sources")} for r in selected]}
         t0 = time.perf_counter()
         try:
             j = await judge2.ask("ask_reason", state, qs, context={"document_id": first_doc})

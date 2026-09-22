@@ -152,12 +152,21 @@ export function AnswerView({ inv, compact, onAsk, stream = true, onDone }: { inv
                 <p className="mt-1 text-sm leading-6 text-foreground/90">{p.claim}</p>
                 {p.evidence.length ? (
                   <ul className="mt-2 space-y-1">
-                    {p.evidence.map((e) => (
-                      <li key={e.id} className="flex gap-2 text-xs text-muted-foreground">
-                        <span className="shrink-0 font-mono text-[10px]">{e.id.includes(".R") ? `circular §${e.section ?? "?"}` : e.id.includes(".P") ? `${e.doc_id ?? "policy"} §${e.section ?? "?"}` : `obligation ${e.section ? `§${e.section}` : ""}`}</span>
-                        <span className="italic">“{e.text ?? e.requirement}”</span>
-                      </li>
-                    ))}
+                    {p.evidence.map((e) => {
+                      const isReg = e.id.includes(".R") || e.id.includes(".O");
+                      const regSrc = card?.regulatory_source ?? null;
+                      const href = isReg ? (regSrc && !regSrc.synthetic ? regSrc.detail_url : card?.url) : (e.doc_id ? card?.policy_sources?.[e.doc_id]?.url : undefined);
+                      const label = e.id.includes(".R") ? `SEBI ${regSrc?.reference ?? card?.circular_number ?? "circular"} §${e.section ?? "?"}` : e.id.includes(".P") ? `${e.doc_id ?? "policy"} §${e.section ?? "?"} · GitHub` : `obligation ${e.section ? `§${e.section}` : ""}`;
+                      return (
+                        <li key={e.id} className="flex gap-2 text-xs text-muted-foreground">
+                          <span className="shrink-0 font-mono text-[10px]">
+                            {href ? <a href={href} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground">{label} ↗</a> : label}
+                            {isReg ? <span className={`ml-1 rounded-sm px-1 ${regSrc?.synthetic ? "bg-warning/15 text-warning" : "bg-success/15 text-success"}`}>{regSrc?.synthetic ? "SNAPSHOT" : "LIVE"}</span> : null}
+                          </span>
+                          <span className="italic">“{e.text ?? e.requirement}”</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : null}
               </li>
@@ -171,7 +180,7 @@ export function AnswerView({ inv, compact, onAsk, stream = true, onDone }: { inv
         <DocCardView card={a.document} expanded onOpenAnalysis={openAnalysis} />
       ) : null}
       {!streaming && a.document && !compact ? (
-        <EvidencePair regulatory={a.document.regulatory_evidence} policy={a.document.policy_evidence} source={{ label: `${a.document.source} circular`, published: a.document.published_date }} />
+        <EvidencePair regulatory={a.document.regulatory_evidence} policy={a.document.policy_evidence} source={{ label: `${a.document.source} circular`, url: a.document.url, published: a.document.published_date, regulatory: a.document.regulatory_source, policies: a.document.policy_sources }} />
       ) : null}
 
       {!streaming && a.documents?.length ? (

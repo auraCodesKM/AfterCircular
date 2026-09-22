@@ -32,11 +32,21 @@ from app.services.state import StateStore, store  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent
 
-EXPECTED = {  # fictional snapshot circulars vs the Acme (stock broker) manifest
+MATRIX = json.loads((ROOT / "scenarios" / "live_matrix.json").read_text(encoding="utf-8"))
+SNAPSHOT_EXPECTED = {  # fictional snapshot circulars vs the Acme (stock broker) manifest — used when SEBI_MODE=demo_snapshot
     "DEMO-2026-014": {"case": "4. applicable + conflict", "applicability": "YES", "gate": "CONFLICT", "affected": ["POL-001"]},
     "DEMO-2026-015": {"case": "3. applicable + aligned", "applicability": "YES", "gate": "ALIGNED", "affected": []},
     "DEMO-2026-016": {"case": "2. clearly irrelevant (mutual funds / AMCs)", "applicability": "NO", "gate": "ARCHIVED", "affected": []},
 }
+
+
+def expected_for(tenant_id: str, document_id: str) -> dict[str, Any]:
+    for c in MATRIX["cases"]:
+        if c["tenant"] == tenant_id and c["entry_id"] == document_id:
+            gate = c["gate"]
+            return {"case": f"{document_id} · {c['why'][:80]}…", "applicability": c["applicability"], "gate": "NEEDS_INVESTIGATION" if gate == "UNCERTAIN" else gate,
+                    "affected": c["affected"], "open": gate == "UNCERTAIN" or c["applicability"] == "UNCERTAIN"}
+    return SNAPSHOT_EXPECTED.get(document_id, {})
 OFFLINE_CASES = [  # covered by tests that run without Azure; recorded here so the set is complete and honest
     ("5. ambiguous applicability", "tests/test_triage_and_cross_check.py::test_triage_proceeds_whenever_uncertain + tests/test_decisions.py::test_not_applicable_needs_high_confidence_and_low_entity_scope"),
     ("6. conflicting evidence (Jev vs Foundry)", "tests/test_triage_and_cross_check.py::test_disagreement_routes_to_a_person_not_to_a_ticket"),
@@ -57,13 +67,17 @@ def _document_result(db: StateStore, t: TenantContext, scan_id: str, pk: str) ->
     d = db.get_document(pk, t.tenant_id)
     assert d is not None
     a = db.get_analysis(d.analysis_id, t.tenant_id) if d.analysis_id else None
-    exp = EXPECTED.get(d.document_id, {})
+    exp = expected_for(t.tenant_id, d.document_id)
     imp = (a.impact if a else None) or {}
     calls = [c for c in db.llm_calls_for_scan(scan_id) if a and c.get("task") and c["task"] in ("extraction", "impact", "memo")]
     decisions = db.decisions_for(a.id, t.tenant_id) if a else []
     jev = [r for r in decisions if r.provider == "typesafe"]
     actual_gate = a.gate_outcome if a else None
-    ok = (imp.get("applicability") == exp.get("applicability")) and (actual_gate == exp.get("gate")) if exp else None
+    ok: bool | None
+    if exp.get("open"):  # the corpus was written to leave this open: any of the defensible outcomes counts, and it is reported as such
+        ok = actual_gate in ("ALIGNED", "NEEDS_INVESTIGATION", "CONFLICT") and imp.get("applicability") in ("YES", "UNCERTAIN")
+    else:
+        ok = (imp.get("applicability") == exp.get("applicability")) and (actual_gate == exp.get("gate")) if exp else None
     return {
         "document_id": d.document_id, "case": exp.get("case"), "status": d.status, "impact": d.impact, "error": d.error,
         "expected": {"applicability": exp.get("applicability"), "gate": exp.get("gate"), "affected_policies": exp.get("affected")},
@@ -75,6 +89,8 @@ def _document_result(db: StateStore, t: TenantContext, scan_id: str, pk: str) ->
         "retrieval": (a.metrics or {}).get("retrieval") if a else None,
         "retrieved_doc_ids": sorted({c["doc_id"] for c in (a.retrieved_chunks if a else [])}),
         "regulatory_evidence": imp.get("regulatory_evidence"), "policy_evidence": imp.get("policy_evidence"),
+        "regulatory_source": imp.get("regulatory_source"), "policy_sources": imp.get("policy_sources"),
+        "source_mode": d.source_mode, "synthetic": d.synthetic, "url": d.url, "document_url": d.document_url,
         "decision_path": a.decision_path if a else [], "escalation_reason": a.escalation_reason if a else None,
         "jev_calls": len(jev), "jev_stages": sorted({r.stage for r in jev}),
         "memo": bool(a and a.memo), "review": (rev.status if (rev := db.review_for_document(pk)) else None),
@@ -158,7 +174,9 @@ if __name__ == "__main__":
     a = ap.parse_args()
     result = asyncio.run(run(a.tenant, a.repo, a.max_documents, a.force))
     (ROOT / "results").mkdir(exist_ok=True)
-    (ROOT / "results" / "live_e2e.json").write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
-    (ROOT / "results" / "live_e2e.md").write_text(markdown(result), encoding="utf-8")
+    slug = a.tenant.split("-1")[0] if a.tenant[0].isalpha() else a.tenant
+    for name in ("live_e2e", f"live_e2e_{slug}"):  # latest + one per tenant, so a second tenant's run keeps the first's evidence
+        (ROOT / "results" / f"{name}.json").write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
+        (ROOT / "results" / f"{name}.md").write_text(markdown(result), encoding="utf-8")
     print(markdown(result))
     sys.exit(0 if result["totals"]["live_cases_matched"] == result["totals"]["live_cases"] else 1)

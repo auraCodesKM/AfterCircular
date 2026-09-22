@@ -121,8 +121,9 @@ def company_state(manifest: dict[str, Any], company_name: str) -> dict[str, Any]
     return {
         "legal_name": c.get("legal_name", company_name), "sector": c.get("sector"), "country": c.get("country"), "regulator": c.get("regulator"),
         "registrations": [f"{r.get('authority')} {r.get('type')}" for r in c.get("registrations", [])],
-        "exchanges": c.get("exchanges", []), "segments": c.get("segments", []),
-        "note": "Only registered activities and listed segments are known. Optional services not listed here are unknown, not absent.",
+        "exchanges": c.get("exchanges", []), "segments": c.get("segments", []), "products": c.get("products", []),
+        "not_registered_for": c.get("not_registered_for", []),
+        "note": "Registered activities, listed segments and products are known. Activities under not_registered_for are declared absent. Anything else is unknown, not absent.",
     }
 
 

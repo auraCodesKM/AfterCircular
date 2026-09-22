@@ -2,7 +2,7 @@
 
 Living record: architecture decisions, Azure runbook, cost strategy, TOON measurements, security, AI-103 mapping,
 verification evidence. Every claim here is either **measured in this repository** or marked **NOT VERIFIED**.
-Last reconciled with code + Azure state: **2026-09-21**.
+Last reconciled with code + Azure state: **2026-09-22** (truthful demo rebuild, §19).
 **STATUS = LIVE (controlled development/demo deployment)** — Foundry `gpt-5-mini` + `text-embedding-3-small`, Azure AI Search
 `policies-dev`, Jev, all reached with Entra ID from this machine; one bounded end-to-end scan verified on 2026-09-21 (§15).
 Not production: single dev resource group, local backend, SQLite, list-price cost estimates, Students subscription.
@@ -509,14 +509,66 @@ Web: set `BACKEND_URL` to the Container App FQDN and deploy `web/` (Vercel or St
 
 ## 18. Known Limitations
 
-- No Azure resource exists yet; every Foundry/Search item is 🧪 until §13 is done. Nothing in this document claims a live Azure result.
 - Prompt-cache savings, live TOON accuracy/latency and live end-to-end cost are unmeasured.
-- Approval → GitHub issue has been exercised live only with the stub provider earlier (issues #2–#4); with Foundry it is
-  verified through mocked tests and remains a manual click on the AWAITING_REVIEW row.
+- Approval → GitHub issue: exercised live on 2026-09-22 with the Foundry pipeline (§19); the earlier stub-era issues #2–#5 in
+  `acme-securities-policies` came from fictional snapshot circulars and were closed with a note saying so.
 - Pricing figures are an unverified list-price snapshot; the Azure Cost analysis blade is the source of truth.
 - The live SEBI connector (official site, scan-triggered, `docs/sebi-connector.md`) depends on sebi.gov.in being reachable and its
   HTML stable; in `live` mode a failure is reported as LIVE_FAILED — there is no silent fallback. The fictional snapshot exists for
-  tests and explicit demo mode only. Monitoring is not continuous: each scan fetches the newest `SEBI_MAX_DOCUMENTS` rows.
+  tests and explicit demo mode only. Monitoring is not continuous: each scan fetches the newest `SEBI_MAX_DOCUMENTS` rows, or
+  the curated `SEBI_SELECTED_ENTRY_IDS` (still fetched live; the registry only pins the set).
+- Scenario matrix: 10/14 live cases match the designed expectation (§19). The four mismatches are all *more cautious* than
+  expected (NEEDS_INVESTIGATION instead of ALIGNED/ARCHIVED), never a false conflict; they are reported, not tuned away.
+- TOON: one document's obligations (103915, section "2.") fails the round-trip check in toon-format 0.9.0b1 (decodes as
+  float) → the adapter records `context_format=mixed` and sends compact JSON for that block.
 - Semantic ranker not evaluated. `MAX_CONTEXT_TOKENS` is a documented budget; only the evidence budget is enforced in code today.
 - Scheduled scans need a server-side `GITHUB_TOKEN` (user OAuth tokens live only in browser sessions).
 - SQLite on Azure Files means one replica; fine for a demo, not for scale.
+
+## 19. Truthful demo rebuild — 2026-09-22
+
+Goal: a pitch-ready PoC with **real SEBI data, fictional company data, real AI/cloud execution, no fake system behaviour**.
+
+**Real regulatory sources.** `backend/regulatory_sources/sebi/<entry_id>.json` — six real circulars, each record written from a
+live fetch (title, reference, date, `detail_url`, `pdf_url`, PDF bytes, text length, content hash, `retrieved_at`;
+`source_mode=LIVE`, `synthetic=false`, validated on load). `SEBI_SELECTED_ENTRY_IDS` pins them; every scan still fetches them
+from www.sebi.gov.in. 103277 was dropped (scanned PDF, no extractable text — reported, not OCR'd).
+
+| entry | circular | reference | date |
+|---|---|---|---|
+| 102584 | Handling of Client's Unpaid Securities by Trading Members | HO/38/11/(9)2026-MIRSD-POD/I/15382/2026 | 2026-07-03 |
+| 102762 | Intraday borrowing facility availed by mutual funds | HO/(92)2026-IMD-POD-2/I/16006/2026 | 2026-07-10 |
+| 102914 | SWP/STP standing instructions for demat units | HO/47/14/13(2)2026-MRD-POD2/I/16590/2026 | 2026-07-17 |
+| 102986 | Certification requirements for distribution of SIFs | HO/24/13/17(1)2026-IMD-POD-1/I/16895/2026 | 2026-07-21 |
+| 103915 | Cyber incident reporting portal (FIRE format) | HO/(449)2026-ITD-5_DIV1/I/19448/2026 | 2026-08-24 |
+| 104387 | Position limits, commodity derivatives segment | HO/47/16/13(5)2026-MRD-POD1/ I/20735/2026 | 2026-09-09 |
+
+**Fictional tenants (redesigned corpora, structured front matter, no regulatory text copied).**
+`auraCodesKM/acme-securities-policies` @ `bbad523` (stock broker + DP: POL-001 unpaid securities — deliberate conflict:
+7 trading days, internal-only, no pledge notice; POL-002 cyber — aligned; POL-003 no commodity segment; POL-004; POL-005 DP;
+SOP-001) and `auraCodesKM/nimbus-amc-policies` @ `a84ddcd` (AMC + one SIF: POL-001 intraday borrowing — aligned; POL-002 SIF
+distributors still on NISM Series XIII — conflict; POL-003 vague cyber reporting — uncertain; POL-004; POL-005; SOP-001).
+
+**Provenance.** `pipeline.provenance()` stores `regulatory_source` (detail/PDF URL, reference, LIVE/DEMO, synthetic) and
+`policy_sources` (GitHub blob URL per policy at the indexed commit) on every analysis; the UI shows *Open SEBI source*, *PDF*,
+*Open on GitHub*, and the Ask evidence chips link to the same. The GitHub issue body carries the PDF URL and the policy file link.
+
+**Live scenario matrix** (`evals/scenarios/live_matrix.json`, `evals/results/live_e2e_<tenant>.md`, after `scripts/demo_reset.py`):
+
+| tenant | scan | Foundry calls | est. cost | Jev records | chunks | result |
+|---|---|---:|---:|---:|---:|---|
+| Acme | scan_9cdb6832a2ce | 7 | $0.0548 | 73 | 48 | 102584 **CONFLICT** POL-001 (memo, review) · 102762/104387 **ARCHIVED** at triage (0 Foundry) · 102914 **ALIGNED** · 102986 NEEDS_INVESTIGATION (expected ARCHIVED; `company_state` now carries `not_registered_for`, not re-run) · 103915 NEEDS_INVESTIGATION (Foundry said conflict, Jev cross-check disagreed → person) · repeat scan 0 new / 6 skipped / 0 calls |
+| Nimbus | scan_a9487dfd7832 | 8 | $0.0549 | 67 | 46 | 102986 **CONFLICT** POL-002 (memo, review) · 102584/104387 **ARCHIVED** · 103915 NEEDS_INVESTIGATION (as designed) · 102762 NEEDS_INVESTIGATION (expected ALIGNED: 3 pairs below 0.7) · 102914 NEEDS_INVESTIGATION (no policy addresses it) · repeat scan 0 new / 6 skipped / 0 calls |
+
+**Ask matrix** (`evals/results/ask_matrix.md`, live Jev + gpt-5-mini): 13 questions + a 4-turn follow-up chain on one
+`conversation_id`; deterministic intents answered from records, reasoning intents narrated by Foundry and validated against
+record ids; "Create a GitHub issue for this conflict." → **refused**, reviews unchanged.
+
+**Human approval → real GitHub issue (2026-09-22 03:49 UTC).** `POST /api/reviews/rev_4e079bf1e196/approve` as
+`auraCodesKM` (audit: `APPROVED` actor_type=human → `TICKET_CREATED` actor_type=agent) opened
+**https://github.com/auraCodesKM/acme-securities-policies/issues/6** — "[Compliance] SEBI HO/38/11/(9)2026-MIRSD-POD/I/15382/2026
+vs POL-001 §5.1", labels compliance / needs-review / severity:operational, body with the official circular page, the PDF URL,
+verbatim §46.2/46.3/46.4/46.8 excerpts, POL-001 §4.2/5.1/6.1 excerpts linked to the GitHub file, the Foundry memo, and
+`AfterCircular-Analysis-ID`. A second approve returned `409 Review rev_4e079bf1e196 is already APPROVED`; the repository has
+exactly one open issue. Repeat scan via the API afterwards: `LIVE_NO_NEW_DOCUMENTS`, 0 new / 6 skipped / 0 model calls.
+Nimbus review `rev_6cc72960deaa` (102986 vs POL-002) is left AWAITING_REVIEW for the live demo click.

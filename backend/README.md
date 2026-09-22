@@ -43,6 +43,7 @@ Point the frontend at it: in `web/.env.local` set `BACKEND_URL=http://localhost:
 | `AZURE_SEARCH_ENDPOINT` / `AZURE_SEARCH_API_KEY` | Azure AI Search. Empty → in-process hybrid retriever (BM25 + cosine, RRF-fused) over SQLite. |
 | `SEBI_MODE` | `live` (official sebi.gov.in; a failure is `LIVE_FAILED`, never a silent fallback), `demo_snapshot` (fictional fixtures), or `live_with_snapshot_fallback` (dev only, fallback recorded as such). See `docs/sebi-connector.md`. |
 | `SEBI_MAX_DOCUMENTS` | Circulars per scan (default 5). |
+| `SEBI_SELECTED_ENTRY_IDS` | Optional curated set of real SEBI entry ids (each must have `regulatory_sources/sebi/<id>.json`, written from a live fetch of the circular page and PDF). They are still fetched live on every scan; the registry only pins the selection and carries provenance. Empty → newest rows. |
 | `GITHUB_TOKEN` | Fallback token; normally the signed-in user's OAuth token arrives per request from the frontend. |
 
 ### Azure resources

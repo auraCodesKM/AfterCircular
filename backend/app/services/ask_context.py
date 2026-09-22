@@ -47,6 +47,8 @@ def document_record(db: StateStore, tenant_id: str, d: dict[str, Any], ref: str,
                    "ticket_id": review.ticket_id, "ticket_url": review.ticket_url} if review else None,
         "memo": bool(a and a.memo),
         "triage": (a.metrics or {}).get("triage") if a else None,
+        "regulatory_source": imp.get("regulatory_source"),
+        "policy_sources": imp.get("policy_sources") or {},
     }
     return rec
 

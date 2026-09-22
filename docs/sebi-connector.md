@@ -25,6 +25,13 @@ held nothing new) and `source_error`. The UI reads those: "Connected to SEBI —
 no new publications since last scan", "SEBI connection failed — <reason> · no snapshot fallback in live mode", or "Demo snapshot —
 synthetic publications, not SEBI data". Demo is never described as SEBI.
 
+**Curated selection (`SEBI_SELECTED_ENTRY_IDS`):** the demo pins six real circulars whose registry records live in
+`backend/regulatory_sources/sebi/<entry_id>.json` (title, reference, date, `detail_url`, `pdf_url`, PDF size, text length,
+content hash, `retrieved_at`; `source_mode = LIVE`, `synthetic = false`, validated by `app/connectors/registry.py`). The
+connector still fetches every one of them live from www.sebi.gov.in on each scan — listing rows are filtered to the set and an
+id that has dropped off the newest listing page is fetched via its registered `detail_url`. An id absent from both is
+reported in `skipped` (→ `LIVE_PARTIAL`), never invented.
+
 **Provenance per document:** `source_mode`, `synthetic` (true only for fixtures), `url` (circular page), `document_url` (PDF),
 `document_bytes`, `fetched_at`, `content_hash` (sha256 of whitespace-normalised text), `document_id` (SEBI entry id),
 `circular_number`, `published_date`. Persisted in `processed_documents`; shown as "Live · sebi.gov.in" or "Demo snapshot · synthetic".

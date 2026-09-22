@@ -75,6 +75,13 @@ class Settings(BaseSettings):
     # live_with_snapshot_fallback = dev only, falls back and says so. "snapshot" is accepted as an alias of demo_snapshot.
     sebi_mode: Literal["live", "demo_snapshot", "snapshot", "live_with_snapshot_fallback"] = "live"
     sebi_max_documents: int = 5
+    # Comma-separated SEBI entry ids to scan (each must exist in regulatory_sources/sebi). Empty = newest listing rows.
+    # Every selected circular is still fetched live from www.sebi.gov.in on each scan; the registry only names them.
+    sebi_selected_entry_ids: str = ""
+
+    @property
+    def sebi_selected_ids(self) -> list[str]:
+        return [x.strip() for x in self.sebi_selected_entry_ids.split(",") if x.strip()]
     sebi_timeout_seconds: float = 20
 
     github_token: str = ""
