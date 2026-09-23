@@ -8,7 +8,7 @@ from app.services.pipeline import Scan
 from app.services.policies import chunk_markdown, parse_front_matter
 from evals.dataset import load_scenarios
 
-CORPUS = Path(__file__).resolve().parents[3] / "acme-securities-policies"
+CORPUS = Path(__file__).resolve().parent / "fixtures" / "acme-securities-policies"  # vendored copy of the fictional Acme policy repo (hermetic tests)
 pytestmark = pytest.mark.skipif(not (CORPUS / "aftercircular.yml").exists(), reason="policy corpus checkout not present")
 
 

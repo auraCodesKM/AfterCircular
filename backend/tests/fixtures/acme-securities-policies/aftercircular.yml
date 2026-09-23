@@ -1,0 +1,78 @@
+# AfterCircular tenant manifest — read by the policy connector.
+# Everything in this file is fictional demo data.
+schema_version: 1
+
+company:
+  legal_name: Acme Securities Private Limited
+  short_name: Acme Securities
+  country: IN
+  city: Mumbai
+  sector: securities-broking
+  regulator: SEBI
+  registrations:
+    - authority: SEBI
+      type: stock-broker
+      number: INZ000998877        # fictional
+  exchanges: [NSE, BSE]
+  segments: [cash-equity, equity-derivatives, currency-derivatives, margin-trading]
+  headcount: 320
+
+compliance:
+  owner_role: Chief Compliance Officer
+  owner_email: cco@acmesecurities.example
+  review_sla_days: 30           # see POL-004 §7
+  default_branch: main
+
+documents:
+  - id: POL-001
+    path: policies/POL-001-position-limits-policy.md
+    title: Position Limits Policy
+    category: policy
+    topics: [position-limits, index-derivatives, stock-derivatives, client-limits, proprietary-limits]
+    regulator_topics: [derivatives, position-limits, risk-management]
+  - id: POL-002
+    path: policies/POL-002-trading-risk-management-policy.md
+    title: Trading Risk Management Policy
+    category: policy
+    topics: [margins, exposure, risk-limits, intraday, surveillance]
+    regulator_topics: [margins, risk-management, derivatives]
+  - id: POL-003
+    path: policies/POL-003-penalty-and-disciplinary-policy.md
+    title: Penalty and Disciplinary Policy
+    category: policy
+    topics: [penalties, short-margin, client-penalties, employee-discipline]
+    regulator_topics: [penalties, margins]
+  - id: POL-004
+    path: policies/POL-004-compliance-manual.md
+    title: Compliance Manual
+    category: policy
+    topics: [compliance-function, regulatory-change, reporting, record-keeping, code-of-conduct]
+    regulator_topics: [code-of-conduct, reporting, inspection]
+  - id: POL-005
+    path: policies/POL-005-escalation-matrix.md
+    title: Escalation Matrix
+    category: policy
+    topics: [escalation, incident, severity, response-times]
+    regulator_topics: [incident-reporting]
+  - id: POL-006
+    path: policies/POL-006-kyc-and-client-onboarding-policy.md
+    title: KYC and Client Onboarding Policy
+    category: policy
+    topics: [kyc, onboarding, ckyc, re-kyc, pep]
+    regulator_topics: [kyc, aml]
+  - id: SOP-001
+    path: sop/SOP-001-derivatives-operations-sop.md
+    title: Derivatives Operations SOP
+    category: sop
+    topics: [derivatives-operations, limit-monitoring, expiry, physical-settlement, margin-calls]
+    regulator_topics: [derivatives, settlement, margins]
+  - id: PRIV-001
+    path: legal/PRIV-001-client-data-privacy-policy.md
+    title: Client Data Privacy Policy
+    category: legal
+    topics: [privacy, data-retention, consent, data-sharing]
+    regulator_topics: [data-protection, record-keeping]
+
+exclude:
+  - .github/**
+  - CHANGELOG.md

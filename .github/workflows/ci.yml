@@ -24,6 +24,7 @@ jobs:
       - run: uv sync --frozen
       # the suite never touches Azure, Foundry, SEBI or GitHub: conftest clears those endpoints and uses the stub provider
       - run: uv run pytest -q
+      - run: uv run pytest -q ../infra/sebi-proxy  # the SEBI relay's CONNECT-only contract
       - run: uv run mypy app scripts evals
 
   frontend:
