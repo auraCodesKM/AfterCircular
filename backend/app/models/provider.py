@@ -197,6 +197,9 @@ def _extract_json(text: str) -> Any:
         return json.loads(text[start : end + 1])
 
 
+LOW_EFFORT_TASKS = {"ask"}
+
+
 class FoundryProvider(LLMProvider):
     """Microsoft Foundry / Azure OpenAI through the GA v1 API (`<endpoint>/openai/v1/`, no api-version):
     Responses API with strict JSON-Schema structured outputs, prompt-cache telemetry, bounded retries, a concurrency cap.
@@ -218,10 +221,14 @@ class FoundryProvider(LLMProvider):
         self._strict_ok: dict[str, bool] = {}  # schema name → whether the API accepted the strict schema
 
     @staticmethod
-    def _sampling(model: str) -> dict[str, Any]:
-        """`temperature` is rejected by reasoning-family deployments (gpt-5*, o1/o3/o4*); everything else gets 0 for determinism."""
+    def _sampling(model: str, task: str | None = None, api: str = "responses") -> dict[str, Any]:
+        """`temperature` is rejected by reasoning-family deployments (gpt-5*, o1/o3/o4*); everything else gets 0 for determinism.
+        Ask narration only renders sentences from Jev's judgments over validated records, so it runs at low reasoning
+        effort (seconds, not a minute); the pipeline tasks keep the deployment's default effort."""
         m = model.lower()
         if m.startswith(("gpt-5", "o1", "o3", "o4")):
+            if task in LOW_EFFORT_TASKS:
+                return {"reasoning": {"effort": "low"}} if api == "responses" else {"reasoning_effort": "low"}
             return {}
         return {"temperature": 0}
 
@@ -251,11 +258,11 @@ class FoundryProvider(LLMProvider):
             async with self._sem:
                 if self.api == "responses":
                     # stable instructions first (prompt-cache prefix), dynamic content in the input
-                    resp = await self.client.responses.parse(model=m, instructions=system, input=user, text_format=schema, **self._sampling(m))
+                    resp = await self.client.responses.parse(model=m, instructions=system, input=user, text_format=schema, **self._sampling(m, task, self.api))
                     parsed, usage, text = resp.output_parsed, resp.usage, resp.output_text  # type: ignore[assignment]
                 else:
                     cc = await self.client.chat.completions.parse(
-                        model=m, response_format=schema, **self._sampling(m),
+                        model=m, response_format=schema, **self._sampling(m, task, self.api),
                         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}])
                     parsed, usage, text = cc.choices[0].message.parsed, cc.usage, cc.choices[0].message.content or ""  # type: ignore[assignment]
         except Exception as e:  # noqa: BLE001
@@ -277,12 +284,12 @@ class FoundryProvider(LLMProvider):
         try:
             async with self._sem:
                 if self.api == "responses":
-                    kw: dict[str, Any] = {"model": m, "instructions": system, "input": user, **self._sampling(m)}
+                    kw: dict[str, Any] = {"model": m, "instructions": system, "input": user, **self._sampling(m, task, self.api)}
                     if json_mode:
                         kw["text"] = {"format": {"type": "json_object"}}
                     r = await self.client.responses.create(**kw)
                     return self._result(task, m, r.output_text, t0, r.usage, "json_object" if json_mode else None, getattr(r, "id", None))
-                kwargs: dict[str, Any] = {"model": m, **self._sampling(m),
+                kwargs: dict[str, Any] = {"model": m, **self._sampling(m, task, self.api),
                                           "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
                 if json_mode:
                     kwargs["response_format"] = {"type": "json_object"}

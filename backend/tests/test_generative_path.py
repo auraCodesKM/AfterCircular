@@ -108,6 +108,10 @@ async def test_one_deployment_serves_all_three_tasks(foundry):
 def test_reasoning_family_models_get_no_temperature():
     assert P.FoundryProvider._sampling("gpt-4.1-mini") == {"temperature": 0}
     assert P.FoundryProvider._sampling("gpt-5-mini") == {} and P.FoundryProvider._sampling("o4-mini") == {}
+    # Ask narration runs at low effort; pipeline tasks keep the deployment default
+    assert P.FoundryProvider._sampling("gpt-5-mini", "ask") == {"reasoning": {"effort": "low"}}
+    assert P.FoundryProvider._sampling("gpt-5-mini", "ask", "chat") == {"reasoning_effort": "low"}
+    assert P.FoundryProvider._sampling("gpt-5-mini", "impact") == {} and P.FoundryProvider._sampling("gpt-4.1-mini", "ask") == {"temperature": 0}
 
 
 async def test_schema_rejected_once_falls_back_to_json_mode_for_that_schema_only(foundry):
