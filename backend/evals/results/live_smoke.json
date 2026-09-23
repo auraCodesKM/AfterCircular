@@ -3,14 +3,16 @@
   "model": "gpt-5-mini",
   "provider": "foundry",
   "text": "{\"ok\":true,\"echo\":\"aftercircular\"}",
-  "latency_ms": 5045,
+  "latency_ms": 7130,
   "input_tokens": 63,
-  "output_tokens": 149,
+  "output_tokens": 113,
   "cached_tokens": 0,
   "attempts": 1,
-  "estimated_cost_usd": 0.000314,
+  "estimated_cost_usd": 0.000242,
   "pricing_status": "estimate",
   "context_format": null,
   "structured_mode": "json_schema",
-  "response_id": "resp_0b7b3d3d7963122d006ab2289911d48196bb2b45d31d7731b1"
+  "response_id": "resp_04adc3f2c3ceeabc006ab34c1ff96c8195a96e471eb1086171",
+  "context_tokens": null,
+  "context_json_tokens": null
 }

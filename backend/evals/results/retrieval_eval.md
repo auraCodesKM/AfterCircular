@@ -1,4 +1,4 @@
-# Azure AI Search retrieval evaluation — 2026-09-22T04:11:54.628685+00:00
+# Azure AI Search retrieval evaluation — 2026-09-23T03:48:55.243085+00:00
 
 Service `https://srch-aftercircular-dev.search.windows.net` · index `policies-dev` · hybrid: BM25 + vector (HNSW cosine) fused by RRF; semantic ranker not configured · embeddings text-embedding-3-small (1536-d)
 
@@ -10,10 +10,10 @@ Documents in index: acme-securities-pvt-ltd=48, nimbus-asset-management=46
 |---|---|---|:--:|---:|---|
 | acme-securities-pvt-ltd | client unpaid securities pledge payment period trading days | POL-001 | ✓ | 1 | POL-001 §5.1 Payment period (0.03333); POL-001 §6.1 Invocation (0.03279); POL-001 §3 Definitions (0.03226) |
 | acme-securities-pvt-ltd | cyber incident reporting to SEBI portal within hours | POL-002 | ✓ | 1 | POL-002 §4.1 Initial report (0.03333); POL-002 §4.2 Staged reporting (0.03252); POL-002 §7 Review cadence (0.03175) |
-| acme-securities-pvt-ltd | position limits exposure derivatives risk | POL-003 | ✓ | 1 | POL-003 §3 Client-level limits (0.03333); POL-003 §1 Purpose (0.03252); POL-003 §5 Proprietary book (0.03252) |
+| acme-securities-pvt-ltd | position limits exposure derivatives risk | POL-003 | ✓ | 1 | POL-003 §3 Client-level limits (0.03333); POL-003 §5 Proprietary book (0.03227); POL-003 §1 Purpose (0.03226) |
 | acme-securities-pvt-ltd | standing instructions demat account depository participant | POL-005 | ✓ | 1 | POL-005 §3 Client instructions (0.03333); POL-005 §2 Scope (0.03252); POL-005 §1 Purpose (0.03227) |
-| nimbus-asset-management | intraday borrowing by a scheme to meet redemptions | POL-001 | ✓ | 1 | POL-001 §4.1 Permitted purposes (0.03306); POL-001 §4.2 Quantum (0.03306); POL-001 §4.7 Cost (0.032) |
-| nimbus-asset-management | distributor NISM certification specialized investment fund | POL-002 | ✓ | 1 | POL-002 §4.2 Specialized Investment Fund strategies (0.03306); POL-002 §1 Purpose (0.0328); POL-002 §4.1 Mutual fund schemes (0.03252) |
+| nimbus-asset-management | intraday borrowing by a scheme to meet redemptions | POL-001 | ✓ | 1 | POL-001 §4.2 Quantum (0.03333); POL-001 §4.1 Permitted purposes (0.03279); POL-001 §4.7 Cost (0.032) |
+| nimbus-asset-management | distributor NISM certification specialized investment fund | POL-002 | ✓ | 1 | POL-002 §4.2 Specialized Investment Fund strategies (0.03333); POL-002 §1 Purpose (0.03252); POL-002 §4.1 Mutual fund schemes (0.03252) |
 | nimbus-asset-management | cyber incident reporting | POL-003 | ✓ | 1 | POL-003 §4 Regulatory reporting (0.03333); POL-003 §1 Purpose (0.03227); POL-003 §3 Response (0.03227) |
 | nimbus-asset-management | SWP STP standing instructions demat units | POL-004 | ✓ | 1 | POL-004 §3 Systematic plans for units held in statement form (0.03333); POL-004 §1 Purpose (0.03279); POL-004 §4 Units held in demat form (0.032) |
 

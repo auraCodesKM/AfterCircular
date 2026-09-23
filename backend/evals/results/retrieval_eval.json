@@ -1,5 +1,5 @@
 {
-  "at": "2026-09-22T04:11:54.628685+00:00",
+  "at": "2026-09-23T03:48:55.243085+00:00",
   "service": "https://srch-aftercircular-dev.search.windows.net",
   "index": "policies-dev",
   "embedding_model": "text-embedding-3-small",
@@ -37,16 +37,16 @@
         },
         {
           "doc_id": "POL-001",
-          "section": "5.3 Exposure",
+          "section": "7 Extensions",
           "path": "policies/POL-001-client-unpaid-securities-policy.md",
-          "score": 0.03126,
+          "score": 0.0315,
           "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
         },
         {
           "doc_id": "POL-001",
-          "section": "7 Extensions",
+          "section": "5.3 Exposure",
           "path": "policies/POL-001-client-unpaid-securities-policy.md",
-          "score": 0.03125,
+          "score": 0.03126,
           "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
         }
       ]
@@ -113,23 +113,23 @@
         },
         {
           "doc_id": "POL-003",
-          "section": "1 Purpose",
+          "section": "5 Proprietary book",
           "path": "policies/POL-003-trading-risk-and-position-limits-policy.md",
-          "score": 0.03252,
+          "score": 0.03227,
           "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
         },
         {
           "doc_id": "POL-003",
-          "section": "5 Proprietary book",
+          "section": "1 Purpose",
           "path": "policies/POL-003-trading-risk-and-position-limits-policy.md",
-          "score": 0.03252,
+          "score": 0.03226,
           "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
         },
         {
           "doc_id": "POL-003",
           "section": "2.1 Segments covered",
           "path": "policies/POL-003-trading-risk-and-position-limits-policy.md",
-          "score": 0.0315,
+          "score": 0.03202,
           "commit": "bbad523fbad7ca989d918f6dca8f6de3ecabfa9f"
         },
         {
@@ -196,16 +196,16 @@
       "top": [
         {
           "doc_id": "POL-001",
-          "section": "4.1 Permitted purposes",
+          "section": "4.2 Quantum",
           "path": "policies/POL-001-scheme-borrowing-and-liquidity-policy.md",
-          "score": 0.03306,
+          "score": 0.03333,
           "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
         },
         {
           "doc_id": "POL-001",
-          "section": "4.2 Quantum",
+          "section": "4.1 Permitted purposes",
           "path": "policies/POL-001-scheme-borrowing-and-liquidity-policy.md",
-          "score": 0.03306,
+          "score": 0.03279,
           "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
         },
         {
@@ -243,14 +243,14 @@
           "doc_id": "POL-002",
           "section": "4.2 Specialized Investment Fund strategies",
           "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
-          "score": 0.03306,
+          "score": 0.03333,
           "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
         },
         {
           "doc_id": "POL-002",
           "section": "1 Purpose",
           "path": "policies/POL-002-distributor-empanelment-and-certification-policy.md",
-          "score": 0.0328,
+          "score": 0.03252,
           "commit": "a84ddcd7e64a9dbf36bcc7069d903a409f1f45e9"
         },
         {

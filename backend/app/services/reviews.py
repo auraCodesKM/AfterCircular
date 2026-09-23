@@ -24,6 +24,10 @@ async def decide(db: StateStore, tenant: TenantContext, review_id: str, decision
     rev = db.get_review(review_id, tenant.tenant_id)
     if not rev:
         raise ReviewError("Review not found")
+    if decision == "approve" and rev.status == "APPROVED" and not rev.ticket_id:
+        # the person already approved, but the GitHub call failed (outage, revoked token). Re-running the approval
+        # retries only the side effect; `find_issue` on the analysis marker keeps it idempotent.
+        return await create_ticket(db, tenant, rev)
     rev = transition(rev, decision).model_copy(update={"decided_by": tenant.actor, "note": note})
     db.upsert_review(rev)
     if rev.status == "REJECTED":
