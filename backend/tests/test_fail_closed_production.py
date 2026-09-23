@@ -91,11 +91,13 @@ def test_readiness_fails_when_the_state_store_cannot_be_read(monkeypatch):
         ({"CORS_ORIGINS": "*"}, "CORS_ORIGINS"),
         ({"BACKEND_API_KEY": "change-me"}, "BACKEND_API_KEY"),
         ({"DATABASE_PATH": "data/aftercircular.db"}, "DATABASE_PATH"),
+        ({"TYPESAFE_API_KEY": "", "TYPE_SAFE_API_KEY": ""}, "TYPESAFE_API_KEY"),
+        ({"DEFAULT_JUDGE": "stub"}, "stub judge"),
     ],
 )
 def test_production_refuses_each_unsafe_configuration(override, needle):
     base = dict(ENVIRONMENT="production", AI_PROVIDER="foundry", FOUNDRY_ENDPOINT="https://aif.example/",
                 AZURE_SEARCH_ENDPOINT="https://srch.example", SEBI_MODE="live", BACKEND_API_KEY="real-secret",
-                CORS_ORIGINS="https://web.example", DATABASE_PATH="/data/aftercircular.db")
+                CORS_ORIGINS="https://web.example", DATABASE_PATH="/data/aftercircular.db", TYPESAFE_API_KEY="jev-key", DEFAULT_JUDGE="typesafe")
     problems = Settings(**{**base, **override}).production_guard()  # type: ignore[arg-type]
     assert any(needle in p for p in problems), (override, problems)

@@ -225,7 +225,8 @@ def test_production_guard_names_every_unsafe_setting(monkeypatch):
     for needle in ("FOUNDRY_ENDPOINT", "AZURE_SEARCH_ENDPOINT", "SEBI_MODE", "BACKEND_API_KEY", "CORS_ORIGINS", "DATABASE_PATH"):
         assert needle in problems, needle
     ok = Settings(ENVIRONMENT="production", AI_PROVIDER="foundry", FOUNDRY_ENDPOINT="https://aif.example/", AZURE_SEARCH_ENDPOINT="https://srch.example",
-                  SEBI_MODE="live", BACKEND_API_KEY="real-secret", CORS_ORIGINS="https://web.example", DATABASE_PATH="/data/aftercircular.db")  # type: ignore[call-arg]
+                  SEBI_MODE="live", BACKEND_API_KEY="real-secret", CORS_ORIGINS="https://web.example", DATABASE_PATH="/data/aftercircular.db",
+                  TYPESAFE_API_KEY="jev-key", DEFAULT_JUDGE="typesafe")  # type: ignore[call-arg]
     assert ok.production_guard() == []
     # a dev box is never blocked by the production contract
     assert Settings(ENVIRONMENT="dev", AI_PROVIDER="stub").production_guard() == []  # type: ignore[call-arg]

@@ -121,6 +121,10 @@ class Settings(BaseSettings):
             problems.append("AI_PROVIDER/FOUNDRY_ENDPOINT: production must use Microsoft Foundry, never the stub fixture provider")
         if not self.search_configured:
             problems.append("AZURE_SEARCH_ENDPOINT: production must retrieve policy evidence from Azure AI Search, never the local index")
+        if self.default_judge != "foundry" and not self.typesafe_api_key:
+            problems.append("TYPESAFE_API_KEY: Jev is the configured judge but has no key; production must not silently fall back to the stub judge")
+        if self.default_judge == "stub" or "stub" in self.decision_routes.values():
+            problems.append("DEFAULT_JUDGE/DECISION_ROUTES: the stub judge is for tests only")
         if self.sebi_mode != "live":
             problems.append(f"SEBI_MODE={self.sebi_mode}: production must read the official source; a snapshot must never stand in for a live failure")
         if self.backend_api_key in ("", "change-me"):
