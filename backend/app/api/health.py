@@ -1,9 +1,13 @@
+import logging
+
 from fastapi import APIRouter, Response, status
 
 from app.config import settings
 from app.services.state import store
 
 router = APIRouter()
+log = logging.getLogger(__name__)
+_last_problems: list[str] = []
 
 
 @router.get("/health/live")
@@ -20,8 +24,12 @@ def ready(response: Response) -> dict:
     try:
         store().conn.execute("SELECT 1").fetchone()
     except Exception as e:  # noqa: BLE001
-        problems.append(f"state store unavailable: {type(e).__name__}")
+        problems.append(f"state store unavailable: {type(e).__name__}: {str(e)[:160]}")
     problems += settings().production_guard()
+    global _last_problems
+    if problems != _last_problems:  # log on change only: probes run every few seconds
+        (log.warning if problems else log.info)("readiness %s: %s", "FAILING" if problems else "ok", "; ".join(problems) or "all checks pass")
+        _last_problems = problems
     if problems:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return {"ok": not problems, "problems": problems, "environment": settings().environment}
