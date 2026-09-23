@@ -10,8 +10,9 @@ export default function RootError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // a production build redacts the message, so the server tags the digest instead
   const backendDown =
-    /fetch failed|ECONNREFUSED|Backend 5\d\d|unreachable/i.test(error.message);
+    error.digest === "BACKEND_UNREACHABLE" || /fetch failed|ECONNREFUSED|Backend 5\d\d|unreachable/i.test(error.message);
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4 text-foreground">
       <div className="flex max-w-lg flex-col items-center gap-3 text-center">

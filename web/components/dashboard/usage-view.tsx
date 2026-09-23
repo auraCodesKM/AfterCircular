@@ -4,9 +4,9 @@ import { Marker, MarkerContent, MarkerIcon } from "@/components/xiod/marker";
 import type { Usage } from "@/lib/pipeline-types";
 
 const NA = "Not available";
-const n = (v: number | null | undefined) => (v === null || v === undefined ? NA : v.toLocaleString());
+const n = (v: number | null | undefined) => (v === null || v === undefined ? NA : v.toLocaleString("en-US"));
 const usd = (v: number | null | undefined, digits = 4) => (v === null || v === undefined ? NA : `$${v.toFixed(digits)}`);
-const ms = (v: number | null | undefined) => (v === null || v === undefined ? NA : `${v.toLocaleString()} ms`);
+const ms = (v: number | null | undefined) => (v === null || v === undefined ? NA : `${v.toLocaleString("en-US")} ms`);
 
 /** Model usage and the application's own spend circuit breakers — every figure is a sum of what the backend recorded. */
 export function UsageView({ usage }: { usage: Usage | null }) {

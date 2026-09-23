@@ -1,8 +1,30 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Response, status
 
 from app.config import settings
+from app.services.state import store
 
 router = APIRouter()
+
+
+@router.get("/health/live")
+def live() -> dict:
+    """Liveness: the process is up. No I/O, no model call — safe to probe every few seconds."""
+    return {"ok": True}
+
+
+@router.get("/health/ready")
+def ready(response: Response) -> dict:
+    """Readiness: the state store answers and the production configuration holds. Still cheap: one SQLite read, no
+    Foundry/Search/SEBI call (those are exercised by the pipeline, not by a probe)."""
+    problems: list[str] = []
+    try:
+        store().conn.execute("SELECT 1").fetchone()
+    except Exception as e:  # noqa: BLE001
+        problems.append(f"state store unavailable: {type(e).__name__}")
+    problems += settings().production_guard()
+    if problems:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    return {"ok": not problems, "problems": problems, "environment": settings().environment}
 
 
 @router.get("/health")

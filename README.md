@@ -101,10 +101,53 @@ Reset the demo: stop the backend and delete `backend/data/aftercircular.db`.
 | Typed judgments | TypeSafe System One — Jev (`typesafe-sdk`, `POST /v1/systemone`): Noul / Choice / Score with calibrated probabilities |
 | Generative + reasoning models | Microsoft Foundry / Azure OpenAI via a provider abstraction; one deployment per task (extraction, escalation, memo, embeddings) |
 | Retrieval / vector store | **Azure AI Search** — HNSW vector index + keyword, hybrid (RRF); index per tenant. Local BM25+vector fallback for development |
-| State | SQLite (`processed_documents`, `analyses`, `reviews`, `audit_events`, `llm_calls`), repository layer ready for Azure PostgreSQL |
+| State | SQLite (`processed_documents`, `analyses`, `reviews`, `audit_events`, `llm_calls`, `decisions`, `investigations`) behind one repository class — a file under `backend/data` locally, an Azure Files share in production |
+| Packaging | Two images: `aftercircular-api` (FastAPI, non-root, `/health/live` + `/health/ready`) and `aftercircular-web` (Next.js standalone, non-root) |
+| Hosting | Azure Container Apps — web on external HTTPS ingress, API internal-only; managed identity for Foundry, Search and ACR pulls |
 | Scheduling | HTTP trigger (dashboard button) today; Azure Functions timer is the production path |
 | Actions | GitHub API (read policy repo, create compliance issue; pull requests are Tier 1) |
 | Evaluation | `backend/evals` — golden scenarios, per-task scoring, latency/tokens/cost per model |
+
+## Running it
+
+**Local development** — the backend on the host, the dashboard in `next dev`:
+
+```bash
+cd backend && cp .env.example .env && uv run uvicorn app.main:app --port 8010
+cd web && cp .env.example .env.local && npm install && npm run dev
+```
+
+`az login` covers Foundry and Azure AI Search (no API keys). `SEBI_MODE=live` reads the official source; a failure is
+reported as `LIVE_FAILED` and never replaced by the snapshot.
+
+**Production-like locally** — the same two container images:
+
+```bash
+AC_UID=$(id -u) AC_GID=$(id -g) docker compose up --build   # web :3000, api :8010
+docker compose logs -f api
+docker compose down
+```
+
+`./backend/data` is bind-mounted at `/data`, so the database survives restarts. Entra ID inside a container cannot use
+the host's `az login`; export a dev service principal (`AZURE_TENANT_ID`/`AZURE_CLIENT_ID`/`AZURE_CLIENT_SECRET`) for
+real Foundry and Search calls, or run the backend on the host. Without either, model calls fail visibly — nothing is
+faked or substituted.
+
+**Azure** — [`DEPLOYMENT.md`](DEPLOYMENT.md) has the exact command sequence (ACR → Azure Files → Container Apps
+environment → two apps → managed identity + RBAC → secrets → smoke test → logs → rollback). Architecture and the
+decisions behind it: [`docs/ProductionArchitecture.md`](docs/ProductionArchitecture.md) and [`azureDecision.md`](azureDecision.md) §21.
+
+| | Demo / local | Production (Container Apps) |
+|---|---|---|
+| Database | `backend/data/aftercircular.db` (WAL) | Azure Files share, `SQLITE_JOURNAL_MODE=DELETE`, one API replica |
+| Azure auth | `az login` on the host, or a dev service principal | system-assigned managed identity, no Azure keys |
+| API exposure | `localhost:8010` | internal ingress; only the web app reaches it |
+| Fallbacks | stub provider / local index / snapshot allowed and labelled | refused at startup — the API will not boot without Foundry, Azure AI Search, `SEBI_MODE=live`, a real backend key, explicit CORS and a mounted `DATABASE_PATH` |
+| Demo reset | `uv run python scripts/demo_reset.py --tenant … --yes` | refuses to run (`ENVIRONMENT=production`); never invoked by the image, startup, probes or CI |
+
+Secrets live in `backend/.env`, `web/.env.local` and Container Apps secrets — never in an image layer, a workflow file
+or git. CI (`.github/workflows/ci.yml`) runs pytest, mypy, tsc, ESLint, Vitest, `next build` and both Docker builds on
+every push; publishing images to ACR is a separate, manual workflow and deployment is a human command.
 
 ## Responsible AI
 

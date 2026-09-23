@@ -34,16 +34,25 @@ export function analysisKind(doc: { impact: string | null; status: DocumentStatu
 
 export const impactLabel: Record<ImpactKind, string> = { conflict: "Conflict", aligned: "Aligned", na: "Not applicable", uncertain: "Uncertain", failed: "Failed", pending: "Pending" };
 
+/**
+ * Timestamps are rendered in UTC with a fixed locale, on purpose: an audit trail reads the same for everyone, and the
+ * server (container, UTC) and the browser (any timezone) must produce identical HTML — a locale/timezone-dependent
+ * string is a hydration mismatch in a production build.
+ */
+const UTC = { timeZone: "UTC" } as const;
+
 export function fmtTime(iso: string | null | undefined, withDate = true) {
   if (!iso) return "—";
   const d = new Date(iso);
-  return withDate ? d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  if (Number.isNaN(d.getTime())) return iso;
+  const t = d.toLocaleTimeString("en-GB", { ...UTC, hour: "2-digit", minute: "2-digit" });
+  return withDate ? `${d.toLocaleDateString("en-GB", { ...UTC, month: "short", day: "numeric" })}, ${t} UTC` : `${t} UTC`;
 }
 
 export function fmtDate(iso: string | null | undefined) {
   if (!iso) return "—";
-  const d = new Date(iso.length === 10 ? `${iso}T00:00:00` : iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  const d = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-GB", { ...UTC, month: "short", day: "numeric", year: "numeric" });
 }
 
 /** Truthful source readout. Demo is never described as SEBI; a live failure names its reason and says no fallback happened. */

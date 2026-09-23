@@ -4,7 +4,7 @@ import type { SystemStatus } from "@/lib/pipeline-types";
 import { fmtTime } from "./labels";
 
 const NA = "Not recorded";
-const n = (v: number | null | undefined) => (v === null || v === undefined ? NA : v.toLocaleString());
+const n = (v: number | null | undefined) => (v === null || v === undefined ? NA : v.toLocaleString("en-US"));
 
 function Dot({ on, label }: { on: boolean; label: string }) {
   return (

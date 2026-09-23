@@ -27,8 +27,11 @@ export async function shellContext(): Promise<ShellContext> {
   try {
     ({ tenants, tenant } = await activeTenant(session.user.githubId));
   } catch (e) {
-    // the tenant store lives in the backend: when it is down the error boundary says so instead of a bare 500
-    throw new Error(`Backend unreachable at ${process.env.BACKEND_URL ?? "(BACKEND_URL unset)"}: ${(e as Error).message}`);
+    // The tenant store lives in the backend: when it is down the error boundary must say so. A production build
+    // redacts the message, so carry the signal in `digest`, which Next passes through untouched.
+    const err = new Error(`Backend unreachable at ${process.env.BACKEND_URL ?? "(BACKEND_URL unset)"}: ${(e as Error).message}`) as Error & { digest?: string };
+    err.digest = "BACKEND_UNREACHABLE";
+    throw err;
   }
   if (!tenant) redirect("/connect");
   let health: Health | null = null;

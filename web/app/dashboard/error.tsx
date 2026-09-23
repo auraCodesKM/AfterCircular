@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 
 /** Route error boundary: a backend that is down must read as "backend unreachable", never as a blank 500. */
 export default function DashboardError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  const backendDown = /fetch failed|ECONNREFUSED|Backend 5\d\d|unreachable/i.test(error.message);
+  // a production build redacts the message, so the server tags the digest instead
+  const backendDown = error.digest === "BACKEND_UNREACHABLE" || /fetch failed|ECONNREFUSED|Backend 5\d\d|unreachable/i.test(error.message);
   return (
     <div className="mx-auto flex min-h-[60dvh] max-w-lg flex-col items-center justify-center gap-3 px-4 text-center">
       <p className="text-base font-medium">{backendDown ? "Backend unreachable" : "Something went wrong"}</p>

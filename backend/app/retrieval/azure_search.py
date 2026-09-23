@@ -170,9 +170,13 @@ class AzureSearchRetriever(Retriever):
 def retriever(db) -> Retriever:
     from app.retrieval.local import LocalRetriever
 
-    if settings().search_configured:
+    s = settings()
+    if s.search_configured:
         try:
             return AzureSearchRetriever()
         except Exception as e:  # noqa: BLE001
+            if s.is_production:
+                # configured but unreachable in production: fail the scan visibly rather than answer from a different corpus
+                raise
             log.warning("Azure AI Search unavailable (%s); using local hybrid retriever", e)
     return LocalRetriever(db)

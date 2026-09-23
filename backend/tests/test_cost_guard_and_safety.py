@@ -214,3 +214,34 @@ async def test_usage_endpoint_reports_only_recorded_calls_and_budgets(db, tenant
     assert out["budget"]["spent_today_usd"] == pytest.approx(0.000975)  # application-wide; the unknown-priced call adds 0
     assert out["budget"]["daily_limit_usd"] == settings().max_estimated_cost_per_day_usd and out["budget"]["daily_remaining_usd"] > 0
     assert out["pricing"]["gpt-5-mini"] == "estimate"
+
+
+def test_production_guard_names_every_unsafe_setting(monkeypatch):
+    from app.config import Settings
+
+    s = Settings(ENVIRONMENT="production", AI_PROVIDER="stub", FOUNDRY_ENDPOINT="", AZURE_SEARCH_ENDPOINT="", SEBI_MODE="demo_snapshot",
+                 BACKEND_API_KEY="change-me", CORS_ORIGINS="*", DATABASE_PATH="data/aftercircular.db")  # type: ignore[call-arg]
+    problems = " | ".join(s.production_guard())
+    for needle in ("FOUNDRY_ENDPOINT", "AZURE_SEARCH_ENDPOINT", "SEBI_MODE", "BACKEND_API_KEY", "CORS_ORIGINS", "DATABASE_PATH"):
+        assert needle in problems, needle
+    ok = Settings(ENVIRONMENT="production", AI_PROVIDER="foundry", FOUNDRY_ENDPOINT="https://aif.example/", AZURE_SEARCH_ENDPOINT="https://srch.example",
+                  SEBI_MODE="live", BACKEND_API_KEY="real-secret", CORS_ORIGINS="https://web.example", DATABASE_PATH="/data/aftercircular.db")  # type: ignore[call-arg]
+    assert ok.production_guard() == []
+    # a dev box is never blocked by the production contract
+    assert Settings(ENVIRONMENT="dev", AI_PROVIDER="stub").production_guard() == []  # type: ignore[call-arg]
+
+
+async def test_production_never_falls_back_to_the_local_index_when_search_is_down(db, monkeypatch):
+    from app.retrieval import azure_search as az
+
+    monkeypatch.setattr(az.settings(), "azure_search_endpoint", "https://srch-test.search.windows.net")
+    monkeypatch.setattr(az, "AzureSearchRetriever", _boom)
+    monkeypatch.setattr(az.settings(), "environment", "dev")
+    assert az.retriever(db).name != "azure-ai-search"  # dev degrades, with a warning
+    monkeypatch.setattr(az.settings(), "environment", "production")
+    with pytest.raises(RuntimeError):
+        az.retriever(db)
+
+
+def _boom(*a, **k):
+    raise RuntimeError("search down")

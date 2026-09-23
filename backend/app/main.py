@@ -20,7 +20,13 @@ if settings().applicationinsights_connection_string:
     configure_azure_monitor(connection_string=settings().applicationinsights_connection_string, logger_name="app")
     logging.getLogger(__name__).info("Application Insights exporter configured (environment=%s)", settings().environment)
 
-app = FastAPI(title="AfterCircular API", version="0.1.0", docs_url="/docs")
+_problems = settings().production_guard()
+if _problems:
+    # fail fast and loudly: a production container that cannot reach the real services must not start and quietly
+    # degrade to fixtures, the local index or a snapshot.
+    raise RuntimeError("Refusing to start in production with this configuration:\n  - " + "\n  - ".join(_problems))
+
+app = FastAPI(title="AfterCircular API", version="0.1.0", docs_url=None if settings().is_production else "/docs", redoc_url=None)
 app.add_middleware(CORSMiddleware, allow_origins=settings().cors_origin_list, allow_methods=["*"], allow_headers=["*"])
 
 app.include_router(health.router)

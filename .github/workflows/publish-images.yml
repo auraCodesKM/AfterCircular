@@ -1,0 +1,47 @@
+# Build and push the two images to Azure Container Registry, tagged with the commit SHA.
+#
+# Deployment is deliberately NOT automated: `scripts/azure-deploy.sh` points the container apps at a tag, and a person
+# runs it (the repository has no environment protection rules, and an approval gate in front of a compliance system's
+# only side effect should not be bypassed by a push to main).
+#
+# Auth uses GitHub OIDC — no Azure client secret is stored in GitHub. Required repository variables/secrets
+# (see DEPLOYMENT.md §18): AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, ACR_NAME.
+name: Publish images
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit to build (defaults to the current branch head)
+        required: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Build both images in ACR
+        env:
+          ACR_NAME: ${{ vars.ACR_NAME }}
+          RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
+        run: |
+          SHA=$(git rev-parse --short=12 HEAD)
+          for t in api:backend web:web; do
+            name=${t%%:*}; src=${t##*:}
+            az acr build --registry "$ACR_NAME" --resource-group "$RESOURCE_GROUP" \
+              --image "aftercircular-$name:$SHA" --image "aftercircular-$name:latest" \
+              --file "$src/Dockerfile" "$src"
+          done
+          echo "::notice::pushed aftercircular-{api,web}:$SHA — deploy with GIT_SHA=$SHA ./scripts/azure-deploy.sh"

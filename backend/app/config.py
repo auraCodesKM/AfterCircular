@@ -10,6 +10,9 @@ class Settings(BaseSettings):
 
     backend_api_key: str = "change-me"
     database_path: str = "data/aftercircular.db"
+    # WAL needs shared memory on the same filesystem; a network share (Azure Files/SMB, a macOS bind mount) does not
+    # provide it and SQLite then fails with "disk I/O error". Use DELETE (rollback journal) on mounted shares.
+    sqlite_journal_mode: Literal["WAL", "DELETE", "TRUNCATE"] = "WAL"
     cors_origins: str = "http://localhost:3000"
 
     ai_provider: Literal["foundry", "stub"] = "foundry"
@@ -103,6 +106,30 @@ class Settings(BaseSettings):
     @property
     def search_configured(self) -> bool:
         return bool(self.azure_search_endpoint)
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment == "production"
+
+    def production_guard(self) -> list[str]:
+        """Configuration that must hold before this process may serve production traffic. Returns the problems, so the
+        caller can fail fast with all of them at once instead of discovering them one request at a time."""
+        problems: list[str] = []
+        if not self.is_production:
+            return problems
+        if not self.foundry_configured:
+            problems.append("AI_PROVIDER/FOUNDRY_ENDPOINT: production must use Microsoft Foundry, never the stub fixture provider")
+        if not self.search_configured:
+            problems.append("AZURE_SEARCH_ENDPOINT: production must retrieve policy evidence from Azure AI Search, never the local index")
+        if self.sebi_mode != "live":
+            problems.append(f"SEBI_MODE={self.sebi_mode}: production must read the official source; a snapshot must never stand in for a live failure")
+        if self.backend_api_key in ("", "change-me"):
+            problems.append("BACKEND_API_KEY: set a real shared secret for the frontend → API call")
+        if not self.cors_origin_list or "*" in self.cors_origin_list:
+            problems.append("CORS_ORIGINS: set the exact frontend origin(s); '*' is not allowed for an authenticated API")
+        if self.database_path.startswith("data/") or self.database_path.startswith("./data/"):
+            problems.append("DATABASE_PATH: point at a mounted durable volume (e.g. /data/aftercircular.db); container-local storage is lost on every revision")
+        return problems
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { fmtTime } from "./labels";
 
 const NA = "not recorded";
-const num = (v: unknown) => (typeof v === "number" ? v.toLocaleString() : NA);
+const num = (v: unknown) => (typeof v === "number" ? v.toLocaleString("en-US") : NA);
 const dur = (v: unknown) => (typeof v === "number" ? (v >= 1000 ? `${(v / 1000).toFixed(1)} s` : `${v} ms`) : NA);
 const usd = (v: unknown) => (typeof v === "number" ? `$${v.toFixed(4)}` : NA);
 

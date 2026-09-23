@@ -111,7 +111,7 @@ class StateStore:
             Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self._local = threading.local()
         self._memory_conn: sqlite3.Connection | None = None
-        self.conn.execute("PRAGMA journal_mode=WAL")
+        self.conn.execute(f"PRAGMA journal_mode={settings().sqlite_journal_mode}")
         self.conn.executescript(SCHEMA)
         self._migrate()
 

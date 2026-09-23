@@ -14,7 +14,7 @@ const clip = (s: string | null | undefined, n = 260) => {
 };
 const cell = (s: string | null | undefined, n = 160) => clip(s, n).replace(/\|/g, "\\|");
 const dur = (v: unknown) => (typeof v === "number" ? (v >= 1000 ? `${(v / 1000).toFixed(1)} s` : `${v} ms`) : "not recorded");
-const num = (v: unknown) => (typeof v === "number" ? v.toLocaleString() : "not recorded");
+const num = (v: unknown) => (typeof v === "number" ? v.toLocaleString("en-US") : "not recorded");
 
 /** Number the sources an answer cites, in citation order; evidence ids (D3.R1, D3.P1) map to source numbers. */
 function numberSources(cards: DocCard[], points: AskPoint[]): { sources: Source[]; byEvidence: Map<string, number> } {

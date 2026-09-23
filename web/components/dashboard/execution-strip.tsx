@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import type { Investigation } from "@/lib/pipeline-types";
 
 const ms = (v?: number | null) => (v === undefined || v === null ? "not recorded" : `${v} ms`);
-const tok = (i?: number | null, o?: number | null) => (i === undefined || i === null ? "tokens not recorded" : `${i.toLocaleString()}→${(o ?? 0).toLocaleString()} tokens`);
+const tok = (i?: number | null, o?: number | null) => (i === undefined || i === null ? "tokens not recorded" : `${i.toLocaleString("en-US")}→${(o ?? 0).toLocaleString("en-US")} tokens`);
 
 type Step = { icon: ReactNode; service: string; op: string; meta?: string };
 
