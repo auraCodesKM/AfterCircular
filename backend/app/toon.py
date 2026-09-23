@@ -53,9 +53,22 @@ def pretty_json(value: Any) -> str:
     return json.dumps(_plain(value), indent=2, ensure_ascii=False)
 
 
+@lru_cache
+def _patch_quoting() -> None:
+    """toon-format 0.9.0b1 leaves "5." and ".5" unquoted (its encoder's number pattern misses them) while its decoder
+    reads them as floats, so SEBI section labels like "5." came back as 5.0 and every such context fell back to JSON.
+    Quote whatever the library's own decoder would take for a number. Drop this once upstream quotes them."""
+    from toon_format import primitives
+    from toon_format._literal_utils import is_numeric_literal
+
+    safe = primitives.is_safe_unquoted
+    primitives.is_safe_unquoted = lambda value, *a, **k: safe(value, *a, **k) and not is_numeric_literal(value)
+
+
 def to_toon(value: Any) -> str:
     from toon_format import encode
 
+    _patch_quoting()
     return encode(_plain(value))
 
 

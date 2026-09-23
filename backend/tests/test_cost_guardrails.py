@@ -75,3 +75,11 @@ async def test_scan_defers_documents_beyond_the_limit(db, tenant, monkeypatch):
     assert rec.new_documents == 1 and rec.deferred_documents == 2 and rec.llm_calls >= 1
     rec2 = await Scan(db, tenant).run()
     assert rec2.new_documents == 1 and rec2.skipped_documents == 1 and rec2.deferred_documents == 1
+
+
+def test_section_labels_that_look_numeric_round_trip_as_toon():
+    # SEBI numbers sections "5." / "2."; toon-format 0.9.0b1 left them unquoted and decoded them as floats (TOON_FALLBACK)
+    from app.toon import format_context, from_toon
+    payload = {"evidence": [{"section": s, "text": "x"} for s in ("5.", "2.", ".5", "4.1", "5")]}
+    block = format_context(payload)
+    assert block.format == "toon" and not block.fallback and from_toon(block.text) == payload
