@@ -21,10 +21,11 @@ def tenant(
     x_tenant_repo: str = Header(default=""),
     x_tenant_branch: str = Header(default="main"),
     x_actor: str = Header(default="system"),
+    x_actor_id: str | None = Header(default=None),
     x_github_token: str | None = Header(default=None),
 ) -> TenantContext:
     """Tenant identity comes from the trusted frontend (it verified the GitHub session), never from the request body."""
     if not x_tenant_id or not x_tenant_repo:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "X-Tenant-Id and X-Tenant-Repo headers are required")
     return TenantContext(tenant_id=x_tenant_id, company_name=x_tenant_company or x_tenant_id, github_repo=x_tenant_repo,
-                         default_branch=x_tenant_branch or "main", actor=x_actor or "system", github_token=x_github_token)
+                         default_branch=x_tenant_branch or "main", actor=x_actor or "system", actor_id=x_actor_id, github_token=x_github_token)

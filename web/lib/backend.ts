@@ -32,6 +32,7 @@ export async function backendFetch<T>(
     "X-Tenant-Repo": tenant.githubRepo,
     "X-Tenant-Branch": tenant.defaultBranch,
     "X-Actor": session.user.login || session.user.githubId,
+    "X-Actor-Id": session.user.githubId, // the backend re-checks workspace ownership against it (demo controls)
   };
   if (session.accessToken) headers["X-GitHub-Token"] = session.accessToken;
   let res: Response;

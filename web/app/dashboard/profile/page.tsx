@@ -1,7 +1,8 @@
-import { Building2, ExternalLink, GitBranch, History, KeyRound } from "lucide-react";
+import { Building2, ExternalLink, FlaskConical, GitBranch, History, KeyRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { signOut } from "@/auth";
+import { DemoControls } from "@/components/dashboard/demo-controls";
 import { fmtTime } from "@/components/dashboard/labels";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,7 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/dashboard/section-header";
 import { Stat, StatGrid } from "@/components/dashboard/stat";
+import { backendFetch } from "@/lib/backend";
 import { load, shellContext } from "@/lib/dashboard-data";
+import type { DemoStatus } from "./demo-actions";
 import type { AuditEvent, Investigation } from "@/lib/pipeline-types";
 
 export const metadata: Metadata = { title: "Profile" };
@@ -18,6 +21,8 @@ export default async function ProfilePage() {
   const ctx = await shellContext();
   const u = ctx.session.user;
   const [audit, investigations] = await Promise.all([load<AuditEvent[]>(ctx, "/api/audit?limit=200", []), load<Investigation[]>(ctx, "/api/investigations?limit=100", [])]);
+  // only this person's own workspaces; a backend without demo controls simply hides the section
+  const demo = (await Promise.all(ctx.tenants.map((t) => backendFetch<DemoStatus>("/api/workspace/demo", { tenant: t, session: ctx.session }).catch(() => null)))).filter((s): s is DemoStatus => !!s);
   const mine = audit.data.filter((e) => e.actor_type === "human" && e.actor === u.login);
   const approvals = mine.filter((e) => e.event_type === "APPROVED").length;
   const rejections = mine.filter((e) => e.event_type === "REJECTED").length;
@@ -86,6 +91,12 @@ export default async function ProfilePage() {
           <Stat label="Investigations" value={investigations.data.filter((i) => i.actor === u.login).length} />
         </StatGrid>
       </section>
+      {demo.length ? (
+        <section className="space-y-3">
+          <SectionHeader icon={<FlaskConical />} title="Demo controls" description="Reset a demo workspace to the demo baseline. Live workspaces are never reset." />
+          <DemoControls initial={demo} />
+        </section>
+      ) : null}
       <section className="space-y-3">
         <SectionHeader icon={<KeyRound />} title="Session" />
         <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">

@@ -7,6 +7,7 @@ export const statusLabel: Record<DocumentStatus, string> = {
 };
 
 export const eventLabel: Record<string, string> = {
+  DEMO_MODE_CHANGED: "Demo mode changed", DEMO_RESET_REQUESTED: "Demo reset requested", DEMO_RESET_COMPLETED: "Demo reset completed",
   SCAN_STARTED: "Scan started", SCAN_COMPLETED: "Scan completed", SCAN_FAILED: "Scan failed", DOCUMENT_DETECTED: "Document detected",
   DOCUMENT_SKIPPED: "Already processed — skipped", DOCUMENT_VERSION_DETECTED: "New version detected", OBLIGATIONS_EXTRACTED: "Obligations extracted",
   POLICIES_INDEXED: "Policies indexed", POLICIES_RETRIEVED: "Policies retrieved", IMPACT_ANALYZED: "Impact analysis completed", ARCHIVED: "Archived",

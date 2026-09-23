@@ -45,6 +45,9 @@ AuditEventType = Literal[
     "TICKET_CREATED",
     "PIPELINE_FAILED",
     "BUDGET_EXCEEDED",
+    "DEMO_MODE_CHANGED",
+    "DEMO_RESET_REQUESTED",
+    "DEMO_RESET_COMPLETED",
 ]
 
 
@@ -54,6 +57,7 @@ class TenantContext(BaseModel):
     github_repo: str
     default_branch: str = "main"
     actor: str = "system"
+    actor_id: str | None = None  # GitHub user id of the signed-in person (the web app verified the session)
     github_token: str | None = Field(default=None, exclude=True, repr=False)
 
 

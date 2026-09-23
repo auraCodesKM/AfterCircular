@@ -142,6 +142,7 @@ class StateStore:
                       ("estimated_cost_usd", "REAL NOT NULL DEFAULT 0"), ("source_status", "TEXT"), ("source_error", "TEXT")),
             "processed_documents": (("synthetic", "INTEGER NOT NULL DEFAULT 0"), ("document_url", "TEXT"), ("fetched_at", "TEXT")),
             "investigations": (("conversation_id", "TEXT"),),
+            "tenants": (("demo", "INTEGER NOT NULL DEFAULT 0"),),  # owner opt-in: only demo workspaces can be reset
         }
         for table, cols in wanted.items():
             have = {r["name"] for r in self.conn.execute(f"PRAGMA table_info({table})").fetchall()}

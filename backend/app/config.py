@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     max_concurrent_calls: int = Field(default=2, validation_alias=AliasChoices("AFTERCIRCULAR_MAX_CONCURRENT_CALLS", "MAX_CONCURRENT_CALLS"))
     enable_live_scan: bool = Field(default=True, validation_alias=AliasChoices("AFTERCIRCULAR_ENABLE_LIVE_SCAN", "ENABLE_LIVE_SCAN"))
     enable_scheduled_scan: bool = Field(default=False, validation_alias=AliasChoices("AFTERCIRCULAR_ENABLE_SCHEDULED_SCAN", "ENABLE_SCHEDULED_SCAN"))
+    # Demo reset from the app (services/demo.py). Always available in dev/demo; a production deployment must opt in.
+    enable_demo_reset: bool = Field(default=False, validation_alias=AliasChoices("AFTERCIRCULAR_ENABLE_DEMO_RESET", "ENABLE_DEMO_RESET"))
     # Application circuit breakers on *estimated* spend (list-price estimates, not Azure billing). 0 disables a limit.
     max_estimated_cost_per_scan_usd: float = Field(default=0.50, validation_alias=AliasChoices("AFTERCIRCULAR_MAX_ESTIMATED_COST_PER_SCAN_USD", "MAX_ESTIMATED_COST_PER_SCAN_USD"))
     max_estimated_cost_per_day_usd: float = Field(default=5.00, validation_alias=AliasChoices("AFTERCIRCULAR_MAX_ESTIMATED_COST_PER_DAY_USD", "MAX_ESTIMATED_COST_PER_DAY_USD"))
