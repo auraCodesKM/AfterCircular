@@ -88,8 +88,8 @@ export function AnalysisBody({ doc, analysis }: { doc: ProcessedDocument; analys
           {ex.applies_to?.length ? (
             <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
               Applies to
-              {ex.applies_to.map((a) => (
-                <span key={a} className="rounded-md bg-muted px-1.5 py-0.5 text-foreground/80">
+              {ex.applies_to.map((a, i) => (
+                <span key={`${i}-${a}`} className="rounded-md bg-muted px-1.5 py-0.5 text-foreground/80">
                   {a}
                 </span>
               ))}

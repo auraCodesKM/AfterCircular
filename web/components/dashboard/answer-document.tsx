@@ -168,8 +168,8 @@ export function AnswerDocument({ inv, compact, onAsk, stream = true, onDone }: {
 
           {listCards.length ? (
             <div className="mt-3 space-y-2">
-              {listCards.map((d) => (
-                <DocCardView key={d.document_pk} card={d} expanded={!compact && listCards.length === 1} onOpenAnalysis={openAnalysis} />
+              {listCards.map((d, i) => (
+                <DocCardView key={`${i}-${d.document_pk}`} card={d} expanded={!compact && listCards.length === 1} onOpenAnalysis={openAnalysis} />
               ))}
             </div>
           ) : null}
@@ -177,8 +177,8 @@ export function AnswerDocument({ inv, compact, onAsk, stream = true, onDone }: {
             <div className="mt-3 rounded-md border border-border">
               <p className="px-3 py-2 text-[11px] text-muted-foreground">v{a.policy.version ?? "—"} · {a.policy.owner ?? "owner —"} · {a.policy.sections.length} sections</p>
               <Accordion className="px-1">
-                {a.policy.sections.slice(0, compact ? 4 : 40).map((s) => (
-                  <AccordionItem key={s.section} value={s.section}>
+                {a.policy.sections.slice(0, compact ? 4 : 40).map((s, i) => (
+                  <AccordionItem key={`${i}-${s.section}`} value={`${i}-${s.section}`}>
                     <AccordionTrigger className="py-2 text-xs">§{s.section}</AccordionTrigger>
                     <AccordionContent><Markdown className="text-[13px]">{s.text}</Markdown></AccordionContent>
                   </AccordionItem>
@@ -204,8 +204,8 @@ export function AnswerDocument({ inv, compact, onAsk, stream = true, onDone }: {
 
           {onAsk && c.followUps.length ? (
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {c.followUps.map((q) => (
-                <Button key={q} variant="outline" size="xs" className="rounded-full" onClick={() => onAsk(q)}>{q}</Button>
+              {c.followUps.map((q, i) => (
+                <Button key={`${i}-${q}`} variant="outline" size="xs" className="rounded-full" onClick={() => onAsk(q)}>{q}</Button>
               ))}
             </div>
           ) : null}

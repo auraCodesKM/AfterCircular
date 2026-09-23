@@ -57,7 +57,8 @@ export function regulatorySources(regulatory: Evidence[], reg: RegulatorySource 
   const url = !synthetic && isReal(page) ? page : null;
   const label = reg?.regulator ?? fallback?.label ?? "Regulator";
   return regulatory.map((e, i) => ({
-    id: `reg-${i}-${e.section}`,
+    // namespaced by circular: an answer citing two circulars renders both lists together, keyed by id
+    id: `reg-${reg?.document_id ?? label}-${i}-${e.section}`,
     kind: "regulator",
     label,
     title: reg?.title ?? fallback?.title ?? `${label} circular`,

@@ -75,8 +75,8 @@ function Drawer({ step }: { step: TraceStep }) {
     const single = "records" in t ? [t as unknown as Jev] : stages;
     return (
       <div className="space-y-2 text-[11px]">
-        {single.map((j) => (
-          <div key={j.stage} className="rounded-md border border-border p-2">
+        {single.map((j, i) => (
+          <div key={`${i}-${j.stage}`} className="rounded-md border border-border p-2">
             <p className="font-medium uppercase tracking-wide">{j.stage.replace(/_/g, " ")}</p>
             {j.decision ? <p>→ {j.decision}</p> : null}
             {j.reason ? <p className="text-muted-foreground">{j.reason}</p> : null}

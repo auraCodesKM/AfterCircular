@@ -37,8 +37,8 @@ export function ReviewQueue({ rows, decided, emptyAction = true }: { rows: Row[]
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <ImpactBadge kind={impactKind(doc.impact, doc.status)} />
-              {affected.map((p) => (
-                <span key={p} className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground/80">
+              {affected.map((p, i) => (
+                <span key={`${i}-${p}`} className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground/80">
                   {p}
                 </span>
               ))}

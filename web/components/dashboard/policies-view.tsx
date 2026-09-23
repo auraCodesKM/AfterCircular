@@ -138,8 +138,8 @@ function PolicyBody({ docId, repo, branch, onAsk }: { docId: string; repo: strin
             {p.applies_to?.length ? (
               <p className="mb-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                 Applies to
-                {p.applies_to.map((a) => (
-                  <span key={a} className="rounded-md bg-muted px-1.5 py-0.5 text-foreground/80">
+                {p.applies_to.map((a, i) => (
+                  <span key={`${i}-${a}`} className="rounded-md bg-muted px-1.5 py-0.5 text-foreground/80">
                     {a}
                   </span>
                 ))}

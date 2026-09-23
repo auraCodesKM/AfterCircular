@@ -81,8 +81,8 @@ export function AnalysisWorkspace({ doc, analysis, review }: { doc: ProcessedDoc
               <dt className="text-xs text-muted-foreground">Affected policies</dt>
               <dd className="mt-1 flex flex-wrap gap-1">
                 {impact?.affected_policies.length ? (
-                  impact.affected_policies.map((p) => (
-                    <Button key={p} variant="outline" size="xs" className="font-mono" nativeButton={false} render={<Link href={`/dashboard/policies?open=${p}`} />}>
+                  impact.affected_policies.map((p, i) => (
+                    <Button key={`${i}-${p}`} variant="outline" size="xs" className="font-mono" nativeButton={false} render={<Link href={`/dashboard/policies?open=${p}`} />}>
                       {p} <ArrowRight />
                     </Button>
                   ))

@@ -26,6 +26,11 @@ describe("regulatory sources", () => {
     }
     expect(s.map((x) => x.section)).toEqual(["21.10.1", "21.10.3"]);
   });
+  it("give two circulars' sources distinct ids (they render in one keyed list)", () => {
+    const a = regulatorySources([{ section: "header", text: "x" }], REG);
+    const b = regulatorySources([{ section: "header", text: "y" }], { ...REG, document_id: "102584" });
+    expect(a[0].id).not.toBe(b[0].id);
+  });
   it("never links a synthetic snapshot to sebi.gov.in and has no PDF", () => {
     const s = regulatorySources([{ section: "2.1", text: "x" }], { ...REG, synthetic: true, source_mode: "DEMO_SNAPSHOT", detail_url: "https://example.invalid/sebi/demo/2026/015", pdf_url: null });
     expect(s[0].status).toBe("DEMO_SNAPSHOT");

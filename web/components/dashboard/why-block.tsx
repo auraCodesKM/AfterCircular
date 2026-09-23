@@ -21,8 +21,8 @@ export function WhyBlock({ impact }: { impact: Impact }) {
       {clauses.length ? (
         <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
           Affected clauses
-          {clauses.map((c) => (
-            <span key={c} className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-foreground/80">
+          {clauses.map((c, i) => (
+            <span key={`${i}-${c}`} className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-foreground/80">
               {c}
             </span>
           ))}
