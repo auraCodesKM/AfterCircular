@@ -12,12 +12,24 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   exit 1
 fi
 
+# BUILD_MODE=acr   → `az acr build` in Azure (needs ACR Tasks, which Azure for Students subscriptions do not allow)
+# BUILD_MODE=local → docker buildx on this machine for linux/amd64 (what Container Apps runs), then push (default)
+: "${BUILD_MODE:=local}"
+REGISTRY="$ACR_NAME.azurecr.io"
+[ "$BUILD_MODE" = local ] && az acr login -n "$ACR_NAME" >/dev/null
+
 for target in api web; do
   src=$([ "$target" = api ] && echo backend || echo web)
-  echo "building aftercircular-$target:$GIT_SHA from $src/"
-  az acr build --registry "$ACR_NAME" --resource-group "$RESOURCE_GROUP" \
-    --image "aftercircular-$target:$GIT_SHA" --image "aftercircular-$target:latest" \
-    --file "$src/Dockerfile" "$src"
+  echo "building aftercircular-$target:$GIT_SHA from $src/ ($BUILD_MODE)"
+  if [ "$BUILD_MODE" = acr ]; then
+    az acr build --registry "$ACR_NAME" --resource-group "$RESOURCE_GROUP" \
+      --image "aftercircular-$target:$GIT_SHA" --image "aftercircular-$target:latest" \
+      --file "$src/Dockerfile" "$src"
+  else
+    docker buildx build --platform linux/amd64 --provenance=false \
+      -t "$REGISTRY/aftercircular-$target:$GIT_SHA" -t "$REGISTRY/aftercircular-$target:latest" \
+      --push "$src"
+  fi
 done
 
 echo
