@@ -1,4 +1,4 @@
-"""The relay's contract: only an authenticated CONNECT to the one allowed target, from an allowed source, gets a tunnel.
+"""The relay's contract: only an authenticated CONNECT to the one allowed target gets a tunnel.
 
     uv run --project backend pytest infra/sebi-proxy
 """
@@ -29,10 +29,10 @@ async def _ask(port: int, request: str, payload: bytes = b"") -> bytes:
     return out
 
 
-async def _scenario(sources: str = "") -> dict[str, bytes]:
+async def _scenario() -> dict[str, bytes]:
     echo = await asyncio.start_server(_echo, "127.0.0.1", 0)
     target = f"127.0.0.1:{echo.sockets[0].getsockname()[1]}"
-    cfg = Config({"PROXY_USER": "svc", "PROXY_PASSWORD": PASSWORD, "ALLOWED_TARGET": target, "ALLOWED_SOURCES": sources})
+    cfg = Config({"PROXY_USER": "svc", "PROXY_PASSWORD": PASSWORD, "ALLOWED_TARGET": target})
     relay = await asyncio.start_server(lambda r, w: handle(cfg, r, w), "127.0.0.1", 0)
     port = relay.sockets[0].getsockname()[1]
     out = {
@@ -54,7 +54,3 @@ def test_only_authenticated_connect_to_the_one_target_tunnels():
     assert out["other"].startswith(b"HTTP/1.1 403")
     assert out["ok"].startswith(b"HTTP/1.1 200 Connection Established") and out["ok"].endswith(b"ping")
 
-
-def test_unlisted_source_is_refused_before_anything_else():
-    out = asyncio.run(_scenario(sources="10.0.0.0/8"))
-    assert all(v.startswith(b"HTTP/1.1 403") for v in out.values())

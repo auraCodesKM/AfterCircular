@@ -5,11 +5,11 @@ relay runs in East Asia and lets the API's SEBI connector (and nothing else) ope
 
 It never sees plaintext: the API does the TLS handshake with SEBI *through* the tunnel and verifies SEBI's certificate
 itself, so the relay cannot read or change what SEBI returns. Everything that is not an authenticated
-`CONNECT www.sebi.gov.in:443` from an allowed source is refused and logged.
+`CONNECT www.sebi.gov.in:443` is refused and logged. There is no source-IP allowlist: Azure Container Instances does
+not preserve the client address (the relay sees 10.92.0.x), so the password and the single fixed target are the controls.
 
     PROXY_USER, PROXY_PASSWORD   required (Basic auth, compared in constant time)
     ALLOWED_TARGET               default www.sebi.gov.in:443
-    ALLOWED_SOURCES              optional comma-separated IPs/CIDRs (the API environment's outbound addresses)
     PORT                         default 3128
 """
 
@@ -18,7 +18,6 @@ from __future__ import annotations
 import asyncio
 import base64
 import hmac
-import ipaddress
 import logging
 import os
 
@@ -33,11 +32,7 @@ class Config:
         if len(self.password) < 24:
             raise SystemExit("PROXY_PASSWORD must be at least 24 characters")
         self.target = env.get("ALLOWED_TARGET", "www.sebi.gov.in:443").lower()
-        self.sources = [ipaddress.ip_network(s.strip(), strict=False) for s in env.get("ALLOWED_SOURCES", "").split(",") if s.strip()]
         self.port = int(env.get("PORT", "3128"))
-
-    def source_ok(self, ip: str) -> bool:
-        return not self.sources or any(ipaddress.ip_address(ip) in n for n in self.sources)
 
     def auth_ok(self, header: str | None) -> bool:
         if not header or not header.lower().startswith("basic "):
@@ -66,10 +61,6 @@ async def handle(cfg: Config, reader: asyncio.StreamReader, writer: asyncio.Stre
     peer = (writer.get_extra_info("peername") or ("?", 0))[0]
     verdict = "?"
     try:
-        if not cfg.source_ok(peer):
-            verdict = "403 source"
-            _reply(writer, "403 Forbidden")
-            return
         head = await asyncio.wait_for(reader.readuntil(b"\r\n\r\n"), 10)  # the stream limit caps it at MAX_HEAD
         lines = head.decode("latin-1").split("\r\n")
         parts = lines[0].split()
@@ -101,12 +92,16 @@ async def handle(cfg: Config, reader: asyncio.StreamReader, writer: asyncio.Stre
         verdict = verdict if verdict != "?" else f"closed {type(e).__name__}"
     finally:
         log.info("%s %s", peer, verdict)  # never the credentials
+        try:
+            await writer.drain()  # deliver the refusal before closing
+        except ConnectionError:
+            pass
         writer.close()
 
 
 async def serve(cfg: Config) -> None:
     server = await asyncio.start_server(lambda r, w: handle(cfg, r, w), "0.0.0.0", cfg.port, limit=MAX_HEAD)
-    log.info("CONNECT-only relay → %s on :%d (%d allowed source networks)", cfg.target, cfg.port, len(cfg.sources))
+    log.info("CONNECT-only relay → %s on :%d", cfg.target, cfg.port)
     async with server:
         await server.serve_forever()
 
