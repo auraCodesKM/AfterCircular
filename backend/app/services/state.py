@@ -471,4 +471,7 @@ def store() -> StateStore:
     global _store
     if _store is None:
         _store = StateStore()
+        from app.services.pipeline import recover_interrupted_scans  # local: pipeline imports this module
+
+        recover_interrupted_scans(_store)
     return _store

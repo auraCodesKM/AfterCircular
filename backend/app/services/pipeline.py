@@ -34,6 +34,31 @@ log = logging.getLogger(__name__)
 
 # statuses a document can be re-processed from on the next scan (it never reached a decision)
 RETRYABLE = {"DISCOVERED", "EXTRACTING", "RETRIEVING", "ANALYZING", "DRAFTING", "FAILED"}
+INTERRUPTED = "The scan was interrupted because the API restarted (for example a new deployment). Run the scan again; unfinished publications are retried."
+
+
+def recover_interrupted_scans(db: StateStore) -> list[str]:
+    """Once per process, before it serves requests: the API runs a single replica, so a scan still RUNNING at start-up was
+    owned by a process that is gone (restart, revision swap) and would otherwise stay RUNNING forever — blocking Scan now
+    and the demo reset. Fail it visibly, the same way a scan that raises is failed; its unfinished documents stay retryable."""
+    running = [(r[0], r[1]) for r in db.conn.execute("SELECT id, tenant_id FROM scans WHERE status='RUNNING'").fetchall()]
+    for sid, tid in running:
+        rec = db.get_scan(sid, tid)
+        if rec is None:
+            continue
+        rec.status, rec.finished_at = "FAILED", now()
+        rec.error, rec.error_kind, rec.error_detail = INTERRUPTED, "backend", "process restarted while the scan was running"
+        for s in rec.steps:
+            if s.status == "running":
+                s.status = "failed"
+        for pk in rec.document_ids:
+            pd = db.get_document(pk, tid)
+            if pd and pd.status in RETRYABLE:
+                db.update_document(pk, status="FAILED", error=INTERRUPTED)
+        db.save_scan(rec)
+        audit.record(db, tid, "SCAN_FAILED", scan_id=sid, error=INTERRUPTED, interrupted=True)
+        log.warning("scan %s (%s) was interrupted by a restart; marked FAILED", sid, tid)
+    return [sid for sid, _ in running]
 
 STEPS = [
     ("connect", "Connecting to SEBI"),

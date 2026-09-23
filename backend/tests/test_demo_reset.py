@@ -140,3 +140,27 @@ def test_http_endpoints_enforce_ownership(two):
             assert c.post("/api/workspace/demo/reset", json={"confirm_tenant_id": "nimbus"}).status_code == 401, "backend key required"
     finally:
         app.dependency_overrides.clear()
+
+
+def test_a_scan_orphaned_by_a_restart_is_failed_and_unblocks_scan_and_reset(two):
+    """A revision swap stopped the process mid-scan: the next process must not inherit a scan RUNNING forever."""
+    import json
+
+    from app.services.pipeline import INTERRUPTED, recover_interrupted_scans
+
+    steps = json.dumps([{"key": "triage", "label": "Triaging", "status": "running"}, {"key": "memo", "label": "Memo", "status": "done"}])
+    two.conn.execute("UPDATE scans SET status='RUNNING', started_at='2026-09-23T15:12:58+00:00', steps=?, document_ids=? WHERE tenant_id='nimbus'", (steps, json.dumps(["doc-nimbus", "doc-done"])))
+    two.conn.execute("UPDATE processed_documents SET status='DISCOVERED', processed_at='2026-09-23T15:13:00+00:00' WHERE tenant_id='nimbus'")
+    two.conn.execute("INSERT INTO processed_documents(id, tenant_id, source, jurisdiction, document_id, title, url, content_hash, processed_at, status) VALUES('doc-done','nimbus','SEBI','IN','1','t','u','h2','2026-09-23T15:14:00+00:00','AWAITING_REVIEW')")
+    two.conn.commit()
+    assert demo.status(two, _ctx("nimbus"))["scan_running"]
+
+    assert recover_interrupted_scans(two) == ["scan-nimbus"]
+    rec = two.get_scan("scan-nimbus", "nimbus")
+    assert rec.status == "FAILED" and rec.error == INTERRUPTED and rec.finished_at is not None
+    assert [s.status for s in rec.steps] == ["failed", "done"]
+    assert two.get_document("doc-nimbus", "nimbus").status == "FAILED", "unfinished publication is retried by the next scan"
+    assert two.get_document("doc-done", "nimbus").status == "AWAITING_REVIEW", "finished work is kept"
+    assert two.running_scan("nimbus") is None and not demo.status(two, _ctx("nimbus"))["scan_running"]
+    assert two.conn.execute("SELECT status FROM scans WHERE id='scan-acme'").fetchone()[0] == "COMPLETED", "other tenants' scans untouched"
+    assert recover_interrupted_scans(two) == [], "idempotent"
