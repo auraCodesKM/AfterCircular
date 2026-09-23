@@ -31,3 +31,21 @@ describe("conflict answer (stored Nimbus investigation)", () => {
     for (const line of c.markdown.split("\n")) if (line.includes("…")) expect(line).toMatch(/…(\s\[\d+\])*(\s\|.*)?$|…[^[]*$/);
   });
 });
+
+// the two stored answers that produced "Encountered two children with the same key, `reg-0-header`" in the browser
+import multi from "@/lib/__tests__/fixtures/nimbus_multi_6.json";
+import prioritize from "@/lib/__tests__/fixtures/nimbus_prioritize_4.json";
+import type { DocCard } from "@/lib/pipeline-types";
+import { cardSources } from "@/lib/sources";
+
+describe("answers citing several circulars (stored Nimbus investigations)", () => {
+  for (const [name, inv] of [["6 circulars", multi], ["4 circulars", prioritize]] as const) {
+    it(`${name}: every rendered source has a unique key`, () => {
+      const ids = composeAnswer(inv as never).sources.map((s) => s.id);
+      expect(ids.length).toBeGreaterThan(0);
+      expect(new Set(ids).size).toBe(ids.length);
+      const all = (inv.answer.documents as unknown as DocCard[]).flatMap((d) => cardSources(d).map((s) => s.id));
+      expect(new Set(all).size).toBe(all.length);
+    });
+  }
+});
