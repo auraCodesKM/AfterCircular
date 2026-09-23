@@ -13,9 +13,10 @@ Everything below is idempotent unless it says otherwise. No command here prints 
 |---|---|
 | Environment | `acae-aftercircular-dev`, Korea Central, `environmentMode: WorkloadProfiles` (Consumption), domain `salmonbay-7447d6fc.koreacentral.azurecontainerapps.io` |
 | Web (external) | `aca-aftercircular-web` → https://aca-aftercircular-web.salmonbay-7447d6fc.koreacentral.azurecontainerapps.io — image `aftercircular-web:8d0f91c18719`, identity `id-aftercircular-web` (AcrPull) |
-| API (internal) | `aca-aftercircular-api` → `http://aca-aftercircular-api` inside the environment — image `aftercircular-api:34bee9c289a8`, min = max = 1 replica, identity `id-aftercircular-api` (Cognitive Services OpenAI User on the Foundry account, Search Index Data Contributor on the search service, AcrPull) |
+| API (internal) | `aca-aftercircular-api` → `http://aca-aftercircular-api` inside the environment — image `aftercircular-api:66cd64bbfc1e`, min = max = 1 replica, identity `id-aftercircular-api` (Cognitive Services OpenAI User on the Foundry account, Search Index Data Contributor **and** Search Service Contributor on the search service — the second is needed for `get_index`, without it indexing fails with 403 — AcrPull) |
+| SEBI relay | `aci-aftercircular-sebi-relay`, Azure Container Instance in **East Asia**, 0.5 vCPU / 0.5 GB, image `sebi-proxy:343cf9fed479` (`infra/sebi-proxy`), `aftercircular-sebi-relay.eastasia.azurecontainer.io:3128`. CONNECT-only to `www.sebi.gov.in:443`, Basic auth (secure env var on the ACI; `sebi-proxy-url` secret → `SEBI_PROXY_URL` on the API). Pulls with `id-aftercircular-web` (AcrPull only). |
 | State | storage link `acdata` → `staftercirculardev/aftercircular-data`, mounted at `/data` with `uid=10001,gid=10001,dir_mode=0770,file_mode=0660,nobrl,mfsymlinks,cache=strict`; `SQLITE_JOURNAL_MODE=DELETE` |
-| Secrets | API: `backend-api-key`, `typesafe-api-key`, `appinsights`. Web: `backend-api-key`, `auth-secret`, `gh-id`, `gh-secret`. No server-side GitHub token. |
+| Secrets | API: `backend-api-key`, `typesafe-api-key`, `appinsights`, `sebi-proxy-url`. Web: `backend-api-key`, `auth-secret`, `gh-id`, `gh-secret`. No server-side GitHub token. |
 
 Verified at runtime from inside the deployed API container: `/health/live` 200, `/health/ready` 200 (`environment=production`);
 SQLite read + write on the share, and the same rows readable after a revision restart and after the environment was
@@ -25,13 +26,22 @@ as `action_request` and refusing it. `scripts/azure-smoke-test.sh` passes 8/8 (w
 reached from the web container, `foundry` / `azure-ai-search` / `sebi_mode=live` / `production`). Application Insights
 receives dependency telemetry (Jev); request telemetry was not observed at the time of writing.
 
-**Blocker — SEBI from Azure Korea Central.** From the environment's egress IP, TCP to `www.sebi.gov.in:443` connects but
-the TLS handshake times out on both SEBI addresses (tested with default TLS, TLS 1.2 only, X25519 only and a 1200-byte
-MSS clamp); RBI and NSE complete TLS from the same container. The same probe from Azure East Asia and Malaysia West
-completes TLS and returns the real listing (certificate fingerprint identical to the one seen from India), and from
-Indonesia Central it times out. The connector fails closed (`LIVE_FAILED`, no snapshot), so a live scan in this
-deployment stops at *connect*. The allowed regions for this subscription are koreacentral, eastasia, malaysiawest,
-indonesiacentral and uaenorth, and the subscription allows only one Container Apps environment.
+**SEBI from Azure Korea Central → relay.** From the environment's egress IPs, TCP to `www.sebi.gov.in:443` connects but
+the TLS handshake times out (tested with default TLS, TLS 1.2 only, X25519 only and a 1200-byte MSS clamp); RBI and NSE
+complete TLS from the same container, and East Asia / Malaysia West reach SEBI with the genuine certificate. The subscription
+allows one Container Apps environment, so the SEBI connector alone goes through the East Asia relay (`SEBI_PROXY_URL`).
+It is a TCP tunnel: the API does the TLS handshake with SEBI and verifies the certificate (`*.sebi.gov.in`, Sectigo,
+SHA-256 `F972D90D…`, identical to the one seen from India). Foundry, Search, GitHub and Jev never use it (no
+`HTTP(S)_PROXY` in the environment). Relay down → the scan is `LIVE_FAILED`, never a snapshot. ACI does not preserve the
+client IP (the relay sees 10.92.0.x), so there is no source allowlist; the controls are the 256-bit password and the single
+fixed target (verified from outside: wrong password → 407, plain GET → 405).
+
+**Live E2E on the deployed API (2026-09-23, scan `scan_0ae1631957db`, tenant `acme-securities-181441765`):** SEBI
+`LIVE_SUCCESS`, 6 new circulars; 48 policy chunks from `acme-securities-policies@bbad523` embedded and indexed in
+`policies-dev`; 3 archived at Jev triage (no model call); 102914 and 103915 analysed → `NEEDS_INVESTIGATION`; 102584 →
+`CONFLICT` (2 Foundry calls, 76 Jev judgments / 22 decision records, 10 Azure AI Search results, deterministic gate, memo)
+→ review `rev_9012c57d538d` `AWAITING_REVIEW`. 6 Foundry calls, 0 errors, estimated $0.056. Approval → GitHub issue was not
+exercised (human approval only).
 
 Gotchas found while (re)creating it:
 - `az containerapp env create` (CLI 2.90) creates an **Express** environment, which cannot mount Azure Files. Create
