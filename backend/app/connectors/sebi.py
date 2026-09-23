@@ -124,7 +124,9 @@ class SEBIConnector(RegulatorySource):
     # ---- HTTP ----------------------------------------------------------------------------------------------------------
     def _make_client(self) -> httpx.AsyncClient:
         t = httpx.Timeout(self.timeout, connect=min(10.0, self.timeout), read=self.timeout, pool=self.timeout)
-        return httpx.AsyncClient(headers=HEADERS, timeout=t, follow_redirects=True, limits=httpx.Limits(max_connections=4))
+        # the relay (when configured) is for SEBI only: no other client in the app is given it; unreachable relay = LIVE_FAILED
+        return httpx.AsyncClient(headers=HEADERS, timeout=t, follow_redirects=True, limits=httpx.Limits(max_connections=4),
+                                 proxy=settings().sebi_proxy_url or None)
 
     async def _get(self, client: httpx.AsyncClient, url: str, *, expect: str) -> httpx.Response:
         """One GET with bounded retries (transient only), explicit 403/429, content-type and host validation."""

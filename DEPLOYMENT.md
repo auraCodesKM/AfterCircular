@@ -7,6 +7,41 @@ share; the AI services are the ones the demo already uses.
 
 Everything below is idempotent unless it says otherwise. No command here prints a secret.
 
+## Current deployment — verified 2026-09-23 (runtime tests, not configuration)
+
+| | value |
+|---|---|
+| Environment | `acae-aftercircular-dev`, Korea Central, `environmentMode: WorkloadProfiles` (Consumption), domain `salmonbay-7447d6fc.koreacentral.azurecontainerapps.io` |
+| Web (external) | `aca-aftercircular-web` → https://aca-aftercircular-web.salmonbay-7447d6fc.koreacentral.azurecontainerapps.io — image `aftercircular-web:8d0f91c18719`, identity `id-aftercircular-web` (AcrPull) |
+| API (internal) | `aca-aftercircular-api` → `http://aca-aftercircular-api` inside the environment — image `aftercircular-api:34bee9c289a8`, min = max = 1 replica, identity `id-aftercircular-api` (Cognitive Services OpenAI User on the Foundry account, Search Index Data Contributor on the search service, AcrPull) |
+| State | storage link `acdata` → `staftercirculardev/aftercircular-data`, mounted at `/data` with `uid=10001,gid=10001,dir_mode=0770,file_mode=0660,nobrl,mfsymlinks,cache=strict`; `SQLITE_JOURNAL_MODE=DELETE` |
+| Secrets | API: `backend-api-key`, `typesafe-api-key`, `appinsights`. Web: `backend-api-key`, `auth-secret`, `gh-id`, `gh-secret`. No server-side GitHub token. |
+
+Verified at runtime from inside the deployed API container: `/health/live` 200, `/health/ready` 200 (`environment=production`);
+SQLite read + write on the share, and the same rows readable after a revision restart and after the environment was
+recreated; Foundry `gpt-5-mini` Responses API call (real `resp_…` id); `text-embedding-3-small` (1536 dims); Azure AI Search
+hybrid query returning POL-002 chunks; Jev `jev-1.13.0` (calibrated) routing an "approve and create the issue" request
+as `action_request` and refusing it. `scripts/azure-smoke-test.sh` passes 8/8 (web ingress, anonymous redirect, API
+reached from the web container, `foundry` / `azure-ai-search` / `sebi_mode=live` / `production`). Application Insights
+receives dependency telemetry (Jev); request telemetry was not observed at the time of writing.
+
+**Blocker — SEBI from Azure Korea Central.** From the environment's egress IP, TCP to `www.sebi.gov.in:443` connects but
+the TLS handshake times out on both SEBI addresses (tested with default TLS, TLS 1.2 only, X25519 only and a 1200-byte
+MSS clamp); RBI and NSE complete TLS from the same container. The same probe from Azure East Asia and Malaysia West
+completes TLS and returns the real listing (certificate fingerprint identical to the one seen from India), and from
+Indonesia Central it times out. The connector fails closed (`LIVE_FAILED`, no snapshot), so a live scan in this
+deployment stops at *connect*. The allowed regions for this subscription are koreacentral, eastasia, malaysiawest,
+indonesiacentral and uaenorth, and the subscription allows only one Container Apps environment.
+
+Gotchas found while (re)creating it:
+- `az containerapp env create` (CLI 2.90) creates an **Express** environment, which cannot mount Azure Files. Create
+  the environment through ARM with `properties.environmentMode: "WorkloadProfiles"` and a `Consumption` workload profile.
+- A revision mounted **without** `nobrl` hung on SQLite locks and kept its SMB handles until it was stopped, and the
+  next revision then failed readiness with `unable to open database file`. Keep `nobrl` on every revision.
+- A revision restart is rolling: for a few seconds the old and the new replica both run against the same database.
+- `az containerapp exec` needs a TTY and is rate-limited (HTTP 429, `retry-after: 600`), and a long `--command` fails
+  with a 404 handshake: keep probes to one short exec each.
+
 | | value |
 |---|---|
 | Subscription | Azure for Students |

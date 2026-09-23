@@ -87,6 +87,9 @@ class Settings(BaseSettings):
     def sebi_selected_ids(self) -> list[str]:
         return [x.strip() for x in self.sebi_selected_entry_ids.split(",") if x.strip()]
     sebi_timeout_seconds: float = 20
+    # Optional CONNECT relay for the SEBI connector only (http://user:pass@host:port — infra/sebi-proxy). SEBI drops TLS
+    # from Azure Korea Central; the relay tunnels TCP, so TLS and certificate verification stay end to end with SEBI.
+    sebi_proxy_url: str = ""
 
     github_token: str = ""
 

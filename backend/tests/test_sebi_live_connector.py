@@ -235,3 +235,10 @@ async def test_live_sebi_listing_and_one_circular():
     d = res.documents[0]
     assert d.source_mode == "LIVE" and not d.synthetic and d.url.startswith("https://www.sebi.gov.in/") and d.document_url.startswith("https://www.sebi.gov.in/")
     assert len(d.content) >= S.MIN_TEXT_CHARS and d.published_date is not None
+
+
+async def test_unreachable_sebi_relay_is_live_failed_not_snapshot(monkeypatch):
+    from app.config import settings
+    monkeypatch.setattr(settings(), "sebi_proxy_url", "http://svc:pw@127.0.0.1:9")  # nothing listens on port 9
+    res = await SEBIConnector(mode="live", retries=0, timeout=3).fetch_documents(1)
+    assert res.status == "LIVE_FAILED" and res.documents == [] and "unreachable" in (res.error or "")
